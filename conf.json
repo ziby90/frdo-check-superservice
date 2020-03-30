@@ -1,0 +1,52 @@
+{
+    "port" :"8031",
+	"dbstring":"host=10.10.11.17 port=5432 user=userfis password=userfis dbname=FIS_Superservice sslmode=disable",
+	"dblog": true,
+	"mailer" : {
+		"isSMTP": true,
+		"hostname": "mail2.inevm.ru",
+		"host": "mail2.inevm.ru",
+		"name": "",
+		"username": "autosender@inevm.ru",
+		"password": ""
+	},
+	"crypta" : {
+		"aeneas":"tcp://10.10.11.112:5556",
+		"openCert64" : "MIIEYTCCBBCgAwIBAgITEgBBhm25R8IVG6FyMgABAEGGbTAIBgYqhQMCAgMwfzEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBjcnlwdG9wcm8ucnUxCzAJBgNVBAYTAlJVMQ8wDQYDVQQHEwZNb3Njb3cxFzAVBgNVBAoTDkNSWVBUTy1QUk8gTExDMSEwHwYDVQQDExhDUllQVE8tUFJPIFRlc3QgQ2VudGVyIDIwHhcNMjAwMjI4MTMzMjI0WhcNMjAwNTI4MTM0MjI0WjCCAWgxGDAWBgUqhQNkARINNTA4Nzc0NjY5NzUyODE6MDgGA1UECQwx0KPQuy7Qn9GA0LXRgdC90LXQvdGB0LrQuNC5INCS0LDQuyDQtC4xOSDRgdGC0YAuMTETMBEGA1UECgwK0KHQsNC80YvQuTEVMBMGA1UEBwwM0JzQvtGB0LrQstCwMRowGAYIKoUDA4EDAQESDDAwNzgxNDUwODkyMTEbMBkGCSqGSIb3DQEJARYMbWFpbEBtYWlsLnJ1MRowGAYIKoUDA4EDAQESDDExMTExMTExMTExMTEYMBYGBSqFA2QBEg0xMTExMTExMTExMTExMQswCQYDVQQGEwJSVTEiMCAGA1UEKgwZ0JjQstCw0L0g0JjQstCw0L3QvtCy0LjRhzERMA8GA1UEDAwI0KDRg9C70YwxGjAYBgNVBAMMEdCY0KEg0KHQsNC80L7Qs9C+MRUwEwYDVQQEDAzQmNCy0LDQvdC+0LIwZjAfBggqhQMHAQEBATATBgcqhQMCAiQABggqhQMHAQECAgNDAARA2MWlMDJAQpXr2rSxFAi8PhtQJ36bw4qwaSVq9053YzKPTbh1wU5wF32Y3iEQnkQl3SXbY43ZxWeEPfdvPvaHL6OCAXMwggFvMBMGA1UdJQQMMAoGCCsGAQUFBwMEMAsGA1UdDwQEAwIE8DAdBgNVHQ4EFgQU1xJln3hUeA/fRN6yTyk7OT6DSU0wHwYDVR0jBBgwFoAUToM+FGnv7F16lStfEf43MhZJVSswXAYDVR0fBFUwUzBRoE+gTYZLaHR0cDovL3Rlc3RjYS5jcnlwdG9wcm8ucnUvQ2VydEVucm9sbC9DUllQVE8tUFJPJTIwVGVzdCUyMENlbnRlciUyMDIoMSkuY3JsMIGsBggrBgEFBQcBAQSBnzCBnDBkBggrBgEFBQcwAoZYaHR0cDovL3Rlc3RjYS5jcnlwdG9wcm8ucnUvQ2VydEVucm9sbC90ZXN0LWNhLTIwMTRfQ1JZUFRPLVBSTyUyMFRlc3QlMjBDZW50ZXIlMjAyKDEpLmNydDA0BggrBgEFBQcwAYYoaHR0cDovL3Rlc3RjYS5jcnlwdG9wcm8ucnUvb2NzcC9vY3NwLnNyZjAIBgYqhQMCAgMDQQBrsvMSbI8zrcGATqppTRcFEBxB9QeT80YoZ+ZmweEZk3tLXFvMQ7ezHogsKW0sL6XDVzJQKzDmHIfO49NbUm7Y"
+	},
+	"jwtgost" : {
+		"headervalschemapath":"/schema/json/jwtheader_schema.json",
+		"headergetmessagevalschemapath":"/schema/json/jwtheadergetmessage_schema.json"
+	},
+	"log" : {
+		"loglevel":"Debug"
+	},
+	"redis" : {
+		"ip" : "10.10.11.112",
+		"port" : "6379",
+		"maxIdle" : "10",    
+		"idleTimeout" : "10", 
+		"type" : "tcp"      
+	},
+	"jwtRequestDeamon" :{
+		"pidfilename":"deamon.pid",
+			"pidfileperm":"0644",
+			"logfilename":"deamon.log",
+			"logfileperm":"0640",
+			"workdir":"/home/obmoroz/work/src/superservice/jwtrequest-deamon",
+			"umask":"027",
+			"args":"",
+			"workers":4
+	  },
+	"jwtParseDeamon" :{
+		"pidfilename":"deamon.pid",
+		"pidfileperm":"0644",
+		"logfilename":"deamon.log",
+		"logfileperm":"0640",
+		"workdir":"/home/obmoroz/work/src/superservice/jwtparse-deamon",
+		"umask":"027",
+		"args":"",
+		"workers":4
+	},
+	"rootdir" :"/home/obmoroz/work/src/superservice"
+}
