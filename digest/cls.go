@@ -2,6 +2,13 @@ package digest
 
 import "time"
 
+type AchievementCategory struct {
+	Id       uint `xml:"AchievemntCategoryId"`
+	Name     string
+	Created  time.Time
+	IdAuthor uint // Идентификатор автора
+	Actual   bool `json:"actual"` // Актуальность
+}
 type Benefit struct {
 	Id        uint `xml:"BenefitID"`
 	Name      string
@@ -102,6 +109,9 @@ type Subject struct {
 
 // TableNames
 
+func (AchievementCategory) TableName() string {
+	return "cls.achievement_categories"
+}
 func (Benefit) TableName() string {
 	return "cls.benefits"
 }

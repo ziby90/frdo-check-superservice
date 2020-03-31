@@ -8,7 +8,6 @@ import (
 	"strconv"
 )
 
-
 func AddCampaignHandler(r *mux.Router) {
 	r.HandleFunc("/api/campaign/list", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
@@ -19,12 +18,16 @@ func AddCampaignHandler(r *mux.Router) {
 	}).Methods("GET")
 
 	r.HandleFunc("/api/campaign/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.NewResult()
+		res := handlers.ResultInfo{
+			Done:    false,
+			Message: nil,
+			Items:   nil,
+		}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
 			res.GetInfoCampaign(uint(id))
-		}else{
+		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}

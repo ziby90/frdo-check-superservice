@@ -4,39 +4,40 @@ import (
 	"persons/config"
 	"persons/digest"
 	"persons/error_handler"
+	"strings"
 	"time"
 )
-
 
 var validBase64Err = error_handler.ErrorType{Type: 1, ToUserType: 500}
 
 type CampaignMain struct {
-	Id               	uint            `json:"id"`		// Идентификатор
-	UID              	string          `json:"uid"`		// Идентификатор от организации
-	Name             	string        	`json:"name"` 		// Наименование
-	IdCampaignType   	uint			`json:"id_campaign_type"`
-	NameCampaignType 	string			`json:"campaign_type_name"`
-	IdCampaignStatus 	uint			`json:"id_campaign_status"`
-	NameCampaignStatus 	string			`json:"campaign_status_name"`
-	EducationForms		[]EducationFormRespons	`json:"education_forms"`
-	EducationLevels		[]EducationLevelRespons	`json:"education_levels"`
-	YearStart        	int64        	`json:"year_start"`            // Год начала компании
-	YearEnd          	int64       	`json:"year_end"`                // Год окончания компании
-	Created          	time.Time    	`json:"created"`			// Дата создания
+	Id                  uint      `json:"id"`   // Идентификатор
+	UID                 string    `json:"uid"`  // Идентификатор от организации
+	Name                string    `json:"name"` // Наименование
+	IdCampaignType      uint      `json:"id_campaign_type"`
+	NameCampaignType    string    `json:"campaign_type_name"`
+	IdCampaignStatus    uint      `json:"id_campaign_status"`
+	NameCampaignStatus  string    `json:"campaign_status_name"`
+	EducationForms      []uint    `json:"education_forms"`
+	EducationFormsName  []string  `json:"education_forms_names"`
+	EducationLevels     []uint    `json:"education_levels"`
+	EducationLevelsName []string  `json:"education_levels_names"`
+	YearStart           int64     `json:"year_start"` // Год начала компании
+	YearEnd             int64     `json:"year_end"`   // Год окончания компании
+	Created             time.Time `json:"created"`    // Дата создания
 }
 
-
 type CampaignResponse struct {
-	Id               	uint            `json:"id"`		// Идентификатор
-	UID              	string          `json:"uid"`		// Идентификатор от организации
-	Name             	string        	`json:"name"` 		// Наименование
-	IdCampaignType   	uint			`json:"id_campaign_type"`
-	NameCampaignType 	string			`json:"campaign_type_name"`
-	IdCampaignStatus 	uint			`json:"id_campaign_status"`
-	NameCampaignStatus 	string			`json:"campaign_status_name"`
-	YearStart        	int64        	`json:"year_start"`            // Год начала компании
-	YearEnd          	int64       	`json:"year_end"`                // Год окончания компании
-	Created          	time.Time    	`json:"created"`			// Дата создания
+	Id                 uint      `json:"id"`   // Идентификатор
+	UID                string    `json:"uid"`  // Идентификатор от организации
+	Name               string    `json:"name"` // Наименование
+	IdCampaignType     uint      `json:"id_campaign_type"`
+	NameCampaignType   string    `json:"campaign_type_name"`
+	IdCampaignStatus   uint      `json:"id_campaign_status"`
+	NameCampaignStatus string    `json:"campaign_status_name"`
+	YearStart          int64     `json:"year_start"` // Год начала компании
+	YearEnd            int64     `json:"year_end"`   // Год окончания компании
+	Created            time.Time `json:"created"`    // Дата создания
 }
 
 func (result *Result) GetListCampaign() {
@@ -44,7 +45,16 @@ func (result *Result) GetListCampaign() {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaigns []digest.Campaign
-	db := conn.Order(result.Params.Sort.Field+` `+result.Params.Sort.Order).Limit(result.Params.Paginator.Limit).Offset(result.Params.Paginator.Offset).Find(&campaigns)
+	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	if result.Search != `` {
+		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	}
+	dbCount := db.Model(&campaigns).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&campaigns)
 	var campaignResponses []CampaignResponse
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
@@ -57,8 +67,8 @@ func (result *Result) GetListCampaign() {
 		result.Message = &message
 		return
 	}
-	if db.RowsAffected>0 {
-		for _, campaign := range campaigns{
+	if db.RowsAffected > 0 {
+		for _, campaign := range campaigns {
 			db = conn.Model(&campaign).Related(&campaign.CampaignType, `IdCampaignType`)
 			db = conn.Model(&campaign).Related(&campaign.CampaignStatus, `IdCampaignStatus`)
 			c := CampaignResponse{
@@ -78,10 +88,16 @@ func (result *Result) GetListCampaign() {
 		result.Done = true
 		result.Items = campaignResponses
 		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = make(map[string]string)
+		return
 	}
 }
 
-func (result *Result) GetInfoCampaign(ID uint) {
+func (result *ResultInfo) GetInfoCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -98,7 +114,7 @@ func (result *Result) GetInfoCampaign(ID uint) {
 		result.Message = &message
 		return
 	}
-	if db.RowsAffected>0 {
+	if db.RowsAffected > 0 {
 		db = conn.Model(&campaign).Related(&campaign.CampaignType, `IdCampaignType`)
 		db = conn.Model(&campaign).Related(&campaign.CampaignStatus, `IdCampaignStatus`)
 
@@ -121,13 +137,25 @@ func (result *Result) GetInfoCampaign(ID uint) {
 			Created:            campaign.Created,
 		}
 		for _, campEducForm := range campEducForms {
-			c.EducationForms = append(c.EducationForms, GetEducFormResponse(campEducForm.IdEducationForm))
+			var educForm digest.EducationForm
+			db = conn.Find(&educForm, campEducForm.IdEducationForm)
+			c.EducationForms = append(c.EducationForms, educForm.Id)
+			c.EducationFormsName = append(c.EducationFormsName, educForm.Name)
 		}
 		for _, campEducLevel := range campEducLevels {
-			c.EducationLevels = append(c.EducationLevels, GetEducLevelResponse(campEducLevel.IdEducationLevel))
+			var educLevel digest.EducationLevel
+			db = conn.Find(&educLevel, campEducLevel.IdEducationLevel)
+			c.EducationLevels = append(c.EducationLevels, educLevel.Id)
+			c.EducationLevelsName = append(c.EducationLevelsName, educLevel.Name)
 		}
 		result.Done = true
 		result.Items = c
+		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = make(map[string]string)
 		return
 	}
 }
