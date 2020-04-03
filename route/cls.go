@@ -9,7 +9,7 @@ import (
 
 func AddClsHandler(r *mux.Router) {
 
-	r.HandleFunc("/api/cls/list/{cls_name}", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/cls/list/{cls_name}", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultCls
 		vars := mux.Vars(r)
 		keys := r.URL.Query()

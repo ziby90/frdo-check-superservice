@@ -27,6 +27,7 @@ type Configuration struct {
 	Port     string `json:"port"`
 	DbString string `json:"dbstring"`
 	Dblog    bool   `json:"dblog"`
+	Salt     string `json:"salt"`
 	Mailer   Mailer `json:"mailer"`
 
 	//Sms      Sms    `json:"sms"`

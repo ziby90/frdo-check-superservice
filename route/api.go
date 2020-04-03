@@ -4,8 +4,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetApiHandler(r *mux.Router) {
+func GetApiHandlerAuth(r *mux.Router) {
 	AddCampaignHandler(r)
 	AddClsHandler(r)
 	AddAchievementsHandler(r)
+}
+
+func GetApiHandlerNoOrg(r *mux.Router) {
+	AddUserHandler(r)
+	AddOrgsHandler(r)
+}
+
+func GetApiHandlerNoAuth(r *mux.Router) {
+	AddAuthHandler(r)
 }

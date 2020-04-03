@@ -25,6 +25,7 @@ type CampaignMain struct {
 	YearStart           int64     `json:"year_start"` // Год начала компании
 	YearEnd             int64     `json:"year_end"`   // Год окончания компании
 	Created             time.Time `json:"created"`    // Дата создания
+
 }
 
 type CampaignResponse struct {
@@ -45,7 +46,7 @@ func (result *Result) GetListCampaign() {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaigns []digest.Campaign
-	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(result.Sort.Field + ` ` + result.Sort.Order)
 	if result.Search != `` {
 		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	}
@@ -92,7 +93,7 @@ func (result *Result) GetListCampaign() {
 		result.Done = true
 		message := `Компании не найдены.`
 		result.Message = &message
-		result.Items = make(map[string]string)
+		result.Items = []digest.Campaign{}
 		return
 	}
 }
@@ -158,4 +159,100 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		result.Items = make(map[string]string)
 		return
 	}
+}
+
+func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	conn.LogMode(config.Conf.Dblog)
+
+	var campaign digest.Campaign
+	campaign.Organization.Id = user.CurrentOrganization.Id
+	campaign.IdOrganization = user.CurrentOrganization.Id
+	campaign.IdAuthor = user.Id
+	campaign.Created = time.Now()
+	campaign.Name = campaignData.Name
+
+	campaign.IdCampaignType = campaignData.IdCampaignType
+	campaign.CampaignType.Id = campaignData.IdCampaignType
+	db := tx.Find(&campaign.CampaignType, campaign.CampaignType.Id)
+	if db.Error != nil || !campaign.CampaignType.Actual {
+		result.SetErrorResult(`Не найден тип компании`)
+		return
+	}
+
+	campaign.IdCampaignStatus = campaignData.IdCampaignStatus
+	campaign.CampaignStatus.Id = campaignData.IdCampaignStatus
+	// проверка типа
+	db = tx.Find(&campaign.CampaignStatus, campaign.CampaignStatus.Id)
+	if db.Error != nil || !campaign.CampaignStatus.Actual {
+		result.SetErrorResult(`Статус комании не найден`)
+		return
+	}
+
+	campaign.YearEnd = campaignData.YearEnd
+	// проверка года окончания
+	if int(campaignData.YearEnd) < 1900 || int(campaignData.YearEnd) > time.Now().Year() {
+		result.SetErrorResult(`Год окончания за пределами`)
+		return
+	}
+
+	campaign.YearStart = campaignData.YearStart
+	// проверка года начала
+	if int(campaignData.YearStart) < 1900 || int(campaignData.YearStart) > time.Now().Year() {
+		result.SetErrorResult(`Год начала за пределами`)
+		return
+	}
+
+	if campaignData.YearStart > campaign.YearEnd {
+		result.SetErrorResult(`Год начала не может быть позже года окончания`)
+		return
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&campaign)
+	if db.Error != nil {
+		tx.Rollback()
+		m := db.Error.Error()
+		result.Message = &m
+		return
+	}
+
+	for _, educLevelId := range campaignData.EducationLevels {
+		var educationLevel digest.EducationLevel
+		tx.Find(&educationLevel, educLevelId)
+		if !educationLevel.Actual {
+			result.SetErrorResult(`Уровень образования не найден`)
+			return
+		}
+		row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, educLevelId).Select(`id`).Row()
+		var idEducLevelCampaignType uint
+		err := row.Scan(&idEducLevelCampaignType)
+		if err != nil && idEducLevelCampaignType <= 0 {
+			result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+			return
+		}
+		campaignEducLevel := digest.CampaignEducLevel{
+			IdCampaign:       campaign.Id,
+			IdEducationLevel: educLevelId,
+		}
+		db = tx.Create(&campaignEducLevel)
+	}
+
+	for _, educFormlId := range campaignData.EducationForms {
+		var educationForm digest.EducationForm
+		tx.Find(&educationForm, educFormlId)
+		if !educationForm.Actual {
+			result.SetErrorResult(`Форма образования не найдена`)
+			return
+		}
+		campaignEducForm := digest.CampaignEducForm{
+			IdCampaign:      campaign.Id,
+			IdEducationForm: educFormlId,
+		}
+		db = tx.Create(&campaignEducForm)
+	}
+
+	result.Items = campaign.Id
+	result.Done = true
+	tx.Commit()
 }

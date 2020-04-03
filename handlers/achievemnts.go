@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"persons/config"
 	"persons/digest"
@@ -97,7 +96,7 @@ func (result *Result) GetListAchievement() {
 		result.Done = true
 		message := `Достижения не найдены.`
 		result.Message = &message
-		result.Items = make(map[string]string)
+		result.Items = []digest.IndividualAchievements{}
 		return
 	}
 }
@@ -117,7 +116,6 @@ func (result *Result) GetListAchievementByCompanyId(campaignId uint) {
 	} else {
 		db = conn.Order(`created asc `)
 	}
-	fmt.Println(result.Sort)
 	db = db.Where(`id_campaign=?`, campaignId)
 	if result.Search != `` {
 		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
@@ -163,7 +161,7 @@ func (result *Result) GetListAchievementByCompanyId(campaignId uint) {
 		result.Done = true
 		message := `Достижения не найдены.`
 		result.Message = &message
-		result.Items = make(map[string]string)
+		result.Items = []AchievementResponse{}
 		return
 	}
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"math"
+	"persons/digest"
 	"strconv"
 )
 
@@ -25,12 +26,14 @@ type Result struct {
 	Paginator Paginator   `json:"paginator"`
 	Sort      Sort        `json:"sort"`
 	Search    string      `json:"search"`
+	User      digest.User `json:"-"`
 }
 
 type ResultInfo struct {
 	Done    bool        `json:"done"`
 	Message *string     `json:"message, omitempty"`
-	Items   interface{} `json:"data"`
+	Items   interface{} `json:"data, omitempty"`
+	User    digest.User `json:"-"`
 }
 
 type ResultCls struct {
@@ -99,4 +102,10 @@ func (paginator *Paginator) Make() {
 	}
 	paginator.AllPage = int(math.Ceil(float64(paginator.TotalCount) / float64(paginator.Limit)))
 	paginator.Offset = (paginator.CurrentPage - 1) * paginator.Limit
+}
+
+func (result *ResultInfo) SetErrorResult(m string) {
+	result.Done = false
+	result.Message = &m
+	return
 }

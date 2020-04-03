@@ -1,15 +1,17 @@
 package service
 
 import (
+	"crypto/sha256"
 	_ "database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"persons/config"
 	"regexp"
 	"strconv"
 	"strings"
-	"persons/config"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -26,6 +28,33 @@ type File struct {
 	Title   string `json:"title,omitempty"`
 	Size    int64  `json:"size,omitempty"`
 	Type    string `json:"type, omitempty"`
+}
+
+func ConvertInterfaceToUint(v interface{}) (uint, error) {
+	u, err := strconv.ParseUint(fmt.Sprintf(`%v`, v), 10, 32)
+	if err == nil {
+		return uint(u), nil
+	}
+	return 0, err
+}
+
+func ConvertInterfaceToInt(v interface{}) (int64, error) {
+	i, err := strconv.ParseInt(fmt.Sprintf(`%v`, v), 10, 64)
+	if err == nil {
+		return i, nil
+	}
+	return 0, err
+}
+
+func GetHash(str string, salt bool) string {
+	hasher := sha256.New()
+	s := str
+	if salt {
+		s += config.Conf.Salt
+	}
+	hasher.Write([]byte(s))
+	h := hex.EncodeToString(hasher.Sum(nil))
+	return h
 }
 
 func SplitNameCell(name string) (string, int) {

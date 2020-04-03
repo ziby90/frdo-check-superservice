@@ -9,7 +9,7 @@ import (
 )
 
 func AddAchievementsHandler(r *mux.Router) {
-	r.HandleFunc("/api/achievements/list", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/achievements/list", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
@@ -17,7 +17,7 @@ func AddAchievementsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
-	r.HandleFunc("/api/campaign/{id:[0-9]+}/achievements", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/campaign/{id:[0-9]+}/achievements", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
@@ -32,7 +32,7 @@ func AddAchievementsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
-	r.HandleFunc("/api/achievements/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/achievements/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{
 			Done:    false,
 			Message: nil,
