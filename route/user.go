@@ -27,7 +27,10 @@ func AddUserHandler(r *mux.Router) {
 	r.HandleFunc("/user/current-org", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		data := make(map[string]interface{})
-		json.NewDecoder(r.Body).Decode(&data)
+		err := json.NewDecoder(r.Body).Decode(&data)
+		if err != nil {
+			fmt.Println(`ошибка ` + err.Error())
+		}
 		paramId := fmt.Sprintf(`%v`, data[`id`])
 		if paramId == `` {
 			service.ReturnJSON(w, res)

@@ -53,7 +53,7 @@ func (result *Result) GetListOrganization() {
 		result.Done = true
 		message := `Организации не найдены.`
 		result.Message = &message
-		result.Items = make(map[string]string)
+		result.Items = []digest.Organization{}
 		return
 	}
 }
@@ -116,11 +116,10 @@ func CheckOrgCookie(user digest.User, r *http.Request) uint {
 	row := conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrg).Select(`id_organization`).Row()
 	if err == nil {
 		var organizationId uint
-		row.Scan(&organizationId)
+		err = row.Scan(&organizationId)
 		if organizationId > 0 {
 			return organizationId
 		}
-
 	}
 	return 0
 

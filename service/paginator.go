@@ -2,10 +2,9 @@ package service
 
 import (
 	"fmt"
-	"strconv"
-	"persons/config"
-
 	"github.com/jmoiron/sqlx"
+	"persons/config"
+	"strconv"
 )
 
 type Paginator struct {
@@ -23,13 +22,23 @@ type Paginator struct {
 
 func (paginator *Paginator) UsePaginator() {
 	db, err := sqlx.Connect("postgres", paginator.Configuration.DbString)
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			fmt.Println(`ошибка ` + err.Error())
+		}
+	}()
 	if err != nil {
 		fmt.Println(err)
 	}
 	row, err := db.NamedQuery("SELECT count("+paginator.Field+") "+paginator.Cmd, paginator.Args)
 	if err == nil {
-		defer row.Close()
+		defer func() {
+			err := row.Close()
+			if err != nil {
+				fmt.Println(`ошибка ` + err.Error())
+			}
+		}()
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -42,7 +51,7 @@ func (paginator *Paginator) UsePaginator() {
 		}
 	}
 
-	paginator.AllPage = (paginator.TotalCount / paginator.Limit)
+	paginator.AllPage = paginator.TotalCount / paginator.Limit
 	if (paginator.TotalCount % paginator.Limit) > 0 {
 		paginator.AllPage++
 	}

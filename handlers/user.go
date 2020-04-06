@@ -36,15 +36,17 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 		conn.LogMode(config.Conf.Dblog)
 		rows, err := conn.Table(`admin.organizations_users`).Where(`id_user=?`, user.Id).Select(`id_organization`).Rows()
 		if err == nil {
-			defer rows.Close()
+			defer func() {
+				_ = rows.Close()
+			}()
 			for rows.Next() {
-				var id_organization uint
-				err := rows.Scan(&id_organization)
+				var idOrganization uint
+				err := rows.Scan(&idOrganization)
 				if err != nil {
 					log.Fatal(err)
 				}
 				org := digest.Organization{}
-				conn.Find(&org, id_organization)
+				conn.Find(&org, idOrganization)
 				links = append(links, map[string]interface{}{
 					`id`:          org.Id,
 					`short_title`: org.ShortTitle,

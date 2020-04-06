@@ -75,17 +75,17 @@ func (result *Result) GetListAchievement() {
 		return
 	}
 	if db.RowsAffected > 0 {
-		for _, achievemnt := range achievements {
-			db = conn.Model(&achievemnt).Related(&achievemnt.AchievementCategory, `IdCategory`)
+		for _, achievement := range achievements {
+			db = conn.Model(&achievement).Related(&achievement.AchievementCategory, `IdCategory`)
 			c := AchievementResponse{
-				Id:           achievemnt.Id,
-				UID:          achievemnt.Uid,
-				Name:         achievemnt.Name,
-				IdCampaign:   achievemnt.IdCampaign,
-				IdCategory:   achievemnt.AchievementCategory.Id,
-				NameCategory: achievemnt.AchievementCategory.Name,
-				MaxValue:     achievemnt.MaxValue,
-				Created:      achievemnt.Created,
+				Id:           achievement.Id,
+				UID:          achievement.Uid,
+				Name:         achievement.Name,
+				IdCampaign:   achievement.IdCampaign,
+				IdCategory:   achievement.AchievementCategory.Id,
+				NameCategory: achievement.AchievementCategory.Name,
+				MaxValue:     achievement.MaxValue,
+				Created:      achievement.Created,
 			}
 			achievementResponse = append(achievementResponse, c)
 		}
@@ -140,17 +140,17 @@ func (result *Result) GetListAchievementByCompanyId(campaignId uint) {
 		return
 	}
 	if db.RowsAffected > 0 {
-		for _, achievemnt := range achievements {
-			db = conn.Model(&achievemnt).Related(&achievemnt.AchievementCategory, `IdCategory`)
+		for _, achievement := range achievements {
+			db = conn.Model(&achievement).Related(&achievement.AchievementCategory, `IdCategory`)
 			c := AchievementResponse{
-				Id:           achievemnt.Id,
-				UID:          achievemnt.Uid,
-				Name:         achievemnt.Name,
-				IdCampaign:   achievemnt.IdCampaign,
-				IdCategory:   achievemnt.AchievementCategory.Id,
-				NameCategory: achievemnt.AchievementCategory.Name,
-				MaxValue:     achievemnt.MaxValue,
-				Created:      achievemnt.Created,
+				Id:           achievement.Id,
+				UID:          achievement.Uid,
+				Name:         achievement.Name,
+				IdCampaign:   achievement.IdCampaign,
+				IdCategory:   achievement.AchievementCategory.Id,
+				NameCategory: achievement.AchievementCategory.Name,
+				MaxValue:     achievement.MaxValue,
+				Created:      achievement.Created,
 			}
 			achievementResponse = append(achievementResponse, c)
 		}
@@ -170,8 +170,8 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	var achievemnt digest.IndividualAchievements
-	db := conn.Find(&achievemnt, ID)
+	var achievement digest.IndividualAchievements
+	db := conn.Find(&achievement, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -185,16 +185,16 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 	}
 	if db.RowsAffected > 0 {
 
-		db = conn.Model(&achievemnt).Related(&achievemnt.AchievementCategory, `IdCategory`)
+		db = conn.Model(&achievement).Related(&achievement.AchievementCategory, `IdCategory`)
 		c := AchievementMain{
-			Id:           achievemnt.Id,
-			UID:          achievemnt.Uid,
-			Name:         achievemnt.Name,
-			IdCampaign:   achievemnt.IdCampaign,
-			IdCategory:   achievemnt.AchievementCategory.Id,
-			NameCategory: achievemnt.AchievementCategory.Name,
-			MaxValue:     achievemnt.MaxValue,
-			Created:      achievemnt.Created,
+			Id:           achievement.Id,
+			UID:          achievement.Uid,
+			Name:         achievement.Name,
+			IdCampaign:   achievement.IdCampaign,
+			IdCategory:   achievement.AchievementCategory.Id,
+			NameCategory: achievement.AchievementCategory.Name,
+			MaxValue:     achievement.MaxValue,
+			Created:      achievement.Created,
 		}
 		result.Done = true
 		result.Items = c

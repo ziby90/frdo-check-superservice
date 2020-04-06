@@ -2,6 +2,7 @@ package route
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"persons/handlers"
@@ -18,7 +19,10 @@ func AddAuthHandler(r *mux.Router) {
 
 	r.HandleFunc("/api/is-role", func(w http.ResponseWriter, r *http.Request) {
 		data := make(map[string]string)
-		json.NewDecoder(r.Body).Decode(&data)
+		err := json.NewDecoder(r.Body).Decode(&data)
+		if err != nil {
+			fmt.Println(`ошибка ` + err.Error())
+		}
 		if data[`code`] == `` {
 			service.ReturnJSON(w, `Неверные параметры`)
 		}
@@ -34,7 +38,10 @@ func AddAuthHandler(r *mux.Router) {
 
 	r.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
 		data := make(map[string]string)
-		json.NewDecoder(r.Body).Decode(&data)
+		err := json.NewDecoder(r.Body).Decode(&data)
+		if err != nil {
+			fmt.Println(`ошибка ` + err.Error())
+		}
 		if data[`login`] == `` || data[`password`] == `` {
 			service.ReturnJSON(w, `Неверные параметры`)
 		}

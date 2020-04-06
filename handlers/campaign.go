@@ -3,12 +3,9 @@ package handlers
 import (
 	"persons/config"
 	"persons/digest"
-	"persons/error_handler"
 	"strings"
 	"time"
 )
-
-var validBase64Err = error_handler.ErrorType{Type: 1, ToUserType: 500}
 
 type CampaignMain struct {
 	Id                  uint      `json:"id"`   // Идентификатор
