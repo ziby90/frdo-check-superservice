@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"persons/config"
 	"persons/digest"
 	"strconv"
-	"strings"
 )
 
 func (result *Result) GetListOrganization() {
@@ -14,9 +14,9 @@ func (result *Result) GetListOrganization() {
 	conn.LogMode(config.Conf.Dblog)
 	var organizations []digest.Organization
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
-	if result.Search != `` {
-		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
-	}
+	//if result.Search != `` {
+	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	//}
 	dbCount := db.Model(&organizations).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -103,17 +103,23 @@ func (result *ResultInfo) GetInfoOrganization(ID uint) {
 }
 
 func CheckOrgCookie(user digest.User, r *http.Request) uint {
-	currentOrg := uint(0)
+	currentOrgId := uint(0)
 	cookieOrg, err := r.Cookie(`current-org`)
 	if err == nil {
 		u64, err := strconv.ParseUint(cookieOrg.Value, 10, 32)
 		if err == nil {
-			currentOrg = uint(u64)
+			currentOrgId = uint(u64)
 		}
 	}
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	row := conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrg).Select(`id_organization`).Row()
+	var row *sql.Row
+	if user.Role.Code == `administrator` {
+		row = conn.Table(`admin.organizations`).Where(`id=?`, currentOrgId).Select(`id`).Row()
+	} else {
+		row = conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrgId).Select(`id_organization`).Row()
+	}
+
 	if err == nil {
 		var organizationId uint
 		err = row.Scan(&organizationId)

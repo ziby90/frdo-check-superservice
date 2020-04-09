@@ -5,7 +5,6 @@ import (
 	"persons/config"
 	"persons/digest"
 	"persons/service"
-	"strings"
 	"time"
 )
 
@@ -53,9 +52,9 @@ func (result *Result) GetListAchievement() {
 	} else {
 		db = conn.Order(`created asc `)
 	}
-	if result.Search != `` {
-		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
-	}
+	//if result.Search != `` {
+	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	//}
 	dbCount := db.Model(&achievements).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -117,9 +116,9 @@ func (result *Result) GetListAchievementByCompanyId(campaignId uint) {
 		db = conn.Order(`created asc `)
 	}
 	db = db.Where(`id_campaign=?`, campaignId)
-	if result.Search != `` {
-		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
-	}
+	//if result.Search != `` {
+	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	//}
 	dbCount := db.Model(&achievements).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 

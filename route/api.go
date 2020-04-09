@@ -13,6 +13,8 @@ func GetApiHandlerAuth(r *mux.Router) {
 func GetApiHandlerNoOrg(r *mux.Router) {
 	AddUserHandler(r)
 	AddOrgsHandler(r)
+	AddEntrantHandler(r)
+	AddDocsHandler(r)
 }
 
 func GetApiHandlerNoAuth(r *mux.Router) {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 	"time"
 )
@@ -38,14 +39,20 @@ type CampaignResponse struct {
 	Created            time.Time `json:"created"`    // Дата создания
 }
 
+var campaignSearchArray = []string{
+	`name`,
+}
+
 func (result *Result) GetListCampaign() {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaigns []digest.Campaign
 	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(result.Sort.Field + ` ` + result.Sort.Order)
-	if result.Search != `` {
-		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], campaignSearchArray) >= 0 {
+			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
 	}
 	dbCount := db.Model(&campaigns).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
@@ -116,7 +123,6 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		db = conn.Model(&campaign).Related(&campaign.CampaignType, `IdCampaignType`)
 		db = conn.Model(&campaign).Related(&campaign.CampaignStatus, `IdCampaignStatus`)
 
-		//var educForms []EducationFormRespons
 		var campEducForms []digest.CampaignEducForm
 		db = conn.Where(`id_campaign=?`, campaign.Id).Find(&campEducForms)
 		var campEducLevels []digest.CampaignEducLevel
@@ -153,7 +159,7 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		result.Done = true
 		message := `Компании не найдены.`
 		result.Message = &message
-		result.Items = make(map[string]string)
+		result.Items = []digest.Campaign{}
 		return
 	}
 }
@@ -235,16 +241,16 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		db = tx.Create(&campaignEducLevel)
 	}
 
-	for _, educFormlId := range campaignData.EducationForms {
+	for _, educFormId := range campaignData.EducationForms {
 		var educationForm digest.EducationForm
-		tx.Find(&educationForm, educFormlId)
+		tx.Find(&educationForm, educFormId)
 		if !educationForm.Actual {
 			result.SetErrorResult(`Форма образования не найдена`)
 			return
 		}
 		campaignEducForm := digest.CampaignEducForm{
 			IdCampaign:      campaign.Id,
-			IdEducationForm: educFormlId,
+			IdEducationForm: educFormId,
 		}
 		db = tx.Create(&campaignEducForm)
 	}

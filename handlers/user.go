@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"persons/config"
 	"persons/digest"
@@ -34,7 +35,13 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 	if user != nil {
 		conn := config.Db.ConnGORM
 		conn.LogMode(config.Conf.Dblog)
-		rows, err := conn.Table(`admin.organizations_users`).Where(`id_user=?`, user.Id).Select(`id_organization`).Rows()
+		var rows *sql.Rows
+		var err error
+		if user.Role.Code == `administrator` {
+			rows, err = conn.Table(`admin.organizations`).Where(`actual`).Select(`id`).Rows()
+		} else {
+			rows, err = conn.Table(`admin.organizations_users`).Where(`id_user=?`, user.Id).Select(`id_organization`).Rows()
+		}
 		if err == nil {
 			defer func() {
 				_ = rows.Close()
@@ -62,7 +69,12 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 func SetCurrentOrganization(currentOrgId uint, user *digest.User) uint {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	row := conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrgId).Select(`id_organization`).Row()
+	var row *sql.Row
+	if user.Role.Code == `administrator` {
+		row = conn.Table(`admin.organizations`).Where(`id=?`, currentOrgId).Select(`id`).Row()
+	} else {
+		row = conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrgId).Select(`id_organization`).Row()
+	}
 	var organizationId uint
 	err := row.Scan(&organizationId)
 	if err == nil && organizationId > 0 {

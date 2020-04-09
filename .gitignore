@@ -1,4 +1,5 @@
 conf.json
+/super-service-frontend
 /.idea
 go.mod
 go.sum

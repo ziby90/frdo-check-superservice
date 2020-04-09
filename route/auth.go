@@ -92,6 +92,7 @@ func AddAuthHandler(r *mux.Router) {
 	}).Methods("POST")
 
 	r.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "login",
 			Value:    ``,
@@ -104,7 +105,17 @@ func AddAuthHandler(r *mux.Router) {
 			HttpOnly: true,
 			Path:     `/`,
 		})
-		service.ReturnJSON(w, `1`)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "current-org",
+			Value:    ``,
+			HttpOnly: true,
+			Path:     `/`,
+		})
+		service.ReturnJSON(w, handlers.ResultAuth{
+			User:    nil,
+			Done:    true,
+			Message: "Разлогинился",
+		})
 	}).Methods("GET")
 
 }

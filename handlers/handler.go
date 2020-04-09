@@ -25,7 +25,7 @@ type Result struct {
 	Items     interface{} `json:"data"`
 	Paginator Paginator   `json:"paginator"`
 	Sort      Sort        `json:"sort"`
-	Search    string      `json:"search"`
+	Search    [][]string  `json:"-"`
 	User      digest.User `json:"-"`
 }
 
@@ -59,7 +59,7 @@ func NewResult() Result {
 			Field: "created",
 			Order: "ASC",
 		},
-		Search: "",
+		Search: [][]string{},
 	}
 	return res
 }
@@ -79,14 +79,21 @@ func (result *Result) MakeUrlParams(keys map[string][]string) {
 			}
 		}
 	}
-	if len(keys[`search`]) > 0 {
-		result.Search = keys[`search`][0]
-	}
 	if len(keys[`order`]) > 0 {
 		result.Sort.Order = keys[`order`][0]
 	}
 	if len(keys[`sortby`]) > 0 {
 		result.Sort.Field = keys[`sortby`][0]
+	}
+}
+
+func (result *Result) MakeUrlParamsSearch(keys map[string][]string, searchArray []string) {
+	for _, s := range searchArray {
+		keyS := `search_` + s
+		value, ok := keys[keyS]
+		if ok && len(value) > 0 {
+			result.Search = append(result.Search, []string{s, value[0]})
+		}
 	}
 }
 
