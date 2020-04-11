@@ -21,6 +21,8 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var db *gorm.DB
+	var sysCategory digest.DocumentSysCategories
+	db = conn.Where(`name_table=?`, tableName).Find(&sysCategory)
 	switch tableName {
 	case `compatriot`:
 		var r digest.Compatriot
@@ -39,6 +41,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`name_compatriot_category`: r.CompatriotCategory.Name,
 				`path_files`:               r.PathFiles,
 				`created`:                  r.Created,
+				`name_sys_category`:        sysCategory.Name,
 			}
 		}
 		break
@@ -47,7 +50,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		db = conn.Find(&r, ID)
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, `IdDocumentType`)
-			db = conn.Model(&r).Related(&r.CompositionThemes, `IdCompositionThemes`)
+			db = conn.Model(&r).Related(&r.CompositionThemes, `IdCompositionTheme`)
 			db = conn.Model(&r).Related(&r.AppealStatuses, `IdAppealStatus`)
 			issueDate := r.IssueDate.Format(`2006-01-02`)
 			result.Items = map[string]interface{}{
@@ -57,6 +60,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`name_document_type`:     r.DocumentType.Name,
 				`doc_name`:               r.DocName,
 				`doc_org`:                r.DocOrg,
+				`doc_year`:               r.DocYear,
 				`id_composition_theme`:   r.CompositionThemes.Id,
 				`name_composition_theme`: r.CompositionThemes.Name,
 				`id_appeal_status`:       r.AppealStatuses.Id,
@@ -66,6 +70,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`created`:                r.Created,
 				`issue_date`:             issueDate,
 				`result`:                 r.Result,
+				`name_sys_category`:      sysCategory.Name,
 			}
 		}
 		break
@@ -96,6 +101,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`name_subject`:       r.Subject.Name,
 				`checked`:            r.Checked,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -124,6 +130,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`name_education_level`: r.EducationLevel.Name,
 				`checked`:              r.Checked,
 				`created`:              r.Created,
+				`name_sys_category`:    sysCategory.Name,
 			}
 		}
 		break
@@ -148,6 +155,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`checked`:              r.Checked,
 				`path_file`:            r.PathFiles,
 				`created`:              r.Created,
+				`name_sys_category`:    sysCategory.Name,
 			}
 		}
 		break
@@ -168,10 +176,12 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -192,10 +202,12 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -215,15 +227,17 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`name_category`:      r.OrphanCategories.Name,
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
+				`doc_series`:         r.DocSeries,
 				`doc_number`:         r.DocNumber,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
-	case `others`:
+	case `other`:
 		var r digest.Other
 		db = conn.Find(&r, ID)
 		if r.Id > 0 {
@@ -237,10 +251,12 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -259,12 +275,14 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`id_category`:        r.ParentsLostCategory.Id,
 				`name_category`:      r.ParentsLostCategory.Name,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -283,12 +301,14 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`id_category`:        r.RadiationWorkCategory.Id,
 				`name_category`:      r.RadiationWorkCategory.Name,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -307,12 +327,14 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				`doc_name`:           r.DocName,
 				`doc_org`:            r.DocOrg,
 				`doc_number`:         r.DocNumber,
+				`doc_series`:         r.DocSeries,
 				`issue_date`:         issueDate,
 				`checked`:            r.Checked,
 				`id_category`:        r.VeteranCategory.Id,
 				`name_category`:      r.VeteranCategory.Name,
 				`path_file`:          r.PathFiles,
 				`created`:            r.Created,
+				`name_sys_category`:  sysCategory.Name,
 			}
 		}
 		break
@@ -321,9 +343,10 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		result.Message = &message
 		return
 	}
+
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
-			result.Done = true
+			result.Done = false
 			message := `Документ не найден.`
 			result.Message = &message
 			result.Items = []interface{}{}
@@ -334,5 +357,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		return
 	}
 	result.Done = true
+
 	return
 }

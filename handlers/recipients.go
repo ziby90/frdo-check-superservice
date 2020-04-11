@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"persons/config"
 	"persons/digest"
 	"strings"
@@ -19,6 +20,12 @@ type DocsResponseByCategory struct {
 	Id    uint          `json:"id"`
 	Count int           `json:"count"`
 	Docs  []interface{} `json:"docs"`
+}
+
+type AddEntrantData struct {
+	Entrant        digest.Entrants        `json:"entrant"`
+	Identification digest.Identifications `json:"identification"`
+	Education      digest.Educations      `json:"education"`
 }
 
 //
@@ -106,7 +113,7 @@ func (result *ResultInfo) GetDocsEntrant(ID uint) {
 	if db.RowsAffected > 0 {
 		res := make(map[string]DocsResponseByCategory)
 		var documents []digest.VDocuments
-		db = conn.Model(&entrant).Related(&documents)
+		db = conn.Where(`name_table!='identification'`).Model(&entrant).Related(&documents)
 
 		for index, doc := range documents {
 			var docCategory DocsResponseByCategory
@@ -196,6 +203,7 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 					"name_okcm":          identifications[index].Okcm.ShortName,
 					"checked":            identifications[index].Checked,
 					"created":            identifications[index].Created,
+					"name_sys_category":  documentSysCategory.Name,
 				},
 			})
 			docCategory.Count = len(docCategory.Docs)
@@ -213,88 +221,6 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 	}
 
 }
-
-//
-//func (result *ResultInfo) GetDocsEntrant(ID uint) {
-//	result.Done = false
-//	conn := config.Db.ConnGORM
-//	conn.LogMode(config.Conf.Dblog)
-//	var entrant digest.Entrants
-//	db := conn.Find(&entrant, ID)
-//	if db.Error != nil {
-//		if db.Error.Error() == `record not found` {
-//			result.Done = true
-//			message := `Абитуриент не найден.`
-//			result.Message = &message
-//			return
-//		}
-//		message := `Ошибка подключения к БД. `
-//		result.Message = &message
-//		return
-//	}
-//	if db.RowsAffected > 0 {
-//		res := make(map[string]interface{})
-//
-//		var identifications []digest.Identifications
-//		var compatriots []digest.Compatriot
-//
-//		db = conn.Model(&entrant).Related(&identifications)
-//		db = conn.Model(&entrant).Related(&compatriots)
-//
-//		var resIdentifications []interface{}
-//		var resCompatriots []interface{}
-//
-//		for index,_ := range identifications{
-//			db = conn.Model(&identifications[index]).Related(&identifications[index].Okcm, `IdOkcm`)
-//			db = conn.Model(&identifications[index]).Related(&identifications[index].DocumentType, `IdDocumentType`)
-//			resIdentifications = append(resIdentifications, map[string]interface{}{
-//				"id_entrant": entrant.Id,
-//				"id_document_type": identifications[index].DocumentType.Id,
-//				"id_document_category": identifications[index].DocumentType.IdCategory,
-//				"id_document_sys_category": identifications[index].DocumentType.IdSysCategory,
-//				"surname": identifications[index].Surname,
-//				"name":  identifications[index].Name,
-//				"patronymic":  identifications[index].Patronymic,
-//				"doc_series":  identifications[index].DocSeries,
-//				"doc_number":  identifications[index].DocNumber,
-//				"doc_organization":  identifications[index].DocOrganization,
-//				"issue_date":  identifications[index].IssueDate,
-//				"subdivision_code":  identifications[index].SubdivisionCode,
-//				"id_okcm":  identifications[index].IdOkcm,
-//				"checked": identifications[index].Checked,
-//				"created":  identifications[index].Created,
-//			})
-//		}
-//
-//		for index,_ := range compatriots{
-//			//db = conn.Model(&compatriots[index]).Related(&compatriots[index].Okcm, `IdOkcm`)
-//			db = conn.Model(&compatriots[index]).Related(&compatriots[index].DocumentType, `IdDocumentType`)
-//			resCompatriots = append(resCompatriots, map[string]interface{}{
-//				"id_entrant": entrant.Id,
-//				//"id_ident_doc": compatriots[index].,
-//				"id_document_type": compatriots[index].DocumentType.Id,
-//				"id_document_category": compatriots[index].DocumentType.IdCategory,
-//				"id_document_sys_category": compatriots[index].DocumentType.IdSysCategory,
-//				"id_compatriot_category": compatriots[index].IdCompatriotCategory,
-//				"doc_name": compatriots[index].DocName,
-//				"doc_org":  compatriots[index].DocOrg,
-//				"checked": compatriots[index].Checked,
-//				"created":  compatriots[index].Created,
-//			})
-//		}
-//
-//		res[`identifications`] = resIdentifications
-//		res[`compatriots`] = resCompatriots
-//		result.Done = true
-//		result.Items = res
-//		return
-//	} else {
-//		result.Done = true
-//		message := `Абитуриент не найден.`
-//		result.Message = &message
-//		return
-//	}
-//}
 
 func (result *Result) GetListEntrants() {
 	result.Done = false
@@ -355,38 +281,39 @@ func (result *Result) GetListEntrants() {
 	}
 }
 
-func (result *ResultInfo) AddEntrant(entrantData digest.Entrants) {
-	result.Items = entrantData
+func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
+	result.Items = entrantData.Entrant.Name
 	conn := config.Db.ConnGORM
-	tx := conn.Begin()
 	conn.LogMode(config.Conf.Dblog)
-	if entrantData.Snils == `` {
+
+	tx := conn.Begin()
+	if entrantData.Entrant.Snils == `` {
 		result.SetErrorResult(`Снилс обязательное поле`)
 		return
 	}
+
 	var exist digest.Entrants
-	db := tx.Where(`snils=?`, entrantData.Snils).Find(&exist)
+	db := tx.Where(`snils=?`, entrantData.Entrant.Snils).Find(&exist)
 	if exist.Id > 0 {
 		result.SetErrorResult(`Абитуриент с данным снилс уже существует`)
 		return
 	}
-	var entrant digest.Entrants
-	entrant.Created = time.Now()
-	entrant.Name = entrantData.Name
-	entrant.Snils = entrantData.Snils
-	entrant.Surname = entrantData.Surname
-	entrant.Patronymic = entrantData.Patronymic
-	entrant.Birthday = entrantData.Birthday
 
-	entrant.Gender.Id = entrantData.IdGender
-	db = tx.Find(&entrant.Gender, entrant.Gender.Id)
+	var entrant digest.Entrants
+	entrant = entrantData.Entrant
+	entrant.Created = time.Now()
+	entrant.Surname = strings.TrimSpace(entrant.Surname)
+	entrant.Name = strings.TrimSpace(entrant.Name)
+	entrant.Patronymic = strings.TrimSpace(entrant.Patronymic)
+	fmt.Println(entrantData.Entrant.Birthplace)
+	fmt.Println(entrant.Birthplace)
+	db = tx.Find(&entrant.Gender, entrant.IdGender)
 	if db.Error != nil || !entrant.Gender.Actual {
 		result.SetErrorResult(`Не найден пол`)
 		return
 	}
 
-	entrant.Okcm.Id = entrantData.IdOkcm
-	db = tx.Find(&entrant.Okcm, entrant.Okcm.Id)
+	db = tx.Find(&entrant.Okcm, entrant.IdOkcm)
 	if db.Error != nil || !entrant.Okcm.Actual {
 		result.SetErrorResult(`Не найден оксм`)
 		return
@@ -395,12 +322,46 @@ func (result *ResultInfo) AddEntrant(entrantData digest.Entrants) {
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&entrant)
 	if db.Error != nil {
 		tx.Rollback()
-		m := db.Error.Error()
+		m := `Ошибка при добавлении абитуриента: ` + db.Error.Error()
 		result.Message = &m
+		tx.Rollback()
 		return
 	}
+	var identification digest.Identifications
+	identification = entrantData.Identification
+	identification.EntrantsId = entrant.Id
+	identification.Created = time.Now()
+	identification.Name = strings.TrimSpace(identification.Name)
+	identification.Surname = strings.TrimSpace(identification.Surname)
+	identification.Patronymic = strings.TrimSpace(identification.Patronymic)
 
-	result.Items = entrant.Id
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&identification)
+	if db.Error != nil {
+		tx.Rollback()
+		m := `Ошибка при добавлении доумента, удостоверяющего личность: ` + db.Error.Error()
+		result.Message = &m
+		tx.Rollback()
+		return
+	}
+	var education digest.Educations
+	education = entrantData.Education
+	education.IdEntrant = entrant.Id
+	education.IdIdentDocument = identification.Id
+	education.Created = time.Now()
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&education)
+	if db.Error != nil {
+		tx.Rollback()
+		m := `Ошибка при добавлении доумента об образовании: ` + db.Error.Error()
+		result.Message = &m
+		tx.Rollback()
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_entrant`:        entrant.Id,
+		`id_identification`: identification.Id,
+		`id_education`:      education.Id,
+	}
 	result.Done = true
 	tx.Commit()
 }

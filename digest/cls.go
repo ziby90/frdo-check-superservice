@@ -238,6 +238,12 @@ func (CompositionThemes) TableName() string {
 func (CompatriotCategory) TableName() string {
 	return "cls.compatriot_categories"
 }
+func (Direction) TableName() string {
+	return "cls.directions"
+}
+func (DisabilityTypes) TableName() string {
+	return "cls.disability_types"
+}
 func (DocumentCategories) TableName() string {
 	return "cls.document_categories"
 }
@@ -246,12 +252,6 @@ func (DocumentSysCategories) TableName() string {
 }
 func (DocumentTypes) TableName() string {
 	return "cls.document_types"
-}
-func (Direction) TableName() string {
-	return "cls.directions"
-}
-func (DisabilityTypes) TableName() string {
-	return "cls.disability_types"
 }
 func (EducationForm) TableName() string {
 	return "cls.education_forms"
@@ -277,11 +277,11 @@ func (MilitaryCategories) TableName() string {
 func (OlympicDiplomType) TableName() string {
 	return "cls.olympic_diploma_types"
 }
-func (Okcm) TableName() string {
-	return "cls.okcm"
-}
 func (OlympicLevel) TableName() string {
 	return "cls.olympic_levels"
+}
+func (Okcm) TableName() string {
+	return "cls.okcm"
 }
 func (OrphanCategories) TableName() string {
 	return "cls.orphan_categories"
@@ -292,12 +292,12 @@ func (ParentsLostCategories) TableName() string {
 func (RadiationWorkCategories) TableName() string {
 	return "cls.radiation_work_categories"
 }
-func (VeteranCategories) TableName() string {
-	return "cls.veteran_categories"
-}
 func (Region) TableName() string {
 	return "cls.regions"
 }
 func (Subject) TableName() string {
 	return "cls.subjects"
+}
+func (VeteranCategories) TableName() string {
+	return "cls.veteran_categories"
 }

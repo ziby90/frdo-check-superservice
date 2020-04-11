@@ -11,6 +11,7 @@ import (
 	"persons/route"
 	"persons/service"
 	"strings"
+	"time"
 )
 
 var configuration = config.GetConfiguration("conf.json")
@@ -18,8 +19,8 @@ var mainUser *digest.User
 
 func authMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(`authMw`)
-		fmt.Println(r.RequestURI)
+		log := time.Now().Format("01-02 15:04:05") + ` authMw ` + r.RequestURI + ` ` + r.Header.Get("X-Real-Ip")
+		fmt.Println(log)
 		mainUser = handlers.CheckAuthCookie(r)
 		if mainUser != nil {
 			next.ServeHTTP(w, r)
@@ -35,9 +36,8 @@ func authMw(next http.Handler) http.Handler {
 
 func organizationMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(`organizationMw`)
-		fmt.Println(r.RequestURI)
-
+		log := time.Now().Format("01-02 15:04:05") + ` organizationMw ` + r.RequestURI + ` ` + r.Header.Get("X-Real-Ip")
+		fmt.Println(log)
 		if handlers.CheckOrgCookie(*handlers.CheckAuthCookie(r), r) > 0 {
 			next.ServeHTTP(w, r)
 		} else {

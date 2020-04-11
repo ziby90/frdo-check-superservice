@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
-	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strconv"
@@ -22,13 +21,14 @@ func AddEntrantHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
-	r.HandleFunc("/entrants/add", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/entrant/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
-		var entrant digest.Entrants
+		var data handlers.AddEntrantData
 		b, _ := ioutil.ReadAll(r.Body)
-		err := json.Unmarshal(b, &entrant)
+		err := json.Unmarshal(b, &data)
+		res.Items = data.Education.IdDirection
 		if err == nil {
-			res.AddEntrant(entrant)
+			res.AddEntrant(data)
 		} else {
 			m := err.Error()
 			res.Message = &m

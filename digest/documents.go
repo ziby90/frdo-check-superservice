@@ -32,8 +32,9 @@ type Composition struct {
 	Uid                    string            `json:"uid"`
 	DocName                string            `json:"doc_name"`
 	DocOrg                 string            `json:"doc_org"`
+	DocYear                int64             `json:"doc_year"`
 	CompositionThemes      CompositionThemes `json:"composition_theme" gorm:"foreignkey:id_composition_theme"`
-	IdCompositionThemes    uint              `json:"id_composition_theme"`
+	IdCompositionTheme     uint              `json:"id_composition_theme"`
 	AppealStatuses         AppealStatuses    `json:"appeal_statuses" gorm:"foreignkey:id_appeal_status"`
 	IdAppealStatus         uint              `json:"id_appeal_status"`
 	HasAppealed            bool              `json:"has_appealed"`
@@ -77,8 +78,8 @@ type Educations struct {
 	DocName                string          `json:"doc_name"`
 	DocOrg                 string          `json:"doc_org"`
 	Uid                    string          `json:"uid"`
-	DocSeries              string          `json:"doc_name"`
-	DocNumber              string          `json:"doc_org"`
+	DocSeries              string          `json:"doc_series"`
+	DocNumber              string          `json:"doc_number"`
 	RegisterNumber         string          `json:"register_number"`
 	Direction              Direction       `json:"direction" gorm:"foreignkey:id_direction"`
 	IdDirection            uint            `json:"id_direction"`

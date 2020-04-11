@@ -17,4 +17,12 @@ func AddClsHandler(r *mux.Router) {
 		res.GetClsResponse(vars[`cls_name`])
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+
+	r.HandleFunc("/cls/sys_category", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultCls
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
+		res.GetClsSysCategoryResponse()
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 }
