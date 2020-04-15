@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 	"time"
 )
@@ -82,6 +82,8 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 	if db.RowsAffected > 0 {
 		db = conn.Model(&entrant).Related(&entrant.Gender, `IdGender`)
 		db = conn.Model(&entrant).Related(&entrant.Okcm, `IdOkcm`)
+		db = conn.Model(&entrant).Related(&entrant.FactAddr, `IdFactAddr`)
+		db = conn.Model(&entrant).Related(&entrant.RegistrationAddr, `IdRegistrationAddr`)
 		result.Done = true
 		result.Items = entrant
 		return
@@ -166,7 +168,6 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 	if db.RowsAffected > 0 {
 		res := make(map[string]DocsResponseByCategory)
 		var identifications []digest.Identifications
-		db = conn.Model(&entrant).Related(&identifications)
 		db = conn.Model(&entrant).Related(&identifications)
 		var docCategory DocsResponseByCategory
 		for index := range identifications {
@@ -298,6 +299,11 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		result.SetErrorResult(`Абитуриент с данным снилс уже существует`)
 		return
 	}
+	check := service.CheckSnils(entrantData.Entrant.Snils)
+	if check != nil {
+		result.SetErrorResult(check.Error())
+		return
+	}
 
 	var entrant digest.Entrants
 	entrant = entrantData.Entrant
@@ -305,8 +311,6 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	entrant.Surname = strings.TrimSpace(entrant.Surname)
 	entrant.Name = strings.TrimSpace(entrant.Name)
 	entrant.Patronymic = strings.TrimSpace(entrant.Patronymic)
-	fmt.Println(entrantData.Entrant.Birthplace)
-	fmt.Println(entrant.Birthplace)
 	db = tx.Find(&entrant.Gender, entrant.IdGender)
 	if db.Error != nil || !entrant.Gender.Actual {
 		result.SetErrorResult(`Не найден пол`)
@@ -319,6 +323,36 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		return
 	}
 
+	var registrAddr digest.Address
+	registrAddr = entrant.RegistrationAddr
+	registrAddr.IdAuthor = result.User.Id
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&registrAddr)
+	if db.Error != nil {
+		tx.Rollback()
+		m := `Ошибка при добавлении регистрационного адреса: ` + db.Error.Error()
+		result.Message = &m
+		tx.Rollback()
+		return
+	}
+	var factAddr digest.Address
+	factAddr = entrant.FactAddr
+	factAddr.IdAuthor = result.User.Id
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&factAddr)
+	if db.Error != nil {
+		tx.Rollback()
+		m := `Ошибка при добавлении фактического адреса: ` + db.Error.Error()
+		result.Message = &m
+		tx.Rollback()
+		return
+	}
+
+	entrant.IdFactAddr = factAddr.Id
+	entrant.FactAddr.Id = factAddr.Id
+	entrant.IdRegistrationAddr = registrAddr.Id
+	entrant.RegistrationAddr.Id = registrAddr.Id
+
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&entrant)
 	if db.Error != nil {
 		tx.Rollback()
@@ -327,6 +361,7 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		tx.Rollback()
 		return
 	}
+
 	var identification digest.Identifications
 	identification = entrantData.Identification
 	identification.EntrantsId = entrant.Id
@@ -335,10 +370,16 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	identification.Surname = strings.TrimSpace(identification.Surname)
 	identification.Patronymic = strings.TrimSpace(identification.Patronymic)
 
+	var existIdent digest.Identifications
+	db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date`, strings.ToUpper(identification.DocSeries), strings.ToUpper(identification.DocNumber), identification.IssueDate).Find(&existIdent)
+	if existIdent.Id > 0 {
+		result.SetErrorResult(`Удостоверяющий документ с указанными серией, номером и датой выдачи уже существует`)
+		return
+	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&identification)
 	if db.Error != nil {
 		tx.Rollback()
-		m := `Ошибка при добавлении доумента, удостоверяющего личность: ` + db.Error.Error()
+		m := `Ошибка при добавлении документа, удостоверяющего личность: ` + db.Error.Error()
 		result.Message = &m
 		tx.Rollback()
 		return
@@ -349,6 +390,12 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	education.IdIdentDocument = identification.Id
 	education.Created = time.Now()
 
+	var existEduc digest.Educations
+	db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(education.DocSeries), strings.ToUpper(education.DocNumber), education.IssueDate, education.IdDocumentType).Find(&existEduc)
+	if existEduc.Id > 0 {
+		result.SetErrorResult(`Документ об образовании с данными серией, номером, датой выдачи и типом документа уже существует`)
+		return
+	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&education)
 	if db.Error != nil {
 		tx.Rollback()
@@ -361,6 +408,8 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		`id_entrant`:        entrant.Id,
 		`id_identification`: identification.Id,
 		`id_education`:      education.Id,
+		`id_registr_addr`:   registrAddr.Id,
+		`id_fact_addr`:      factAddr.Id,
 	}
 	result.Done = true
 	tx.Commit()

@@ -26,7 +26,7 @@ func AddEntrantHandler(r *mux.Router) {
 		var data handlers.AddEntrantData
 		b, _ := ioutil.ReadAll(r.Body)
 		err := json.Unmarshal(b, &data)
-		res.Items = data.Education.IdDirection
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.AddEntrant(data)
 		} else {

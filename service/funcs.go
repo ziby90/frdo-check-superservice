@@ -5,10 +5,13 @@ import (
 	_ "database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	_ "github.com/lib/pq"
 	"net/http"
 	"persons/config"
+	"regexp"
+	"strconv"
 )
 
 type Result struct {
@@ -91,6 +94,41 @@ func GetHash(str string, salt bool) string {
 //	}
 //	return false
 //}
+
+func CheckSnils(snils string) error {
+	if len(snils) != 11 {
+		return errors.New(`Неверное число символов в строке снилс. `)
+	}
+	matched, _ := regexp.Match(`\D`, []byte(snils))
+	if matched {
+		return errors.New(`Недопустимый символ в строке снилс. `)
+	}
+	control := snils[len(snils)-2:]
+	if controlNumber, ok := strconv.Atoi(control); ok == nil {
+		s := snils[:len(snils)-2]
+		result := 0
+		for i := 0; i < len(s); i++ {
+			num, err := strconv.Atoi(string(s[i]))
+			if err != nil {
+				return err
+			}
+			result += (len(s) - i) * num
+		}
+		if result == 100 || result == 101 {
+			result = 0
+		}
+		if result > 101 {
+			result %= 101
+		}
+		fmt.Println(`result`, result)
+		if result == controlNumber {
+			return nil
+		} else {
+			return errors.New(`Снилс некорректен `)
+		}
+	}
+	return errors.New(`Ошибка проверки снилс. `)
+}
 
 func SearchStringInSliceString(a string, list []string) int {
 	for index, b := range list {

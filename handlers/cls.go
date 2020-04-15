@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"persons/config"
 	"persons/service"
@@ -30,6 +31,7 @@ var ListClsTableName = []string{
 	`disability_types`,
 	`document_categories`,
 	`document_sys_category`,
+	`v_document_types`,
 	`document_types`,
 	`education_forms`,
 	`education_levels`,
@@ -40,13 +42,20 @@ var ListClsTableName = []string{
 	`military_categories`,
 	`olympic_diploma_types`,
 	`olympic_levels`,
-	`okcm`,
+	`v_okcm`,
 	`orphan_categories`,
 	`parents_lost_categories`,
 	`radiation_work_categories`,
 	`regions`,
 	`subjects`,
 	`veteran_categories`,
+	`v_direction_specialty`,
+	`v_edu_levels_campaign_types`,
+}
+
+var ListFilterColumns = []string{
+	`name_table`,
+	`id_campaign_types`,
 }
 
 func (result *ResultCls) GetClsResponse(clsName string) {
@@ -64,6 +73,18 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 	if result.Search != `` {
 		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	}
+	fmt.Println(result.Filter, result.Value)
+	if result.Filter != `` && result.Value != `` {
+
+		if service.SearchStringInSliceString(result.Filter, ListFilterColumns) >= 0 {
+			if strings.HasPrefix(result.Filter, `id`) {
+				db = db.Where(`(`+result.Filter+`) = ?`, result.Value)
+			} else {
+				db = db.Where(`UPPER(`+result.Filter+`) like ?`, `%`+strings.ToUpper(result.Value)+`%`)
+			}
+
+		}
+	}
 	db.Select("name,id").Scan(&r)
 	result.Items = r
 
@@ -78,10 +99,8 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 		result.Message = &message
 		return
 	}
-
 	result.Done = true
 	return
-
 }
 
 func (result *ResultCls) GetClsSysCategoryResponse() {
@@ -105,5 +124,4 @@ func (result *ResultCls) GetClsSysCategoryResponse() {
 	}
 	result.Done = true
 	return
-
 }

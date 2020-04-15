@@ -10,7 +10,7 @@ import (
 
 type CampaignMain struct {
 	Id                  uint      `json:"id"`   // Идентификатор
-	UID                 string    `json:"uid"`  // Идентификатор от организации
+	UID                 *string   `json:"uid"`  // Идентификатор от организации
 	Name                string    `json:"name"` // Наименование
 	IdCampaignType      uint      `json:"id_campaign_type"`
 	NameCampaignType    string    `json:"campaign_type_name"`
@@ -28,7 +28,7 @@ type CampaignMain struct {
 
 type CampaignResponse struct {
 	Id                 uint      `json:"id"`   // Идентификатор
-	UID                string    `json:"uid"`  // Идентификатор от организации
+	UID                *string   `json:"uid"`  // Идентификатор от организации
 	Name               string    `json:"name"` // Наименование
 	IdCampaignType     uint      `json:"id_campaign_type"`
 	NameCampaignType   string    `json:"campaign_type_name"`
@@ -167,6 +167,7 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
+
 	conn.LogMode(config.Conf.Dblog)
 
 	var campaign digest.Campaign
@@ -175,7 +176,9 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	campaign.IdAuthor = user.Id
 	campaign.Created = time.Now()
 	campaign.Name = campaignData.Name
-
+	if campaignData.UID != nil {
+		campaign.Uid = campaignData.UID
+	}
 	campaign.IdCampaignType = campaignData.IdCampaignType
 	campaign.CampaignType.Id = campaignData.IdCampaignType
 	db := tx.Find(&campaign.CampaignType, campaign.CampaignType.Id)
@@ -184,14 +187,14 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		return
 	}
 
-	campaign.IdCampaignStatus = campaignData.IdCampaignStatus
-	campaign.CampaignStatus.Id = campaignData.IdCampaignStatus
-	// проверка типа
-	db = tx.Find(&campaign.CampaignStatus, campaign.CampaignStatus.Id)
-	if db.Error != nil || !campaign.CampaignStatus.Actual {
-		result.SetErrorResult(`Статус комании не найден`)
-		return
-	}
+	campaign.IdCampaignStatus = 1
+	//campaign.CampaignStatus.Id = campaignData.IdCampaignStatus
+	//// проверка типа
+	//db = tx.Find(&campaign.CampaignStatus, campaign.CampaignStatus.Id)
+	//if db.Error != nil || !campaign.CampaignStatus.Actual {
+	//	result.SetErrorResult(`Статус комании не найден`)
+	//	return
+	//}
 
 	campaign.YearEnd = campaignData.YearEnd
 	// проверка года окончания

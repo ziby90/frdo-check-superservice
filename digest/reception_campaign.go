@@ -7,7 +7,7 @@ import (
 // Приемная компания
 type Campaign struct {
 	Id               uint           `gorm:"primary_key" json:"id" xml:"CampaignID"` // Идентификатор
-	Uid              string         `xml:"UID" json:"uid"`                          // Идентификатор от организации
+	Uid              *string        `xml:"UID" json:"uid"`                          // Идентификатор от организации
 	Name             string         `json:"name";xml:"Name"`                        // Наименование
 	CampaignType     CampaignType   `gorm:"foreignkey:IdCampaignType"`              // Идентификатор типа компании
 	CampaignStatus   CampaignStatus `gorm:"foreignkey:IdCampaignStatus"`            // Идентификатор типа компании
@@ -80,6 +80,3 @@ func (r *Campaign) GetTestJson() interface{} {
 	}
 	return campaign
 }
-
-
-
