@@ -82,7 +82,7 @@ type Educations struct {
 	DocNumber              string          `json:"doc_number"`
 	RegisterNumber         string          `json:"register_number"`
 	Direction              Direction       `json:"direction" gorm:"foreignkey:id_direction"`
-	IdDirection            uint            `json:"id_direction"`
+	IdDirection            *uint           `json:"id_direction"`
 	EducationLevel         EducationLevel  `json:"education_level" gorm:"foreignkey:id_education_level"`
 	IdEducationLevel       uint            `json:"id_education_level"`
 	IssueDate              time.Time       `json:"issue_date"`

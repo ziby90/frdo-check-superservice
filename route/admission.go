@@ -24,6 +24,21 @@ func AddAdmissionHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	r.HandleFunc("/campaign/{id:[0-9]+}/admission2", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.NewResult()
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetListAdmissionVolumeBySpec(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 
 	//r.HandleFunc("/campaign/add", func(w http.ResponseWriter, r *http.Request) {
 	//	var res handlers.ResultInfo

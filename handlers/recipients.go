@@ -3,7 +3,6 @@ package handlers
 import (
 	"persons/config"
 	"persons/digest"
-	"persons/service"
 	"strings"
 	"time"
 )
@@ -288,8 +287,12 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	conn.LogMode(config.Conf.Dblog)
 
 	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
 	if entrantData.Entrant.Snils == `` {
 		result.SetErrorResult(`Снилс обязательное поле`)
+		tx.Rollback()
 		return
 	}
 
@@ -297,13 +300,14 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	db := tx.Where(`snils=?`, entrantData.Entrant.Snils).Find(&exist)
 	if exist.Id > 0 {
 		result.SetErrorResult(`Абитуриент с данным снилс уже существует`)
+		tx.Commit()
 		return
 	}
-	check := service.CheckSnils(entrantData.Entrant.Snils)
-	if check != nil {
-		result.SetErrorResult(check.Error())
-		return
-	}
+	//check := service.CheckSnils(entrantData.Entrant.Snils)
+	//if check != nil {
+	//	result.SetErrorResult(check.Error())
+	//	return
+	//}
 
 	var entrant digest.Entrants
 	entrant = entrantData.Entrant
@@ -313,49 +317,53 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	entrant.Patronymic = strings.TrimSpace(entrant.Patronymic)
 	db = tx.Find(&entrant.Gender, entrant.IdGender)
 	if db.Error != nil || !entrant.Gender.Actual {
+		tx.Rollback()
 		result.SetErrorResult(`Не найден пол`)
 		return
 	}
 
 	db = tx.Find(&entrant.Okcm, entrant.IdOkcm)
 	if db.Error != nil || !entrant.Okcm.Actual {
+		tx.Rollback()
 		result.SetErrorResult(`Не найден оксм`)
 		return
 	}
 
-	var registrAddr digest.Address
-	registrAddr = entrant.RegistrationAddr
-	registrAddr.IdAuthor = result.User.Id
+	if entrantData.Entrant.RegistrationAddr.IdRegion > 0 {
+		var registrAddr digest.Address
+		registrAddr = entrant.RegistrationAddr
+		registrAddr.IdAuthor = result.User.Id
 
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&registrAddr)
-	if db.Error != nil {
-		tx.Rollback()
-		m := `Ошибка при добавлении регистрационного адреса: ` + db.Error.Error()
-		result.Message = &m
-		tx.Rollback()
-		return
-	}
-	var factAddr digest.Address
-	factAddr = entrant.FactAddr
-	factAddr.IdAuthor = result.User.Id
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&factAddr)
-	if db.Error != nil {
-		tx.Rollback()
-		m := `Ошибка при добавлении фактического адреса: ` + db.Error.Error()
-		result.Message = &m
-		tx.Rollback()
-		return
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&registrAddr)
+		if db.Error != nil {
+			m := `Ошибка при добавлении регистрационного адреса: ` + db.Error.Error()
+			result.Message = &m
+			tx.Rollback()
+			return
+		}
+		entrant.IdRegistrationAddr = registrAddr.Id
+		entrant.RegistrationAddr.Id = registrAddr.Id
 	}
 
-	entrant.IdFactAddr = factAddr.Id
-	entrant.FactAddr.Id = factAddr.Id
-	entrant.IdRegistrationAddr = registrAddr.Id
-	entrant.RegistrationAddr.Id = registrAddr.Id
+	if entrantData.Entrant.FactAddr.IdRegion > 0 {
+		var factAddr digest.Address
+		factAddr = entrant.FactAddr
+		factAddr.IdAuthor = result.User.Id
+
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&factAddr)
+		if db.Error != nil {
+			m := `Ошибка при добавлении фактического адреса: ` + db.Error.Error()
+			result.Message = &m
+			tx.Rollback()
+			return
+		}
+
+		entrant.IdFactAddr = factAddr.Id
+		entrant.FactAddr.Id = factAddr.Id
+	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&entrant)
 	if db.Error != nil {
-		tx.Rollback()
 		m := `Ошибка при добавлении абитуриента: ` + db.Error.Error()
 		result.Message = &m
 		tx.Rollback()
@@ -378,7 +386,6 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&identification)
 	if db.Error != nil {
-		tx.Rollback()
 		m := `Ошибка при добавлении документа, удостоверяющего личность: ` + db.Error.Error()
 		result.Message = &m
 		tx.Rollback()
@@ -398,7 +405,6 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&education)
 	if db.Error != nil {
-		tx.Rollback()
 		m := `Ошибка при добавлении доумента об образовании: ` + db.Error.Error()
 		result.Message = &m
 		tx.Rollback()
@@ -408,8 +414,6 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		`id_entrant`:        entrant.Id,
 		`id_identification`: identification.Id,
 		`id_education`:      education.Id,
-		`id_registr_addr`:   registrAddr.Id,
-		`id_fact_addr`:      factAddr.Id,
 	}
 	result.Done = true
 	tx.Commit()

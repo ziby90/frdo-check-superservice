@@ -52,7 +52,6 @@ func organizationMw(next http.Handler) http.Handler {
 
 func main() {
 	config.GetDbConnection()
-
 	// общие маршруты
 	routeAll := mux.NewRouter()
 	route.GetApiHandlerNoAuth(routeAll)

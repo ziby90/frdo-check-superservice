@@ -167,7 +167,9 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
-
+	defer func() {
+		tx.Rollback()
+	}()
 	conn.LogMode(config.Conf.Dblog)
 
 	var campaign digest.Campaign
@@ -184,6 +186,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	db := tx.Find(&campaign.CampaignType, campaign.CampaignType.Id)
 	if db.Error != nil || !campaign.CampaignType.Actual {
 		result.SetErrorResult(`Не найден тип компании`)
+		tx.Rollback()
 		return
 	}
 
@@ -200,6 +203,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	// проверка года окончания
 	if int(campaignData.YearEnd) < 1900 || int(campaignData.YearEnd) > time.Now().Year() {
 		result.SetErrorResult(`Год окончания за пределами`)
+		tx.Rollback()
 		return
 	}
 
@@ -207,11 +211,13 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	// проверка года начала
 	if int(campaignData.YearStart) < 1900 || int(campaignData.YearStart) > time.Now().Year() {
 		result.SetErrorResult(`Год начала за пределами`)
+		tx.Rollback()
 		return
 	}
 
 	if campaignData.YearStart > campaign.YearEnd {
 		result.SetErrorResult(`Год начала не может быть позже года окончания`)
+		tx.Rollback()
 		return
 	}
 
@@ -228,6 +234,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		tx.Find(&educationLevel, educLevelId)
 		if !educationLevel.Actual {
 			result.SetErrorResult(`Уровень образования не найден`)
+			tx.Rollback()
 			return
 		}
 		row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, educLevelId).Select(`id`).Row()
@@ -235,11 +242,13 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		err := row.Scan(&idEducLevelCampaignType)
 		if err != nil && idEducLevelCampaignType <= 0 {
 			result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+			tx.Rollback()
 			return
 		}
 		campaignEducLevel := digest.CampaignEducLevel{
 			IdCampaign:       campaign.Id,
 			IdEducationLevel: educLevelId,
+			IdOrganization:   user.CurrentOrganization.Id,
 		}
 		db = tx.Create(&campaignEducLevel)
 	}
@@ -249,11 +258,13 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		tx.Find(&educationForm, educFormId)
 		if !educationForm.Actual {
 			result.SetErrorResult(`Форма образования не найдена`)
+			tx.Rollback()
 			return
 		}
 		campaignEducForm := digest.CampaignEducForm{
 			IdCampaign:      campaign.Id,
 			IdEducationForm: educFormId,
+			IdOrganization:  user.CurrentOrganization.Id,
 		}
 		db = tx.Create(&campaignEducForm)
 	}

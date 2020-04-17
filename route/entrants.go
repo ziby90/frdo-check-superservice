@@ -21,7 +21,7 @@ func AddEntrantHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
-	r.HandleFunc("/entrant/add", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/entrants/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		var data handlers.AddEntrantData
 		b, _ := ioutil.ReadAll(r.Body)

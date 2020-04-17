@@ -18,8 +18,9 @@ var (
 )
 
 type DbConnection struct {
-	ConnSQLx sqlx.DB
-	ConnGORM gorm.DB
+	ConnSQLx    sqlx.DB
+	ConnGORM    gorm.DB
+	Transaction *gorm.DB
 }
 
 // Configuration struct of config
@@ -225,6 +226,7 @@ func GetRedisConn() redis.Conn {
 
 func GetDbConnection() {
 	db, err := sqlx.Connect("postgres", Conf.DbString)
+
 	if err == nil {
 		Db.ConnSQLx = *db
 	} else {
@@ -232,6 +234,7 @@ func GetDbConnection() {
 		fmt.Println(err)
 	}
 	gdb, err := gorm.Open("postgres", Conf.DbString)
+	gdb.DB().SetMaxIdleConns(0)
 	if err == nil {
 		Db.ConnGORM = *gdb
 	} else {

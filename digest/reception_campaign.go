@@ -33,11 +33,13 @@ type CampaignEducForm struct {
 	Id              uint `gorm:"primary_key";json:"id"`
 	IdCampaign      uint
 	IdEducationForm uint
+	IdOrganization  uint
 }
 type CampaignEducLevel struct {
 	Id               uint `gorm:"primary_key";json:"id"`
 	IdCampaign       uint
 	IdEducationLevel uint
+	IdOrganization   uint
 }
 
 // TableNames
