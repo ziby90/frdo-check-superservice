@@ -59,7 +59,7 @@ func NewResult() Result {
 		},
 		Sort: Sort{
 			Field: "created",
-			Order: "ASC",
+			Order: "asc",
 		},
 		Search: [][]string{},
 	}

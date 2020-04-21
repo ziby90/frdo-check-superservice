@@ -2,7 +2,6 @@ package route
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
@@ -14,11 +13,25 @@ import (
 func AddCampaignHandler(r *mux.Router) {
 	r.HandleFunc("/campaign/list", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
+		res.Sort = handlers.Sort{
+			Field: "",
+			Order: "",
+		}
 		keys := r.URL.Query()
-		fmt.Println(keys[`search2`])
 		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.CampaignSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetListCampaign()
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
+	r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.NewResult()
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.CampaignSearchArray)
+		res.User = *handlers.CheckAuthCookie(r)
+		res.GetShortListCampaign()
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
@@ -59,6 +72,27 @@ func AddCampaignHandler(r *mux.Router) {
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
+	r.HandleFunc("/campaign/{id:[0-9]+}/education_levels", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			return
+		} else {
+			if err == nil {
+				res.GetEducationLevelCampaign(uint(id))
+			} else {
+				message := `Неверный параметр id.`
+				res.Message = &message
+			}
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")

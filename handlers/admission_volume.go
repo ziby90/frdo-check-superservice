@@ -74,7 +74,7 @@ func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 	var admissions []digest.AdmissionVolume
 	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id, id_direction, id_education_level`)
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], campaignSearchArray) >= 0 {
+		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
@@ -222,7 +222,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	var admissions []digest.AdmissionVolume
 	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_direction`)
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], campaignSearchArray) >= 0 {
+		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}

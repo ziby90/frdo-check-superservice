@@ -56,6 +56,8 @@ var ListClsTableName = []string{
 var ListFilterColumns = []string{
 	`name_table`,
 	`id_campaign_types`,
+	`id_education_level`,
+	`id_parent`,
 }
 
 func (result *ResultCls) GetClsResponse(clsName string) {
@@ -63,17 +65,33 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 	conn.LogMode(config.Conf.Dblog)
 	var db *gorm.DB
 	var r []RowsCls
+	var fields []string
 	if service.SearchStringInSliceString(clsName, ListClsTableName) >= 0 {
+		fields = []string{`id`, `name`}
 		db = conn.Table(`cls.` + clsName)
 	} else {
-		message := `Неизвестный справочник.`
-		result.Message = &message
-		return
+		switch clsName {
+		case `v_okso_enlarged_group`:
+			fields = []string{`id`, `(code || ' ' || name)`}
+			db = conn.Table(`cls.` + clsName)
+			break
+		case `v_okso_specialty`:
+			fields = []string{`id`, `(code || ' ' || name)`}
+			db = conn.Table(`cls.` + clsName)
+			break
+		default:
+			message := `Неизвестный справочник.`
+			result.Message = &message
+			return
+		}
+
 	}
 	if result.Search != `` {
-		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
+		db = db.Where(`UPPER(`+fields[1]+`) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	}
 	fmt.Println(result.Filter, result.Value)
+	fmt.Println(service.SearchStringInSliceString(result.Filter, ListFilterColumns) >= 0)
+
 	if result.Filter != `` && result.Value != `` {
 
 		if service.SearchStringInSliceString(result.Filter, ListFilterColumns) >= 0 {
@@ -85,7 +103,7 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 
 		}
 	}
-	db.Select("name,id").Scan(&r)
+	db.Select(strings.Join(fields, `,`) + ` as name`).Scan(&r)
 	result.Items = r
 
 	if db.Error != nil {

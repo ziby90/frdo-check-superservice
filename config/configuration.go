@@ -3,13 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
-	"time"
-
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	"github.com/jmoiron/sqlx"
+	"os"
+	"strconv"
+	"time"
 )
 
 var (
