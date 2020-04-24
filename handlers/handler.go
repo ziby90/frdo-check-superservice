@@ -29,6 +29,16 @@ type Result struct {
 	User      digest.User `json:"-"`
 }
 
+type ResultList struct {
+	Done    bool        `json:"done"`
+	Message *string     `json:"message, omitempty"`
+	Items   interface{} `json:"data"`
+	Search  string      `json:"search, 	omitempty"`
+	Filter  string      `json:"filter, 	omitempty"`
+	Value   string      `json:"value, 	omitempty"`
+	User    digest.User `json:"-"`
+}
+
 type ResultInfo struct {
 	Done    bool        `json:"done"`
 	Message *string     `json:"message, omitempty"`
@@ -109,7 +119,17 @@ func (result *ResultCls) MakeUrlParams(keys map[string][]string) {
 	if len(keys[`value`]) > 0 {
 		result.Value = keys[`value`][0]
 	}
-
+}
+func (result *ResultList) MakeUrlParams(keys map[string][]string) {
+	if len(keys[`search`]) > 0 {
+		result.Search = keys[`search`][0]
+	}
+	if len(keys[`filter`]) > 0 {
+		result.Filter = keys[`filter`][0]
+	}
+	if len(keys[`value`]) > 0 {
+		result.Value = keys[`value`][0]
+	}
 }
 
 func (paginator *Paginator) Make() {

@@ -1,8 +1,11 @@
 package route
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
+	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strconv"
@@ -16,6 +19,25 @@ func AddAchievementsHandler(r *mux.Router) {
 		res.GetListAchievement()
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+
+	r.HandleFunc("/achievements/add", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp digest.IndividualAchievements
+		b, _ := ioutil.ReadAll(r.Body)
+		err := json.Unmarshal(b, &cmp)
+		res.User = *handlers.CheckAuthCookie(r)
+		res.Items = cmp
+
+		err = handlers.CheckCampaignByUser(cmp.IdCampaign, res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+		} else {
+			res.AddAchievement(cmp, *handlers.CheckAuthCookie(r))
+		}
+
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()

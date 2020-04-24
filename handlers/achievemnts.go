@@ -10,7 +10,7 @@ import (
 
 type AchievementMain struct {
 	Id           uint      `json:"id"`   // Идентификатор
-	UID          string    `json:"uid"`  // Идентификатор от организации
+	UID          *string   `json:"uid"`  // Идентификатор от организации
 	Name         string    `json:"name"` // Наименование
 	IdCampaign   uint      `json:"id_campaign"`
 	IdCategory   uint      `json:"id_category"`
@@ -21,7 +21,7 @@ type AchievementMain struct {
 
 type AchievementResponse struct {
 	Id           uint      `json:"id"`   // Идентификатор
-	UID          string    `json:"uid"`  // Идентификатор от организации
+	UID          *string   `json:"uid"`  // Идентификатор от организации
 	Name         string    `json:"name"` // Наименование
 	IdCampaign   uint      `json:"id_campaign"`
 	IdCategory   uint      `json:"id_category"`
@@ -205,4 +205,47 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 		result.Items = make(map[string]string)
 		return
 	}
+}
+
+func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, user digest.User) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var achievement digest.IndividualAchievements
+	achievement = achData
+	achievement.Organization.Id = user.CurrentOrganization.Id
+	achievement.IdOrganization = user.CurrentOrganization.Id
+	achievement.IdAuthor = user.Id
+	achievement.Created = time.Now()
+
+	var campaign digest.Campaign
+	db := tx.Preload(`CampaignType`).Find(&campaign, achData.IdCampaign)
+	if campaign.Id < 1 {
+		result.SetErrorResult(`Компания не найдена`)
+		tx.Rollback()
+		return
+	}
+	achievement.IdCampaign = achData.IdCampaign
+
+	var category digest.AchievementCategory
+	db = tx.Find(&category, achData.AchievementCategory)
+	if category.Id < 1 {
+		result.SetErrorResult(`Категория не найдена`)
+		tx.Rollback()
+		return
+	}
+	achievement.IdCategory = achData.IdCategory
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&achievement)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = achievement
+	result.Done = true
+	tx.Commit()
 }

@@ -4,7 +4,7 @@ import "time"
 
 type CompetitiveGroup struct {
 	Id                uint      `gorm:"primary_key";json:"id"` // Идентификатор
-	UID               string    `xml:"UID" json:"uid" `        // Идентификатор от организации
+	UID               *string   `xml:"UID" json:"uid" `        // Идентификатор от организации
 	Direction         Direction `gorm:"foreignkey:IdDirection"`
 	IdDirection       uint      // Идентификатор направления
 	Name              string

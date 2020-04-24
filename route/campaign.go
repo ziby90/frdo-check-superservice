@@ -26,10 +26,9 @@ func AddCampaignHandler(r *mux.Router) {
 	}).Methods("GET")
 
 	r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.NewResult()
+		var res handlers.ResultList
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
-		res.MakeUrlParamsSearch(keys, handlers.CampaignSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetShortListCampaign()
 		service.ReturnJSON(w, res)
@@ -66,9 +65,16 @@ func AddCampaignHandler(r *mux.Router) {
 	r.HandleFunc("/campaign/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
-			res.GetInfoCampaign(uint(id))
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetInfoCampaign(uint(id))
+			}
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
@@ -81,18 +87,17 @@ func AddCampaignHandler(r *mux.Router) {
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		res.User = *handlers.CheckAuthCookie(r)
-		err = handlers.CheckCampaignByUser(uint(id), res.User)
-		if err != nil {
-			message := err.Error()
-			res.Message = &message
-			return
-		} else {
-			if err == nil {
-				res.GetEducationLevelCampaign(uint(id))
-			} else {
-				message := `Неверный параметр id.`
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
 				res.Message = &message
+			} else {
+				res.GetEducationLevelCampaign(uint(id))
 			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")

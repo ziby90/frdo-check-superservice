@@ -112,30 +112,20 @@ func (result *Result) GetListCampaign() {
 	}
 }
 
-func (result *Result) GetShortListCampaign() {
+func (result *ResultList) GetShortListCampaign() {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaigns []digest.Campaign
 	sortField := `created`
 	sortOrder := `asc`
-	if result.Sort.Field != `` {
-		sortField = result.Sort.Field
-	}
-	if result.Sort.Order != `` {
-		sortOrder = result.Sort.Order
-	}
+
 	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(sortField + ` ` + sortOrder)
-	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
-			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
-		}
+
+	if result.Search != `` {
+		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	}
-	dbCount := db.Model(&campaigns).Count(&result.Paginator.TotalCount)
-	if dbCount.Error != nil {
-	}
-	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&campaigns)
+	db = db.Find(&campaigns)
 	var responses []interface{}
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
@@ -287,6 +277,13 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	campaign.Created = time.Now()
 	campaign.Name = campaignData.Name
 	if campaignData.UID != nil {
+		var exist digest.Campaign
+		tx.Where(`uid=? and id_organization=?`, campaignData.UID, user.CurrentOrganization.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`У данной организации есть компания с данным UID`)
+			tx.Commit()
+			return
+		}
 		campaign.Uid = campaignData.UID
 	}
 	campaign.IdCampaignType = campaignData.IdCampaignType
@@ -348,7 +345,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, educLevelId).Select(`id`).Row()
 		var idEducLevelCampaignType uint
 		err := row.Scan(&idEducLevelCampaignType)
-		if err != nil && idEducLevelCampaignType <= 0 {
+		if err != nil || idEducLevelCampaignType <= 0 {
 			result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
 			tx.Rollback()
 			return
