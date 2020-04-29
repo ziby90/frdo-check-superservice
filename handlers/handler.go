@@ -29,6 +29,12 @@ type Result struct {
 	User      digest.User `json:"-"`
 }
 
+type ResultCheck struct {
+	Done    bool        `json:"done"`
+	Message *string     `json:"message, omitempty"`
+	User    digest.User `json:"-"`
+}
+
 type ResultList struct {
 	Done    bool        `json:"done"`
 	Message *string     `json:"message, omitempty"`

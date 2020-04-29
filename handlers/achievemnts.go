@@ -249,3 +249,34 @@ func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, 
 	result.Done = true
 	tx.Commit()
 }
+
+func (result *ResultInfo) RemoveAchievement(idAchievement uint) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var old digest.IndividualAchievements
+	db := tx.Find(&old, idAchievement)
+	if old.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Индивидуальное достижение не найдено`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id=?`, idAchievement).Delete(&old)
+	if db.Error == nil {
+		result.Done = true
+		tx.Commit()
+		result.Items = map[string]interface{}{
+			`id_achievement`: idAchievement,
+		}
+		return
+	} else {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+}

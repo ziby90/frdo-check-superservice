@@ -17,7 +17,16 @@ type Organization struct {
 	Filial     bool      `xml:"filial" json:"filial"`
 }
 
+type VOrganizationsDirections struct {
+	Id             uint   `json:"id"`
+	Name           string `json:"name"`
+	IdOrganization uint   `json:"id_organization"`
+}
+
 // TableNames
 func (Organization) TableName() string {
 	return "admin.organizations"
+}
+func (VOrganizationsDirections) TableName() string {
+	return "admin.v_org_directions"
 }

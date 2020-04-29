@@ -6,6 +6,7 @@ import (
 	"persons/config"
 	"persons/digest"
 	"strconv"
+	"strings"
 )
 
 func (result *Result) GetListOrganization() {
@@ -98,6 +99,54 @@ func (result *ResultInfo) GetInfoOrganization(ID uint) {
 		message := `Организация не найдены.`
 		result.Message = &message
 		result.Items = make(map[string]string)
+		return
+	}
+}
+
+func (result *ResultList) GetDirectiontsListByOrg(idEducationLevel uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var items []digest.VOrganizationsDirections
+	sortField := `id`
+	sortOrder := `asc`
+	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(sortField + ` ` + sortOrder)
+	if idEducationLevel > 0 {
+		db = db.Where(`id_education_level=?`, idEducationLevel)
+	}
+
+	if result.Search != `` {
+		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	}
+	db = db.Find(&items)
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Направления не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, item := range items {
+			c := map[string]interface{}{
+				`id`:   item.Id,
+				`name`: item.Name,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Направления не найдены.`
+		result.Message = &message
+		result.Items = []digest.VOrganizationsDirections{}
 		return
 	}
 }

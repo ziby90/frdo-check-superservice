@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"persons/config"
+	"persons/digest"
 	"persons/service"
 	"strings"
 )
@@ -17,6 +18,13 @@ type SysRows struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	NameTable string `json:"name_table"`
+}
+
+type Subjects struct {
+	Id       uint   `json:"id"`
+	Name     string `json:"name"`
+	Year     int    `json:"year"`
+	MinScore int    `json:"min_score"`
 }
 
 var ListClsTableName = []string{
@@ -58,6 +66,7 @@ var ListFilterColumns = []string{
 	`id_campaign_types`,
 	`id_education_level`,
 	`id_parent`,
+	`is_ege`,
 }
 
 func (result *ResultCls) GetClsResponse(clsName string) {
@@ -98,12 +107,22 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 			if strings.HasPrefix(result.Filter, `id`) {
 				db = db.Where(`(`+result.Filter+`) = ?`, result.Value)
 			} else {
-				db = db.Where(`UPPER(`+result.Filter+`) like ?`, `%`+strings.ToUpper(result.Value)+`%`)
+				if clsName == `subjects` && result.Filter == `is_ege` {
+					if result.Value == `true` {
+						db = db.Where(`ege is TRUE`)
+					} else {
+						db = db.Where(`ege is FALSE`)
+					}
+
+				} else {
+					db = db.Where(`UPPER(`+result.Filter+`) like ?`, `%`+strings.ToUpper(result.Value)+`%`)
+				}
+
 			}
 
 		}
 	}
-	db.Select(strings.Join(fields, `,`) + ` as name`).Scan(&r)
+	db.Where(`actual`).Select(strings.Join(fields, `,`) + ` as name`).Scan(&r)
 	result.Items = r
 
 	if db.Error != nil {
@@ -119,6 +138,31 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 	}
 	result.Done = true
 	return
+}
+
+func (result *ResultInfo) GetSubjectsNoEge(idCampaign uint) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Find(&campaign, idCampaign)
+	if campaign.Id <= 0 || db.Error != nil {
+		message := `Компания не найдена.`
+		result.Message = &message
+		return
+	}
+	var subjects []Subjects
+	conn.Raw(`SELECT 
+				s.id
+				, s.name
+				, COALESCE(ss.min_score, 0) AS min_score 
+				, coalesce(ss.ege_year , ? ) as year
+				FROM cls.subjects s
+				LEFT JOIN cls.min_score_subjects ss ON s.id = ss.id_subject AND ss.ege_year = ? WHERE s.ege IS TRUE
+				`, campaign.YearStart, campaign.YearStart).Scan(&subjects)
+	result.Items = subjects
+	result.Done = true
+	return
+
 }
 
 func (result *ResultCls) GetClsSysCategoryResponse() {

@@ -16,8 +16,7 @@ type CompetitiveGroup struct {
 	IdEducationSource uint
 	LevelBudget       LevelBudget `gorm:"foreignkey:IdLevelBudget"`
 	IdLevelBudget     *uint
-	ReceptionCampaign Campaign    `gorm:"foreignkey:IdCampaign"`
-	CampaignUID       CampaignUID `xml:"Campaign"` // Идентификатор направления
+	Campaign          Campaign `gorm:"foreignkey:IdCampaign"`
 	IdCampaign        uint
 	BudgetO           int64        `json:"budget_o,omitempty"`
 	BudgetOz          int64        `json:"budget_oz,omitempty"`
@@ -39,7 +38,23 @@ type CompetitiveGroup struct {
 	XmlPath           XmlPath      `json:"-" xml:"-" gorm:"-"`
 }
 
+type CompetitiveGroupProgram struct {
+	Id                 uint      `json:"id"`
+	IdCompetitiveGroup uint      `json:"id_competitive_group"`
+	IdSubdivisionOrg   *uint     `json:"id_subdivision_org"`
+	Name               string    `json:"name"`
+	Created            time.Time `json:"created"`
+	IdAuthor           uint      `json:"id_author"` // Идентификатор автора
+	Actual             bool      `json:"actual"`
+	Uid                *string   `json:"uid"`
+	IdOrganization     uint      `json:"id_organization"`
+}
+
 // TableNames
 func (CompetitiveGroup) TableName() string {
 	return "cmp.competitive_groups"
+}
+
+func (CompetitiveGroupProgram) TableName() string {
+	return "cmp.competitive_group_programs"
 }

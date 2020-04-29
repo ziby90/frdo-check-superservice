@@ -102,6 +102,46 @@ func AddCampaignHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/campaign/{id:[0-9]+}/subjects", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetSubjectsNoEge(uint(id))
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
+	r.HandleFunc("/campaign/{id:[0-9]+}/education_forms", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetEducationFormCampaign(uint(id))
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	r.HandleFunc("/campaign/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
 
 		res := handlers.ResultInfo{}

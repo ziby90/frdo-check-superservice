@@ -200,6 +200,48 @@ func (result *ResultInfo) GetEducationLevelCampaign(ID uint) {
 	}
 }
 
+func (result *ResultInfo) GetEducationFormCampaign(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+
+	db := conn.Find(&campaign, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var responses []interface{}
+	if db.RowsAffected > 0 {
+		var campEducForms []digest.CampaignEducForm
+		db = conn.Where(`id_campaign=?`, campaign.Id).Find(&campEducForms)
+		for index, _ := range campEducForms {
+			var educForm digest.EducationForm
+			conn.First(&educForm, campEducForms[index].IdEducationForm)
+			responses = append(responses, map[string]interface{}{
+				`id`:   educForm.Id,
+				`name`: educForm.Name,
+			})
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+
 func (result *ResultInfo) GetInfoCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM

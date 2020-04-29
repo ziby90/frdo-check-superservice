@@ -25,4 +25,24 @@ func AddClsHandler(r *mux.Router) {
 		res.GetClsSysCategoryResponse()
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+
+	//r.HandleFunc("/cls/score/{id_subject:[0-9]+}/{year:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+	//	var res handlers.ResultCls
+	//	vars := mux.Vars(r)
+	//	idSubject, err := strconv.ParseInt(vars[`id_subject`], 10, 32)
+	//	if err == nil {
+	//		year, err := strconv.ParseInt(vars[`year`], 10, 32)
+	//		if err == nil {
+	//			res.GetMinScoreSubject(uint(idSubject), uint(year))
+	//		} else {
+	//			message := `Неверный параметр year.`
+	//			res.Message = &message
+	//		}
+	//	} else {
+	//		message := `Неверный параметр id_subject.`
+	//		res.Message = &message
+	//	}
+	//
+	//	service.ReturnJSON(w, res)
+	//}).Methods("GET")
 }

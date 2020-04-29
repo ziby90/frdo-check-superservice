@@ -71,4 +71,21 @@ func AddAchievementsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/achievements/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{
+			Done:    false,
+			Message: nil,
+			Items:   nil,
+		}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.RemoveAchievement(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 }
