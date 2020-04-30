@@ -1,269 +1,306 @@
 package digest
 
 import (
+	"mime/multipart"
 	"time"
 )
 
+type File struct {
+	MultFile multipart.File
+	Header   multipart.FileHeader
+}
 type Compatriot struct {
 	Id                     uint               `json:"id"` // Идентификатор
 	DocumentType           DocumentTypes      `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint               `json:"id_document_type"`
+	IdDocumentType         uint               `json:"id_document_type" schema:"id_document_type"`
 	CompatriotCategory     CompatriotCategory `json:"compatriot_category" gorm:"foreignkey:id_compatriot_category"`
-	IdCompatriotCategory   uint               `json:"id_compatriot_category"`
+	IdCompatriotCategory   uint               `json:"id_compatriot_category" schema:"id_compatriot_category"`
 	DocumentIdentification Identifications    `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint               `json:"id_ident_document"`
-	Uid                    string             `json:"uid"`
-	DocName                string             `json:"doc_name"`
-	DocOrg                 string             `json:"doc_org"`
+	IdIdentDocument        uint               `json:"id_ident_document" schema:"id_ident_document"`
+	Uid                    *string            `json:"uid" schema:"uid"`
+	DocName                string             `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string             `json:"doc_org" schema:"doc_org"`
 	Entrant                Entrants           `json:"entrant" gorm:"foreignkey:id_entrant"`
 	IdEntrant              uint               `json:"id_entrant"`
 	Created                time.Time          `json:"created"` // Дата создания
 	PathFiles              string             `json:"path_files"`
 	Checked                bool               `json:"checked"`
+	File                   *File              `json:"file" schema:"file" gorm:"-"`
+	IdOrganization         uint               `json:"id_organization"`
 }
 type Composition struct {
 	Id                     uint              `json:"id"` // Идентификатор
 	Entrant                Entrants          `json:"entrant" gorm:"foreignkey:id_entrant"`
-	IdEntrant              uint              `json:"id_entrant"`
+	IdEntrant              uint              `json:"id_entrant" schema:"id_entrant"`
 	DocumentIdentification Identifications   `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint              `json:"id_ident_document"`
+	IdIdentDocument        uint              `json:"id_ident_document" schema:"id_ident_document"`
 	DocumentType           DocumentTypes     `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint              `json:"id_document_type"`
-	Uid                    string            `json:"uid"`
-	DocName                string            `json:"doc_name"`
-	DocOrg                 string            `json:"doc_org"`
-	DocYear                int64             `json:"doc_year"`
+	IdDocumentType         uint              `json:"id_document_type" schema:"id_document_type"`
+	Uid                    *string           `json:"uid" schema:"uid"`
+	DocName                string            `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string            `json:"doc_org" schema:"doc_org"`
+	DocYear                int64             `json:"doc_year" schema:"doc_year"`
 	CompositionThemes      CompositionThemes `json:"composition_theme" gorm:"foreignkey:id_composition_theme"`
-	IdCompositionTheme     uint              `json:"id_composition_theme"`
+	IdCompositionTheme     uint              `json:"id_composition_theme" schema:"id_composition_theme"`
 	AppealStatuses         AppealStatuses    `json:"appeal_statuses" gorm:"foreignkey:id_appeal_status"`
-	IdAppealStatus         uint              `json:"id_appeal_status"`
-	HasAppealed            bool              `json:"has_appealed"`
+	IdAppealStatus         uint              `json:"id_appeal_status" schema:"id_appeal_status"`
+	HasAppealed            bool              `json:"has_appealed" schema:"has_appealed"`
 	Checked                bool              `json:"checked"`
-	Result                 bool              `json:"result"`
-	IssueDate              time.Time         `json:"issue_date"`
+	Result                 bool              `json:"result" schema:"result"`
+	IssueDate              time.Time         `json:"issue_date" schema:"issue_date"`
 	PathFiles              string            `json:"path_files"`
 	Created                time.Time         `json:"created"` // Дата создания
+	File                   *File             `json:"file" schema:"file" gorm:"-"`
+	IdOrganization         uint              `json:"id_organization"`
 }
-type Ege struct {
-	Id                     uint            `json:"id"` // Идентификатор
+
+type Disability struct {
+	Id                     uint            `json:"id" schema:"id"` // Идентификатор
 	Entrant                Entrants        `json:"entrant" gorm:"foreignkey:id_entrant"`
-	IdEntrant              uint            `json:"id_entrant"`
+	IdEntrant              uint            `json:"id_entrant" schema:"id_entrant"`
 	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint            `json:"id_ident_document"`
+	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
 	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint            `json:"id_document_type"`
-	DocName                string          `json:"doc_name"`
-	DocOrg                 string          `json:"doc_org"`
-	Uid                    string          `json:"uid"`
-	RegisterNumber         string          `json:"register_number"`
-	DocNumber              string          `json:"doc_number"`
-	Region                 Region          `json:"region" gorm:"foreignkey:id_region"`
-	IdRegion               uint            `json:"id_region"`
-	Subject                Subject         `json:"subject" gorm:"foreignkey:id_subject"`
-	IdSubject              uint            `json:"id_subject"`
-	Mark                   int64           `json:"mark"`
+	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
+	DocName                string          `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	Uid                    *string         `json:"uid" schema:"uid"`
+	DocNumber              string          `json:"doc_number" schema:"doc_number"`
 	Checked                bool            `json:"checked"`
-	ResultDate             time.Time       `json:"result_date"`
-	IssueDate              time.Time       `json:"issue_date"`
+	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
+	DisabilityType         DisabilityTypes `json:"disability_type" gorm:"foreignkey:id_disability_type"`
+	IdDisabilityType       uint            `json:"id_disability_type" schema:"id_disability_type"`
+	PathFiles              string          `json:"path_files"`
 	Created                time.Time       `json:"created"` // Дата создания
+	File                   *File           `json:"file" schema:"file" gorm:"-"`
+	IdOrganization         uint            `json:"id_organization"`
+}
+
+type Ege struct {
+	Id                     uint            `json:"id" schema:"id"` // Идентификатор
+	Entrant                Entrants        `json:"entrant" gorm:"foreignkey:id_entrant"`
+	IdEntrant              uint            `json:"id_entrant" schema:"id_entrant"`
+	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
+	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
+	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
+	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
+	DocName                string          `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	Uid                    *string         `json:"uid" schema:"uid"`
+	RegisterNumber         string          `json:"register_number" schema:"register_number"`
+	DocNumber              string          `json:"doc_number" schema:"doc_number"`
+	Region                 Region          `json:"region" gorm:"foreignkey:id_region"`
+	IdRegion               uint            `json:"id_region" schema:"id_region"`
+	Subject                Subject         `json:"subject" gorm:"foreignkey:id_subject"`
+	IdSubject              uint            `json:"id_subject" schema:"id_subject"`
+	Mark                   int64           `json:"mark" schema:"mark"`
+	Checked                bool            `json:"checked"`
+	ResultDate             time.Time       `json:"result_date" schema:"result_date"`
+	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
+	Created                time.Time       `json:"created"` // Дата создания
+	File                   *File           `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string          `json:"path_files"`
+	IdOrganization         uint            `json:"id_organization"`
 }
 type Educations struct {
-	Id                     uint            `json:"id"` // Идентификатор
-	Entrant                Entrants        `json:"entrant" gorm:"foreignkey:id_entrant"`
-	IdEntrant              uint            `json:"id_entrant"`
-	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint            `json:"id_ident_document"`
-	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint            `json:"id_document_type"`
-	DocName                string          `json:"doc_name"`
-	DocOrg                 string          `json:"doc_org"`
-	Uid                    string          `json:"uid"`
-	DocSeries              string          `json:"doc_series"`
-	DocNumber              string          `json:"doc_number"`
-	RegisterNumber         string          `json:"register_number"`
-	Direction              Direction       `json:"direction" gorm:"foreignkey:id_direction"`
-	IdDirection            *uint           `json:"id_direction"`
-	EducationLevel         EducationLevel  `json:"education_level" gorm:"foreignkey:id_education_level"`
-	IdEducationLevel       uint            `json:"id_education_level"`
-	IssueDate              time.Time       `json:"issue_date"`
-	Created                time.Time       `json:"created"` // Дата создания
-	Checked                bool            `json:"checked"`
-}
-type Disability struct {
-	Id                     uint            `json:"id"` // Идентификатор
-	Entrant                Entrants        `json:"entrant" gorm:"foreignkey:id_entrant"`
-	IdEntrant              uint            `json:"id_entrant"`
-	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint            `json:"id_ident_document"`
-	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint            `json:"id_document_type"`
-	DocName                string          `json:"doc_name"`
-	DocOrg                 string          `json:"doc_org"`
-	Uid                    string          `json:"uid"`
-	DocNumber              string          `json:"doc_number"`
-	Checked                bool            `json:"checked"`
-	IssueDate              time.Time       `json:"issue_date"`
-	DisabilityType         DisabilityTypes `json:"disability_type" gorm:"foreignkey:id_disability_type"`
-	IdDisabilityType       uint            `json:"id_disability_type"`
-	PathFiles              string          `json:"path_files"`
-	Created                time.Time       `json:"created"` // Дата создания
+	Id                     uint                   `json:"id" schema:"id"` // Идентификатор
+	Entrant                Entrants               `json:"entrant" gorm:"foreignkey:id_entrant"`
+	IdEntrant              uint                   `json:"id_entrant" schema:"id_entrant"`
+	DocumentIdentification Identifications        `json:"document_identification" gorm:"foreignkey:id_ident_document"`
+	IdIdentDocument        uint                   `json:"id_ident_document" schema:"id_ident_document"`
+	DocumentType           DocumentTypes          `json:"document_type" gorm:"foreignkey:id_document_type"`
+	IdDocumentType         uint                   `json:"id_document_type" schema:"id_document_type"`
+	DocName                string                 `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string                 `json:"doc_org" schema:"doc_org"`
+	Uid                    *string                `json:"uid" schema:"uid"`
+	DocSeries              string                 `json:"doc_series" schema:"doc_series"`
+	DocNumber              string                 `json:"doc_number" schema:"doc_number"`
+	RegisterNumber         string                 `json:"register_number" schema:"register_number"`
+	Direction              Direction              `json:"direction" gorm:"foreignkey:id_direction"`
+	IdDirection            *uint                  `json:"id_direction" schema:"id_direction"`
+	EducationLevel         DocumentEducationLevel `json:"education_level" gorm:"foreignkey:id_education_level"`
+	IdEducationLevel       uint                   `json:"id_education_level" schema:"id_education_level"`
+	IssueDate              time.Time              `json:"issue_date" schema:"issue_date"`
+	Created                time.Time              `json:"created"` // Дата создания
+	Checked                bool                   `json:"checked"`
+	File                   *File                  `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string                 `json:"path_files"`
+	IdOrganization         uint                   `json:"id_organization"`
 }
 type Identifications struct {
-	Id              uint          `json:"id"` // Идентификатор
+	Id              uint          `json:"id" schema:"id"` // Идентификатор
 	Entrants        Entrants      `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId      uint          `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId      uint          `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType    DocumentTypes `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType  uint          `json:"id_document_type"`
-	Surname         string        `json:"surname"`
-	Name            string        `json:"name"`
-	Patronymic      string        `json:"patronymic"`
-	DocSeries       string        `json:"doc_series"`
-	DocNumber       string        `json:"doc_number"`
-	DocOrganization string        `json:"doc_organization"`
-	IssueDate       time.Time     `gorm:"type:time" json:"issue_date"`
-	SubdivisionCode string        `json:"subdivision_code"`
+	IdDocumentType  uint          `json:"id_document_type" schema:"id_document_type"`
+	Surname         string        `json:"surname" schema:"surname"`
+	Name            string        `json:"name" schema:"name"`
+	Uid             *string       `json:"uid" schema:"uid"`
+	Patronymic      string        `json:"patronymic" schema:"patronymic"`
+	DocSeries       string        `json:"doc_series" schema:"doc_series"`
+	DocNumber       string        `json:"doc_number" schema:"doc_number"`
+	DocOrganization string        `json:"doc_organization" schema:"doc_organization"`
+	IssueDate       time.Time     `gorm:"type:time" json:"issue_date" schema:"issue_date"`
+	SubdivisionCode string        `json:"subdivision_code" schema:"subdivision_code"`
 	Okcm            Okcm          `json:"okcm" gorm:"foreignkey:id_okcm"`
-	IdOkcm          uint          `json:"id_okcm"`
+	IdOkcm          uint          `json:"id_okcm" schema:"id_okcm"`
 	Checked         bool          `json:"checked"`
 	Created         time.Time     `json:"created"` // Дата создания
+	File            *File         `json:"file" schema:"file" gorm:"-"`
+	PathFiles       string        `json:"path_files"`
+	IdOrganization  uint          `json:"id_organization"`
 }
 type Militaries struct {
-	Id                     uint               `json:"id"` // Идентификатор
+	Id                     uint               `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants           `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint               `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint               `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes      `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint               `json:"id_document_type"`
+	IdDocumentType         uint               `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications    `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint               `json:"id_ident_document"`
-	DocName                string             `json:"doc_name"`
-	DocOrg                 string             `json:"doc_org"`
-	Uid                    string             `json:"uid"`
-	DocNumber              string             `json:"doc_number"`
-	DocSeries              string             `json:"doc_series"`
+	IdIdentDocument        uint               `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string             `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string             `json:"doc_org" schema:"doc_org"`
+	Uid                    *string            `json:"uid" schema:"uid"`
+	DocNumber              string             `json:"doc_number" schema:"doc_number"`
+	DocSeries              string             `json:"doc_series" schema:"doc_series"`
 	Checked                bool               `json:"checked"`
-	IssueDate              time.Time          `json:"issue_date"`
+	IssueDate              time.Time          `json:"issue_date" schema:"issue_date"`
 	MilitaryCategories     MilitaryCategories `json:"military_categories" gorm:"foreignkey:id_category"`
-	IdCategory             uint               `json:"id_category"`
-	PathFiles              string             `json:"path_files"`
+	IdCategory             uint               `json:"id_category" schema:"id_category"`
 	Created                time.Time          `json:"created"` // Дата создания
+	File                   *File              `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string             `json:"path_files"`
+	IdOrganization         uint               `json:"id_organization"`
 }
 type OlympicsDocs struct {
-	Id                     uint            `json:"id"` // Идентификатор
+	Id                     uint            `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants        `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint            `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint            `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint            `json:"id_document_type"`
+	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint            `json:"id_ident_document"`
-	DocName                string          `json:"doc_name"`
-	DocOrg                 string          `json:"doc_org"`
-	Uid                    string          `json:"uid"`
-	DocNumber              string          `json:"doc_number"`
-	DocSeries              string          `json:"doc_series"`
+	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string          `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	Uid                    *string         `json:"uid" schema:"uid"`
+	DocNumber              string          `json:"doc_number" schema:"doc_number"`
+	DocSeries              string          `json:"doc_series" schema:"doc_series"`
 	Checked                bool            `json:"checked"`
-	IssueDate              time.Time       `json:"issue_date"`
+	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Olympics               Olympics        `json:"olympics" gorm:"foreignkey:id_olympic"`
-	IdOlympic              uint            `json:"id_olympic"`
-	PathFiles              string          `json:"path_files"`
+	IdOlympic              uint            `json:"id_olympic" schema:"id_olympic"`
 	Created                time.Time       `json:"created"` // Дата создания
+	File                   *File           `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string          `json:"path_files"`
+	IdOrganization         uint            `json:"id_organization"`
 }
 type Orphans struct {
-	Id                     uint             `json:"id"` // Идентификатор
+	Id                     uint             `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants         `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint             `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint             `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes    `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint             `json:"id_document_type"`
+	IdDocumentType         uint             `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications  `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint             `json:"id_ident_document"`
-	DocName                string           `json:"doc_name"`
-	DocOrg                 string           `json:"doc_org"`
-	Uid                    string           `json:"uid"`
-	DocNumber              string           `json:"doc_number"`
-	DocSeries              string           `json:"doc_series"`
+	IdIdentDocument        uint             `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string           `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string           `json:"doc_org" schema:"doc_org"`
+	Uid                    *string          `json:"uid" schema:"uid"`
+	DocNumber              string           `json:"doc_number" schema:"doc_number"`
+	DocSeries              string           `json:"doc_series" schema:"doc_series"`
 	Checked                bool             `json:"checked"`
-	IssueDate              time.Time        `json:"issue_date"`
+	IssueDate              time.Time        `json:"issue_date" schema:"issue_date"`
 	OrphanCategories       OrphanCategories `json:"olympics" gorm:"foreignkey:id_category"`
-	IdCategory             uint             `json:"id_category"`
-	PathFiles              string           `json:"path_files"`
+	IdCategory             uint             `json:"id_category" schema:"id_category"`
 	Created                time.Time        `json:"created"` // Дата создания
+	File                   *File            `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string           `json:"path_files"`
+	IdOrganization         uint             `json:"id_organization"`
 }
 type Other struct {
-	Id                     uint            `json:"id"` // Идентификатор
+	Id                     uint            `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants        `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint            `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint            `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint            `json:"id_document_type"`
+	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint            `json:"id_ident_document"`
-	DocName                string          `json:"doc_name"`
-	DocOrg                 string          `json:"doc_org"`
-	Uid                    string          `json:"uid"`
-	DocNumber              string          `json:"doc_number"`
-	DocSeries              string          `json:"doc_series"`
+	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string          `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	Uid                    *string         `json:"uid" schema:"uid"`
+	DocNumber              string          `json:"doc_number" schema:"doc_number"`
+	DocSeries              string          `json:"doc_series" schema:"doc_series"`
 	Checked                bool            `json:"checked"`
-	IssueDate              time.Time       `json:"issue_date"`
-	PathFiles              string          `json:"path_files"`
+	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Created                time.Time       `json:"created"` // Дата создания
+	File                   *File           `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string          `json:"path_files"`
+	IdOrganization         uint            `json:"id_organization"`
 }
 type ParentsLost struct {
-	Id                     uint                  `json:"id"` // Идентификатор
+	Id                     uint                  `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants              `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint                  `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint                  `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes         `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint                  `json:"id_document_type"`
+	IdDocumentType         uint                  `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications       `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint                  `json:"id_ident_document"`
-	DocName                string                `json:"doc_name"`
-	DocOrg                 string                `json:"doc_org"`
-	Uid                    string                `json:"uid"`
-	DocNumber              string                `json:"doc_number"`
-	DocSeries              string                `json:"doc_series"`
+	IdIdentDocument        uint                  `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string                `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string                `json:"doc_org" schema:"doc_org"`
+	Uid                    *string               `json:"uid" schema:"uid"`
+	DocNumber              string                `json:"doc_number" schema:"doc_number"`
+	DocSeries              string                `json:"doc_series" schema:"doc_series"`
 	Checked                bool                  `json:"checked"`
-	IssueDate              time.Time             `json:"issue_date"`
+	IssueDate              time.Time             `json:"issue_date" schema:"issue_date"`
 	ParentsLostCategory    ParentsLostCategories `json:"parents_lost_category" gorm:"foreignkey:id_category"`
-	IdCategory             uint                  `json:"id_category"`
-	PathFiles              string                `json:"path_files"`
+	IdCategory             uint                  `json:"id_category" schema:"id_category"`
 	Created                time.Time             `json:"created"` // Дата создания
+	File                   *File                 `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string                `json:"path_files"`
+	IdOrganization         uint                  `json:"id_organization"`
 }
 type RadiationWork struct {
-	Id                     uint                    `json:"id"` // Идентификатор
+	Id                     uint                    `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants                `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint                    `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint                    `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes           `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint                    `json:"id_document_type"`
+	IdDocumentType         uint                    `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications         `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint                    `json:"id_ident_document"`
-	DocName                string                  `json:"doc_name"`
-	DocOrg                 string                  `json:"doc_org"`
-	Uid                    string                  `json:"uid"`
-	DocNumber              string                  `json:"doc_number"`
-	DocSeries              string                  `json:"doc_series"`
+	IdIdentDocument        uint                    `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string                  `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string                  `json:"doc_org" schema:"doc_org"`
+	Uid                    *string                 `json:"uid" schema:"uid"`
+	DocNumber              string                  `json:"doc_number" schema:"doc_number"`
+	DocSeries              string                  `json:"doc_series" schema:"doc_series"`
 	Checked                bool                    `json:"checked"`
-	IssueDate              time.Time               `json:"issue_date"`
+	IssueDate              time.Time               `json:"issue_date" schema:"issue_date"`
 	RadiationWorkCategory  RadiationWorkCategories `json:"radiation_work_category" gorm:"foreignkey:id_category"`
-	IdCategory             uint                    `json:"id_category"`
-	PathFiles              string                  `json:"path_files"`
+	IdCategory             uint                    `json:"id_category" schema:"id_category"`
 	Created                time.Time               `json:"created"` // Дата создания
+	File                   *File                   `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string                  `json:"path_files"`
+	IdOrganization         uint                    `json:"id_organization"`
 }
 type Veteran struct {
-	Id                     uint              `json:"id"` // Идентификатор
+	Id                     uint              `json:"id" schema:"id"` // Идентификатор
 	Entrants               Entrants          `json:"entrant" gorm:"association_foreignkey:Id"`
-	EntrantsId             uint              `json:"id_entrant" gorm:"column:id_entrant"`
+	EntrantsId             uint              `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	DocumentType           DocumentTypes     `json:"document_type" gorm:"foreignkey:id_document_type"`
-	IdDocumentType         uint              `json:"id_document_type"`
+	IdDocumentType         uint              `json:"id_document_type" schema:"id_document_type"`
 	DocumentIdentification Identifications   `json:"document_identification" gorm:"foreignkey:id_ident_document"`
-	IdIdentDocument        uint              `json:"id_ident_document"`
-	DocName                string            `json:"doc_name"`
-	DocOrg                 string            `json:"doc_org"`
-	Uid                    string            `json:"uid"`
-	DocNumber              string            `json:"doc_number"`
-	DocSeries              string            `json:"doc_series"`
+	IdIdentDocument        uint              `json:"id_ident_document" schema:"id_ident_document"`
+	DocName                string            `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string            `json:"doc_org" schema:"doc_org"`
+	Uid                    *string           `json:"uid" schema:"uid"`
+	DocNumber              string            `json:"doc_number" schema:"doc_number"`
+	DocSeries              string            `json:"doc_series" schema:"doc_series"`
 	Checked                bool              `json:"checked"`
-	IssueDate              time.Time         `json:"issue_date"`
+	IssueDate              time.Time         `json:"issue_date" schema:"issue_date"`
 	VeteranCategory        VeteranCategories `json:"veteran_category" gorm:"foreignkey:id_category"`
-	IdCategory             uint              `json:"id_category"`
-	PathFiles              string            `json:"path_files"`
+	IdCategory             uint              `json:"id_category" schema:"id_category"`
 	Created                time.Time         `json:"created"` // Дата создания
+	File                   *File             `json:"file" schema:"file" gorm:"-"`
+	PathFiles              string            `json:"path_files"`
+	IdOrganization         uint              `json:"id_organization"`
 }
 
 type VDocuments struct {

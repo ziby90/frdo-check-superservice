@@ -39,6 +39,7 @@ var ListClsTableName = []string{
 	`disability_types`,
 	`document_categories`,
 	`document_sys_category`,
+	`document_education_levels`,
 	`v_document_types`,
 	`document_types`,
 	`education_forms`,

@@ -105,12 +105,11 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 				`name_direction`:        competitveGroup.Direction.Name,
 				`id_level_budget`:       competitveGroup.LevelBudget.Id,
 				`name_level_budget`:     competitveGroup.LevelBudget.Name,
-				`id_author`:             competitveGroup.Id,
-				`actual`:                competitveGroup.Id,
-				`uid`:                   competitveGroup.Id,
-				`id_organization`:       competitveGroup.Id,
-				`created`:               competitveGroup.Id,
-				`changed`:               competitveGroup.Id,
+				`id_author`:             competitveGroup.IdAuthor,
+				`actual`:                competitveGroup.Actual,
+				`uid`:                   competitveGroup.UID,
+				`id_organization`:       competitveGroup.IdOrganization,
+				`created`:               competitveGroup.Created,
 			}
 			responses = append(responses, c)
 		}
@@ -584,10 +583,12 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 		c := map[string]interface{}{
 			"id":                    competitive.Id,
 			"id_campaign":           competitive.IdCampaign,
+			"name_campaign":         competitive.Campaign.Name,
 			"id_direction":          competitive.Direction.Id,
 			"code_direction":        competitive.Direction.Code,
 			"name_direction":        competitive.Direction.Name,
 			"name":                  competitive.Name,
+			"uid":                   competitive.UID,
 			"id_education_form":     competitive.EducationForm.Id,
 			"name_education_form":   competitive.EducationForm.Name,
 			"id_education_level":    competitive.EducationLevel.Id,

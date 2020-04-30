@@ -79,11 +79,12 @@ type DocumentCategories struct {
 	Actual   bool `json:"actual"` // Актуальность
 }
 type DocumentSysCategories struct {
-	Id       uint `xml:"DocumentSysCategorieID"`
-	Name     string
-	Created  time.Time
-	IdAuthor uint // Идентификатор автора
-	Actual   bool `json:"actual"` // Актуальность
+	Id        uint `xml:"DocumentSysCategorieID"`
+	Name      string
+	NameTable string
+	Created   time.Time
+	IdAuthor  uint // Идентификатор автора
+	Actual    bool `json:"actual"` // Актуальность
 }
 type DocumentTypes struct {
 	Id                    uint `xml:"DocumentTypeID"`
@@ -106,6 +107,13 @@ type EducationForm struct {
 type EducationLevel struct {
 	Id       uint `xml:"EducationLevelID"`
 	Code     string
+	Name     string
+	Created  time.Time
+	IdAuthor uint // Идентификатор автора
+	Actual   bool `json:"actual"` // Актуальность
+}
+type DocumentEducationLevel struct {
+	Id       uint `xml:"DocumentEducationLevelID"`
 	Name     string
 	Created  time.Time
 	IdAuthor uint // Идентификатор автора
@@ -258,6 +266,9 @@ func (EducationForm) TableName() string {
 }
 func (EducationLevel) TableName() string {
 	return "cls.education_levels"
+}
+func (DocumentEducationLevel) TableName() string {
+	return "cls.document_education_levels"
 }
 func (EducationSource) TableName() string {
 	return "cls.education_sources"
