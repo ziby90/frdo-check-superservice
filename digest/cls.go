@@ -16,6 +16,12 @@ type AppealStatuses struct {
 	IdAuthor uint // Идентификатор автора
 	Actual   bool `json:"actual"` // Актуальность
 }
+type ApplicationStatuses struct {
+	Id      uint
+	Name    string
+	Created time.Time
+	Actual  bool `json:"actual"` // Актуальность
+}
 type Benefit struct {
 	Id        uint `xml:"BenefitID"`
 	Name      string
@@ -213,6 +219,12 @@ type Region struct {
 	Created time.Time
 	Actual  bool `json:"actual"` // Актуальность
 }
+type ReturnTypes struct {
+	Id      uint
+	Name    string
+	Created time.Time
+	Actual  bool `json:"actual"` // Актуальность
+}
 type Subject struct {
 	Id       uint `xml:"SubjectID"`
 	Code     string
@@ -222,6 +234,12 @@ type Subject struct {
 	Actual   bool `json:"actual"` // Актуальность
 	Olympic  bool
 }
+type ViolationTypes struct {
+	Id      uint `xml:"ViolationTypeID"`
+	Name    string
+	Created time.Time
+	Actual  bool `json:"actual"` // Актуальность
+}
 
 // TableNames
 
@@ -230,6 +248,9 @@ func (AchievementCategory) TableName() string {
 }
 func (AppealStatuses) TableName() string {
 	return "cls.appeal_statuses"
+}
+func (ApplicationStatuses) TableName() string {
+	return "cls.application_statuses"
 }
 func (Benefit) TableName() string {
 	return "cls.benefits"
@@ -306,9 +327,15 @@ func (RadiationWorkCategories) TableName() string {
 func (Region) TableName() string {
 	return "cls.regions"
 }
+func (ReturnTypes) TableName() string {
+	return "cls.return_types"
+}
 func (Subject) TableName() string {
 	return "cls.subjects"
 }
 func (VeteranCategories) TableName() string {
 	return "cls.veteran_categories"
+}
+func (ViolationTypes) TableName() string {
+	return "cls.violation_types"
 }

@@ -9,6 +9,14 @@ type File struct {
 	MultFile multipart.File
 	Header   multipart.FileHeader
 }
+
+type FileC struct {
+	Content []byte `json:"content,omitempty"`
+	Title   string `json:"title,omitempty"`
+	Size    int64  `json:"size,omitempty"`
+	Type    string `json:"type, omitempty"`
+}
+
 type Compatriot struct {
 	Id                     uint               `json:"id"` // Идентификатор
 	DocumentType           DocumentTypes      `json:"document_type" gorm:"foreignkey:id_document_type"`
@@ -23,7 +31,7 @@ type Compatriot struct {
 	Entrant                Entrants           `json:"entrant" gorm:"foreignkey:id_entrant"`
 	IdEntrant              uint               `json:"id_entrant"`
 	Created                time.Time          `json:"created"` // Дата создания
-	PathFiles              string             `json:"path_files"`
+	PathFile               string             `json:"path_file"`
 	Checked                bool               `json:"checked"`
 	File                   *File              `json:"file" schema:"file" gorm:"-"`
 	IdOrganization         uint               `json:"id_organization"`
@@ -48,7 +56,7 @@ type Composition struct {
 	Checked                bool              `json:"checked"`
 	Result                 bool              `json:"result" schema:"result"`
 	IssueDate              time.Time         `json:"issue_date" schema:"issue_date"`
-	PathFiles              string            `json:"path_files"`
+	PathFile               string            `json:"path_file"`
 	Created                time.Time         `json:"created"` // Дата создания
 	File                   *File             `json:"file" schema:"file" gorm:"-"`
 	IdOrganization         uint              `json:"id_organization"`
@@ -70,7 +78,7 @@ type Disability struct {
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	DisabilityType         DisabilityTypes `json:"disability_type" gorm:"foreignkey:id_disability_type"`
 	IdDisabilityType       uint            `json:"id_disability_type" schema:"id_disability_type"`
-	PathFiles              string          `json:"path_files"`
+	PathFile               string          `json:"path_file"`
 	Created                time.Time       `json:"created"` // Дата создания
 	File                   *File           `json:"file" schema:"file" gorm:"-"`
 	IdOrganization         uint            `json:"id_organization"`
@@ -99,7 +107,7 @@ type Ege struct {
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Created                time.Time       `json:"created"` // Дата создания
 	File                   *File           `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string          `json:"path_files"`
+	PathFile               string          `json:"path_file"`
 	IdOrganization         uint            `json:"id_organization"`
 }
 type Educations struct {
@@ -124,8 +132,23 @@ type Educations struct {
 	Created                time.Time              `json:"created"` // Дата создания
 	Checked                bool                   `json:"checked"`
 	File                   *File                  `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string                 `json:"path_files"`
+	PathFile               string                 `json:"path_file"`
 	IdOrganization         uint                   `json:"id_organization"`
+}
+type General struct {
+	Id                     uint            `json:"id" schema:"id"` // Идентификатор
+	Entrant                Entrants        `json:"entrant" gorm:"foreignkey:id_entrant"`
+	IdEntrant              uint            `json:"id_entrant" schema:"id_entrant"`
+	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
+	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
+	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
+	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
+	DocName                string          `json:"doc_name" schema:"doc_name"`
+	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	Uid                    *string         `json:"uid" schema:"uid"`
+	Created                time.Time       `json:"created"` // Дата создания
+	File                   *File           `json:"file" schema:"file" gorm:"-"`
+	PathFile               string          `json:"path_file"`
 }
 type Identifications struct {
 	Id              uint          `json:"id" schema:"id"` // Идентификатор
@@ -147,7 +170,7 @@ type Identifications struct {
 	Checked         bool          `json:"checked"`
 	Created         time.Time     `json:"created"` // Дата создания
 	File            *File         `json:"file" schema:"file" gorm:"-"`
-	PathFiles       string        `json:"path_files"`
+	PathFile        string        `json:"path_file"`
 	IdOrganization  uint          `json:"id_organization"`
 }
 type Militaries struct {
@@ -169,7 +192,7 @@ type Militaries struct {
 	IdCategory             uint               `json:"id_category" schema:"id_category"`
 	Created                time.Time          `json:"created"` // Дата создания
 	File                   *File              `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string             `json:"path_files"`
+	PathFile               string             `json:"path_file"`
 	IdOrganization         uint               `json:"id_organization"`
 }
 type OlympicsDocs struct {
@@ -191,7 +214,7 @@ type OlympicsDocs struct {
 	IdOlympic              uint            `json:"id_olympic" schema:"id_olympic"`
 	Created                time.Time       `json:"created"` // Дата создания
 	File                   *File           `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string          `json:"path_files"`
+	PathFile               string          `json:"path_file"`
 	IdOrganization         uint            `json:"id_organization"`
 }
 type Orphans struct {
@@ -213,7 +236,7 @@ type Orphans struct {
 	IdCategory             uint             `json:"id_category" schema:"id_category"`
 	Created                time.Time        `json:"created"` // Дата создания
 	File                   *File            `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string           `json:"path_files"`
+	PathFile               string           `json:"path_file"`
 	IdOrganization         uint             `json:"id_organization"`
 }
 type Other struct {
@@ -233,7 +256,7 @@ type Other struct {
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Created                time.Time       `json:"created"` // Дата создания
 	File                   *File           `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string          `json:"path_files"`
+	PathFile               string          `json:"path_file"`
 	IdOrganization         uint            `json:"id_organization"`
 }
 type ParentsLost struct {
@@ -255,7 +278,7 @@ type ParentsLost struct {
 	IdCategory             uint                  `json:"id_category" schema:"id_category"`
 	Created                time.Time             `json:"created"` // Дата создания
 	File                   *File                 `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string                `json:"path_files"`
+	PathFile               string                `json:"path_file"`
 	IdOrganization         uint                  `json:"id_organization"`
 }
 type RadiationWork struct {
@@ -277,7 +300,7 @@ type RadiationWork struct {
 	IdCategory             uint                    `json:"id_category" schema:"id_category"`
 	Created                time.Time               `json:"created"` // Дата создания
 	File                   *File                   `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string                  `json:"path_files"`
+	PathFile               string                  `json:"path_file"`
 	IdOrganization         uint                    `json:"id_organization"`
 }
 type Veteran struct {
@@ -299,7 +322,7 @@ type Veteran struct {
 	IdCategory             uint              `json:"id_category" schema:"id_category"`
 	Created                time.Time         `json:"created"` // Дата создания
 	File                   *File             `json:"file" schema:"file" gorm:"-"`
-	PathFiles              string            `json:"path_files"`
+	PathFile               string            `json:"path_file"`
 	IdOrganization         uint              `json:"id_organization"`
 }
 
@@ -320,7 +343,8 @@ type VDocuments struct {
 	NameTable         string        `json:"name_table"`
 	DocumentType      DocumentTypes `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType    uint          `json:"id_document_type"`
-	Created           time.Time     `json:"created"` // Дата создания
+	Created           time.Time     `json:"created"`   // Дата создания
+	PathFile          *string       `json:"path_file"` // Дата создания
 }
 
 func (Compatriot) TableName() string {
@@ -337,6 +361,9 @@ func (Educations) TableName() string {
 }
 func (Ege) TableName() string {
 	return "documents.ege"
+}
+func (General) TableName() string {
+	return "documents.general"
 }
 func (Identifications) TableName() string {
 	return "documents.identification"

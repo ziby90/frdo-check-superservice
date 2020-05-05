@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"persons/config"
@@ -20,10 +23,1331 @@ import (
 //	Created             		time.Time 			"json:"created""    // Дата создания
 //	Checked						bool				"json:"checked""
 //}
-func getPath(idEntrant uint, category string) string {
-	t := time.Now()
+
+func getPath(idEntrant uint, category string, t time.Time) string {
 	path := `./uploads/docs/` + fmt.Sprintf(`%v`, idEntrant) + `/` + category + `/` + t.Format(`2006-01-02`)
 	return path
+}
+
+func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `compatriot`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Compatriot
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.IdEntrant = idEntrant
+	doc.Id = 0
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.CompatriotCategory, doc.IdCompatriotCategory)
+	if db.Error != nil || doc.CompatriotCategory.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Compatriot
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+
+	}
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `composition`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Composition
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.IdEntrant = idEntrant
+	doc.Id = 0
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.CompositionThemes, doc.IdCompositionTheme)
+	if db.Error != nil || doc.CompositionThemes.Id <= 0 {
+		result.SetErrorResult(`Не найдена тема сочинения`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.AppealStatuses, doc.IdAppealStatus)
+	if db.Error != nil || doc.AppealStatuses.Id <= 0 {
+		result.SetErrorResult(`Не найден статус апе`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Composition
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+
+	}
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `disability`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Disability
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.IdEntrant = idEntrant
+	doc.Id = 0
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.DisabilityType, doc.IdDisabilityType)
+	if db.Error != nil || doc.DisabilityType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип инвалидности`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Disability
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+
+	}
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `ege`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Ege
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.IdEntrant = idEntrant
+	doc.Id = 0
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.Region, doc.IdRegion)
+	if db.Error != nil || doc.Region.Id <= 0 {
+		result.SetErrorResult(`Не найден регион`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.Subject, doc.IdSubject)
+	if db.Error != nil || doc.Subject.Id <= 0 {
+		result.SetErrorResult(`Не найден субъект`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Ege
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `educations`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Educations
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.IdEntrant = idEntrant
+	doc.Id = 0
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Find(&doc.Direction, doc.IdDirection)
+	if db.Error != nil || doc.Direction.Id <= 0 {
+		result.SetErrorResult(`Не найдено направление`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.EducationLevel, doc.IdEducationLevel)
+	if db.Error != nil || doc.EducationLevel.Id <= 0 {
+		result.SetErrorResult(`Не найден уровень образования`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Educations
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifications) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `identifications`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Identifications
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Find(&doc.Okcm, doc.IdOkcm)
+	if db.Error != nil || doc.Okcm.Id <= 0 {
+		result.SetErrorResult(`Не найдено оксм`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Identifications
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `militaries`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Militaries
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.MilitaryCategories, doc.IdCategory)
+	if db.Error != nil || doc.MilitaryCategories.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Militaries
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDocs) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `olympics`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.OlympicsDocs
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.Olympics, doc.IdOlympic)
+	if db.Error != nil || doc.Olympics.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.OlympicsDocs
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `orphans`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Orphans
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.OrphanCategories, doc.IdCategory)
+	if db.Error != nil || doc.OrphanCategories.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Orphans
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `other`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Other
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.Other
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `parents_lost`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.ParentsLost
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.ParentsLostCategory, doc.IdCategory)
+	if db.Error != nil || doc.ParentsLostCategory.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.ParentsLost
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationWork) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `radiation_work`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.RadiationWork
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.RadiationWorkCategory, doc.IdCategory)
+	if db.Error != nil || doc.RadiationWorkCategory.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.RadiationWork
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `veteran`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, idEntrant)
+
+	path := getPath(idEntrant, category.NameTable, time.Now())
+	if entrant.Id == 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		tx.Rollback()
+		return
+	}
+	var doc digest.Veteran
+	doc = cmp
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc.Created = time.Now()
+	doc.EntrantsId = idEntrant
+	doc.Id = 0
+
+	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
+	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
+		result.SetErrorResult(`Не найден удостоверяющий документ`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Find(&doc.VeteranCategory, doc.IdCategory)
+	if db.Error != nil || doc.VeteranCategory.Id <= 0 {
+		result.SetErrorResult(`Не найдена категория чего то`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
+	if db.Error != nil || doc.DocumentType.Id <= 0 {
+		result.SetErrorResult(`Не найден тип документа`)
+		tx.Rollback()
+		return
+	}
+
+	if cmp.Uid != nil {
+		var exist digest.RadiationWork
+		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+		doc.Uid = cmp.Uid
+	}
+	if cmp.File != nil {
+		if _, err := os.Stat(path); err != nil {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				result.SetErrorResult(err.Error())
+				tx.Rollback()
+				return
+			}
+		}
+		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		defer dst.Close()
+		_, err = io.Copy(dst, cmp.File.MultFile)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		doc.PathFile = cmp.File.Header.Filename
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	if db.Error != nil || doc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  idEntrant,
+		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
 }
 
 func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
@@ -49,7 +1373,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_org":                  r.DocOrg,
 				"id_compatriot_category":   r.CompatriotCategory.Id,
 				"name_compatriot_category": r.CompatriotCategory.Name,
-				"path_files":               r.PathFiles,
 				"created":                  r.Created,
 				"name_sys_category":        sysCategory.Name,
 			}
@@ -75,7 +1398,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_composition_theme": r.CompositionThemes.Name,
 				"id_appeal_status":       r.AppealStatuses.Id,
 				"name_appeal_status":     r.AppealStatuses.Name,
-				"path_files":             r.PathFiles,
 				"has_appealed":           r.HasAppealed,
 				"created":                r.Created,
 				"issue_date":             issueDate,
@@ -163,7 +1485,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_number":           r.DocNumber,
 				"issue_date":           issueDate,
 				"checked":              r.Checked,
-				"path_file":            r.PathFiles,
 				"created":              r.Created,
 				"name_sys_category":    sysCategory.Name,
 			}
@@ -189,7 +1510,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_series":         r.DocSeries,
 				"issue_date":         issueDate,
 				"checked":            r.Checked,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -215,7 +1535,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_series":         r.DocSeries,
 				"issue_date":         issueDate,
 				"checked":            r.Checked,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -241,7 +1560,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_number":         r.DocNumber,
 				"issue_date":         issueDate,
 				"checked":            r.Checked,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -264,7 +1582,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"doc_series":         r.DocSeries,
 				"issue_date":         issueDate,
 				"checked":            r.Checked,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -290,7 +1607,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"id_category":        r.ParentsLostCategory.Id,
 				"name_category":      r.ParentsLostCategory.Name,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -316,7 +1632,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"id_category":        r.RadiationWorkCategory.Id,
 				"name_category":      r.RadiationWorkCategory.Name,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -342,7 +1657,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"id_category":        r.VeteranCategory.Id,
 				"name_category":      r.VeteranCategory.Name,
-				"path_file":          r.PathFiles,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
 			}
@@ -371,1323 +1685,50 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 	return
 }
 
-func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
+func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `compatriot`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Compatriot
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.IdEntrant = idEntrant
-	doc.Id = 0
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.CompatriotCategory, doc.IdCompatriotCategory)
-	if db.Error != nil || doc.CompatriotCategory.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Compatriot
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
+	var doc digest.VDocuments
+	db := conn.Where(`id_document=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
 			return
 		}
-		doc.Uid = cmp.Uid
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
 	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
+	if doc.PathFile != nil {
+		filename := *doc.PathFile
+		path := getPath(doc.EntrantsId, doc.NameTable, doc.Created) + `/` + filename
+		f, err := os.Open(path)
+		defer f.Close()
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		} else {
+			reader := bufio.NewReader(f)
+			content, _ := ioutil.ReadAll(reader)
+			ext := mimetype.Detect(content)
+			file := digest.FileC{
+				Content: content,
+				Size:    int64(len(content)),
+				Title:   filename,
+				Type:    ext.Extension(),
 			}
+			result.Items = file
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
 
-	}
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
+	} else {
+		result.Items = doc
 	}
 
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
 	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `composition`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Composition
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.IdEntrant = idEntrant
-	doc.Id = 0
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.CompositionThemes, doc.IdCompositionTheme)
-	if db.Error != nil || doc.CompositionThemes.Id <= 0 {
-		result.SetErrorResult(`Не найдена тема сочинения`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.AppealStatuses, doc.IdAppealStatus)
-	if db.Error != nil || doc.AppealStatuses.Id <= 0 {
-		result.SetErrorResult(`Не найден статус апе`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Composition
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-
-	}
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `disability`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Disability
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.IdEntrant = idEntrant
-	doc.Id = 0
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.DisabilityType, doc.IdDisabilityType)
-	if db.Error != nil || doc.DisabilityType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип инвалидности`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Disability
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-
-	}
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `ege`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Ege
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.IdEntrant = idEntrant
-	doc.Id = 0
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.Region, doc.IdRegion)
-	if db.Error != nil || doc.Region.Id <= 0 {
-		result.SetErrorResult(`Не найден регион`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.Subject, doc.IdSubject)
-	if db.Error != nil || doc.Subject.Id <= 0 {
-		result.SetErrorResult(`Не найден субъект`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Ege
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `educations`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Educations
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.IdEntrant = idEntrant
-	doc.Id = 0
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Find(&doc.Direction, doc.IdDirection)
-	if db.Error != nil || doc.Direction.Id <= 0 {
-		result.SetErrorResult(`Не найдено направление`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.EducationLevel, doc.IdEducationLevel)
-	if db.Error != nil || doc.EducationLevel.Id <= 0 {
-		result.SetErrorResult(`Не найден уровень образования`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Educations
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifications) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `identifications`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Identifications
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Find(&doc.Okcm, doc.IdOkcm)
-	if db.Error != nil || doc.Okcm.Id <= 0 {
-		result.SetErrorResult(`Не найдено оксм`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Identifications
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `militaries`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Militaries
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.MilitaryCategories, doc.IdCategory)
-	if db.Error != nil || doc.MilitaryCategories.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Militaries
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDocs) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `olympics`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.OlympicsDocs
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.Olympics, doc.IdOlympic)
-	if db.Error != nil || doc.Olympics.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.OlympicsDocs
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `orphans`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Orphans
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.OrphanCategories, doc.IdCategory)
-	if db.Error != nil || doc.OrphanCategories.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Orphans
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `other`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Other
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.Other
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `parents_lost`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.ParentsLost
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.ParentsLostCategory, doc.IdCategory)
-	if db.Error != nil || doc.ParentsLostCategory.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.ParentsLost
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationWork) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `radiation_work`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.RadiationWork
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.RadiationWorkCategory, doc.IdCategory)
-	if db.Error != nil || doc.RadiationWorkCategory.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.RadiationWork
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
-}
-func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `veteran`).Find(&category)
-	if !category.Actual {
-		result.SetErrorResult(`Ошибка категории`)
-		tx.Rollback()
-		return
-	}
-	var entrant digest.Entrants
-	db := conn.Find(&entrant, idEntrant)
-
-	path := getPath(idEntrant, category.NameTable)
-	if entrant.Id == 0 {
-		result.SetErrorResult(`Абитуриент не найден`)
-		tx.Rollback()
-		return
-	}
-	var doc digest.Veteran
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
-	doc.Created = time.Now()
-	doc.EntrantsId = idEntrant
-	doc.Id = 0
-
-	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
-	if db.Error != nil || doc.DocumentIdentification.Id <= 0 {
-		result.SetErrorResult(`Не найден удостоверяющий документ`)
-		tx.Rollback()
-		return
-	}
-	db = tx.Find(&doc.VeteranCategory, doc.IdCategory)
-	if db.Error != nil || doc.VeteranCategory.Id <= 0 {
-		result.SetErrorResult(`Не найдена категория чего то`)
-		tx.Rollback()
-		return
-	}
-
-	db = tx.Where(`id_sys_category=?`, category.Id).Find(&doc.DocumentType, doc.IdDocumentType)
-	if db.Error != nil || doc.DocumentType.Id <= 0 {
-		result.SetErrorResult(`Не найден тип документа`)
-		tx.Rollback()
-		return
-	}
-
-	if cmp.Uid != nil {
-		var exist digest.RadiationWork
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-		doc.Uid = cmp.Uid
-	}
-	if cmp.File != nil {
-		if _, err := os.Stat(path); err != nil {
-			err := os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				result.SetErrorResult(err.Error())
-				tx.Rollback()
-				return
-			}
-		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			tx.Rollback()
-			return
-		}
-		doc.PathFiles = cmp.File.Header.Filename
-	}
-
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
-	if db.Error != nil || doc.Id == 0 {
-		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
-		tx.Rollback()
-		return
-	}
-
-	result.Items = map[string]interface{}{
-		`id_entrant`:  idEntrant,
-		`id_document`: doc.Id,
-	}
-	result.Done = true
-	tx.Commit()
+	return
 }

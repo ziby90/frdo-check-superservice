@@ -25,6 +25,19 @@ func AddDocsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/docs/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetFileDoc(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	r.HandleFunc("/entrants/{id_entrant:[0-9]+}/docs/{table_name}/add", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
@@ -43,13 +56,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddCompatriot(uint(idEntrant), cmp)
 				break
@@ -60,13 +75,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddComposition(uint(idEntrant), cmp)
 				break
@@ -77,13 +94,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddDisability(uint(idEntrant), cmp)
 				break
@@ -94,13 +113,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddEge(uint(idEntrant), cmp)
 				break
@@ -111,13 +132,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddEducations(uint(idEntrant), cmp)
 				break
@@ -128,13 +151,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddIdentifications(uint(idEntrant), cmp)
 				break
@@ -145,13 +170,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddMilitaries(uint(idEntrant), cmp)
 				break
@@ -162,13 +189,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddOlympicsDocs(uint(idEntrant), cmp)
 				break
@@ -179,13 +208,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddOrphans(uint(idEntrant), cmp)
 				break
@@ -196,13 +227,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddOther(uint(idEntrant), cmp)
 				break
@@ -213,13 +246,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddParentsLost(uint(idEntrant), cmp)
 				break
@@ -230,13 +265,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddRadiationWork(uint(idEntrant), cmp)
 				break
@@ -247,13 +284,15 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(err.Error())
 					break
 				}
-				if fileErr != nil {
+				if fileErr != nil && fileErr.Error() != `http: no such file` {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
-				cmp.File = &digest.File{
-					MultFile: file,
-					Header:   *header,
+				if fileErr == nil {
+					cmp.File = &digest.File{
+						MultFile: file,
+						Header:   *header,
+					}
 				}
 				res.AddVeteran(uint(idEntrant), cmp)
 				break

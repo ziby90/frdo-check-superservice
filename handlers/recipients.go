@@ -222,6 +222,50 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 
 }
 
+func (result *ResultInfo) GetListDocsIdentsEntrant(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+
+	db := conn.Find(&entrant, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var items []interface{}
+	if db.RowsAffected > 0 {
+		var identifications []digest.Identifications
+		db = conn.Preload(`DocumentType`).Model(&entrant).Related(&identifications)
+		for index := range identifications {
+			db = conn.Model(&identifications[index]).Related(&identifications[index].DocumentType, `IdDocumentType`)
+			issueDate := identifications[index].IssueDate.Format(`02-01-2006`)
+			name := identifications[index].DocumentType.Name + ` ` + identifications[index].DocSeries + ` ` + identifications[index].DocNumber + ` от ` + issueDate
+			items = append(items, map[string]interface{}{
+				"id":   identifications[index].Id,
+				"name": name,
+			})
+		}
+
+		result.Done = true
+		result.Items = items
+		return
+	} else {
+		result.Done = true
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+
+}
+
 func (result *Result) GetListEntrants() {
 	result.Done = false
 	conn := config.Db.ConnGORM
