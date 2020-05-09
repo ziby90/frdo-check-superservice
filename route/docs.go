@@ -44,6 +44,7 @@ func AddDocsHandler(r *mux.Router) {
 		res.User = *handlers.CheckAuthCookie(r)
 		tableName := vars[`table_name`]
 		idEntrant, err := strconv.ParseInt(vars[`id_entrant`], 10, 32)
+		var f *digest.File
 		if err == nil {
 			err = r.ParseMultipartForm(0)
 			decoder := schema.NewDecoder()
@@ -61,12 +62,14 @@ func AddDocsHandler(r *mux.Router) {
 					break
 				}
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddCompatriot(uint(idEntrant), cmp)
+				res.AddCompatriot(uint(idEntrant), cmp, f)
 				break
 			case `composition`:
 				cmp := digest.Composition{}
@@ -80,12 +83,14 @@ func AddDocsHandler(r *mux.Router) {
 					break
 				}
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddComposition(uint(idEntrant), cmp)
+				res.AddComposition(uint(idEntrant), cmp, f)
 				break
 			case `disability`:
 				cmp := digest.Disability{}
@@ -98,13 +103,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddDisability(uint(idEntrant), cmp)
+				res.AddDisability(uint(idEntrant), cmp, f)
 				break
 			case `ege`:
 				cmp := digest.Ege{}
@@ -117,13 +125,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddEge(uint(idEntrant), cmp)
+				res.AddEge(uint(idEntrant), cmp, f)
 				break
 			case `educations`:
 				cmp := digest.Educations{}
@@ -136,15 +147,18 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddEducations(uint(idEntrant), cmp)
+				res.AddEducations(uint(idEntrant), cmp, f)
 				break
-			case `identifications`:
+			case `identification`:
 				cmp := digest.Identifications{}
 				err := decoder.Decode(&cmp, r.Form)
 				if err != nil {
@@ -155,13 +169,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddIdentifications(uint(idEntrant), cmp)
+				res.AddIdentifications(uint(idEntrant), cmp, f)
 				break
 			case `militaries`:
 				cmp := digest.Militaries{}
@@ -174,13 +191,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddMilitaries(uint(idEntrant), cmp)
+				res.AddMilitaries(uint(idEntrant), cmp, f)
 				break
 			case `olympics`:
 				cmp := digest.OlympicsDocs{}
@@ -193,13 +213,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddOlympicsDocs(uint(idEntrant), cmp)
+				res.AddOlympicsDocs(uint(idEntrant), cmp, f)
 				break
 			case `orphans`:
 				cmp := digest.Orphans{}
@@ -212,13 +235,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddOrphans(uint(idEntrant), cmp)
+				res.AddOrphans(uint(idEntrant), cmp, f)
 				break
 			case `other`:
 				cmp := digest.Other{}
@@ -231,13 +257,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddOther(uint(idEntrant), cmp)
+				res.AddOther(uint(idEntrant), cmp, f)
 				break
 			case `parents_lost`:
 				cmp := digest.ParentsLost{}
@@ -250,13 +279,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddParentsLost(uint(idEntrant), cmp)
+				res.AddParentsLost(uint(idEntrant), cmp, f)
 				break
 			case `radiation_work`:
 				cmp := digest.RadiationWork{}
@@ -269,13 +301,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddRadiationWork(uint(idEntrant), cmp)
+				res.AddRadiationWork(uint(idEntrant), cmp, f)
 				break
 			case `veteran`:
 				cmp := digest.Veteran{}
@@ -288,13 +323,16 @@ func AddDocsHandler(r *mux.Router) {
 					res.SetErrorResult(fileErr.Error())
 					break
 				}
+
 				if fileErr == nil {
-					cmp.File = &digest.File{
+					f = &digest.File{
 						MultFile: file,
 						Header:   *header,
 					}
+				} else {
+					f = nil
 				}
-				res.AddVeteran(uint(idEntrant), cmp)
+				res.AddVeteran(uint(idEntrant), cmp, f)
 				break
 			default:
 				message := `Неверный параметр table_name.`

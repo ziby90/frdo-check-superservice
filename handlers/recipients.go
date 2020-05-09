@@ -27,6 +27,12 @@ type AddEntrantData struct {
 	Education      digest.Educations      `json:"education"`
 }
 
+type CategoryDocs struct {
+	Name string        `json:"name_category"`
+	Code string        `json:"code_category"`
+	Docs []interface{} `json:"docs"`
+}
+
 //
 //type Unmarshaler interface {
 //	UnmarshalJSON([]byte) error
@@ -85,6 +91,55 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 		db = conn.Model(&entrant).Related(&entrant.RegistrationAddr, `IdRegistrationAddr`)
 		result.Done = true
 		result.Items = entrant
+		return
+	} else {
+		result.Done = true
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+}
+func (result *ResultInfo) GetInfoEntrantApp(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		var countApp int64
+		db = conn.Select("count(distinct(id_organization))").Table(`app.applications`).Where(`id_entrant=?`, ID).Count(&countApp)
+		var applications []digest.Application
+		db = conn.Table(`app.applications`).Where(`id_entrant=? AND id_organization=?`, ID, result.User.CurrentOrganization.Id).Find(&applications)
+		birthday := entrant.Birthday.Format(`2006-01-02`)
+		apps := []interface{}{} // ну вот надо так чикиной, че иде мне подчеркивает(
+		for index, _ := range applications {
+			apps = append(apps, map[string]interface{}{
+				"id":         applications[index].Id,
+				"app_number": applications[index].AppNumber,
+			})
+		}
+		response := map[string]interface{}{
+			`surname`:       entrant.Surname,
+			`name`:          entrant.Name,
+			`patronymic`:    entrant.Patronymic,
+			`birthday`:      birthday,
+			`snils`:         entrant.Snils,
+			`count_org_app`: countApp,
+			`app_org`:       apps,
+		}
+		result.Done = true
+		result.Items = response
 		return
 	} else {
 		result.Done = true
@@ -266,6 +321,84 @@ func (result *ResultInfo) GetListDocsIdentsEntrant(ID uint) {
 
 }
 
+func (result *ResultInfo) GetShortListDocsEntrant(idEntrant uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+
+	db := conn.Find(&entrant, idEntrant)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var items []interface{}
+	if db.RowsAffected > 0 {
+		var identifications []digest.Identifications
+		db = conn.Preload(`DocumentType`).Where(`id_entrant=?`, idEntrant).Find(&identifications)
+		var categoryIdents CategoryDocs
+		var sysCategoryCls digest.DocumentSysCategories
+		_ = conn.Where(`name_table=?`, `identification`).Find(&sysCategoryCls)
+		categoryIdents.Code = sysCategoryCls.NameTable
+		categoryIdents.Name = sysCategoryCls.Name
+		for index := range identifications {
+			issueDate := identifications[index].IssueDate.Format(`02-01-2006`)
+			categoryIdents.Docs = append(categoryIdents.Docs, map[string]interface{}{
+				"id":         identifications[index].Id,
+				"name_type":  identifications[index].DocumentType.Name,
+				"doc_series": identifications[index].DocSeries,
+				"doc_number": identifications[index].DocNumber,
+				"issue_date": issueDate,
+			})
+		}
+		if len(categoryIdents.Docs) > 0 {
+			items = append(items, categoryIdents)
+		}
+
+		var docs []digest.VDocuments
+		db = conn.Where(`id_entrant=?`, idEntrant).Find(&docs)
+		sysCategory := make(map[string]CategoryDocs)
+		for index := range docs {
+			var category CategoryDocs
+			if val, ok := sysCategory[docs[index].NameTable]; ok {
+				category = val
+			} else {
+				category.Name = docs[index].NameSysCategories
+				category.Code = docs[index].NameTable
+			}
+			category.Docs = append(category.Docs, map[string]interface{}{
+				"id":        docs[index].IdDocument,
+				"name_type": docs[index].DocumentName,
+				"doc_name":  docs[index].DocName,
+			})
+			sysCategory[docs[index].NameTable] = category
+		}
+		for index, _ := range sysCategory {
+			items = append(items, sysCategory[index])
+		}
+		if len(items) < 1 {
+			result.Items = []digest.VDocuments{}
+		} else {
+			result.Items = items
+		}
+		result.Done = true
+		return
+	} else {
+		result.Done = false
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+
+}
+
 func (result *Result) GetListEntrants() {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -416,6 +549,7 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 
 	var identification digest.Identifications
 	identification = entrantData.Identification
+	identification.IdOrganization = result.User.CurrentOrganization.Id
 	identification.EntrantsId = entrant.Id
 	identification.Created = time.Now()
 	identification.Name = strings.TrimSpace(identification.Name)

@@ -3,3 +3,5 @@ conf.json
 /.idea
 go.mod
 go.sum
+persons
+persons.exe

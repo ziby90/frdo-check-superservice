@@ -26,6 +26,13 @@ func AddClsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/directions/list", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		keys := r.URL.Query()
+		res.GetDirectionByEntrant(keys)
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	//r.HandleFunc("/cls/score/{id_subject:[0-9]+}/{year:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 	//	var res handlers.ResultCls
 	//	vars := mux.Vars(r)

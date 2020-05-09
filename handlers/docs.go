@@ -29,9 +29,9 @@ func getPath(idEntrant uint, category string, t time.Time) string {
 	return path
 }
 
-func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
+func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -90,7 +90,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -99,26 +99,29 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
-
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -130,9 +133,9 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition) {
+func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -198,7 +201,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition)
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -207,26 +210,29 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition)
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
-
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -238,9 +244,9 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition)
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
+func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -299,7 +305,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -308,26 +314,29 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
-
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -339,9 +348,9 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
+func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -406,7 +415,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -415,26 +424,30 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -446,9 +459,9 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
+func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -482,13 +495,15 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
 		tx.Rollback()
 		return
 	}
-
-	db = tx.Find(&doc.Direction, doc.IdDirection)
-	if db.Error != nil || doc.Direction.Id <= 0 {
-		result.SetErrorResult(`Не найдено направление`)
-		tx.Rollback()
-		return
+	if doc.IdDirection != nil {
+		db = tx.Find(&doc.Direction, doc.IdDirection)
+		if db.Error != nil || doc.Direction.Id <= 0 {
+			result.SetErrorResult(`Не найдено направление`)
+			tx.Rollback()
+			return
+		}
 	}
+
 	db = tx.Find(&doc.EducationLevel, doc.IdEducationLevel)
 	if db.Error != nil || doc.EducationLevel.Id <= 0 {
 		result.SetErrorResult(`Не найден уровень образования`)
@@ -513,7 +528,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -522,26 +537,30 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -553,16 +572,16 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifications) {
+func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifications, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
 		tx.Rollback()
 	}()
 	var category digest.DocumentSysCategories
-	_ = conn.Where(`name_table=?`, `identifications`).Find(&category)
+	_ = conn.Where(`name_table=?`, `identification`).Find(&category)
 	if !category.Actual {
 		result.SetErrorResult(`Ошибка категории`)
 		tx.Rollback()
@@ -608,7 +627,7 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -617,26 +636,30 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -648,9 +671,9 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
+func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -709,7 +732,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -718,26 +741,30 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -749,9 +776,9 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDocs) {
+func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDocs, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -810,7 +837,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -819,26 +846,30 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -850,9 +881,9 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
+func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -911,7 +942,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -920,26 +951,30 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -951,9 +986,9 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
+func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -1006,7 +1041,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1015,26 +1050,30 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -1046,9 +1085,9 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other) {
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost) {
+func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -1107,7 +1146,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost)
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1116,26 +1155,30 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost)
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -1147,9 +1190,9 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost)
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationWork) {
+func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationWork, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -1208,7 +1251,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1217,26 +1260,30 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -1248,9 +1295,9 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
+func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *digest.File) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	tx := conn.Begin()
 	defer func() {
@@ -1309,7 +1356,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
 		}
 		doc.Uid = cmp.Uid
 	}
-	if cmp.File != nil {
+	if f != nil {
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1318,26 +1365,30 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, cmp.File.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
 		defer dst.Close()
-		_, err = io.Copy(dst, cmp.File.MultFile)
+		_, err = io.Copy(dst, f.MultFile)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = cmp.File.Header.Filename
+		doc.PathFile = &(f.Header.Filename)
+	} else {
+		doc.PathFile = nil
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
 	if db.Error != nil || doc.Id == 0 {
 		result.SetErrorResult(db.Error.Error())
-		os.Remove(filepath.Join(path, cmp.File.Header.Filename))
+		if f != nil {
+			_ = os.Remove(filepath.Join(path, f.Header.Filename))
+		}
 		tx.Rollback()
 		return
 	}
@@ -1352,7 +1403,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran) {
 
 func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var db *gorm.DB
 	var sysCategory digest.DocumentSysCategories
@@ -1375,6 +1426,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_compatriot_category": r.CompatriotCategory.Name,
 				"created":                  r.Created,
 				"name_sys_category":        sysCategory.Name,
+				"uid":                      r.Uid,
 			}
 		}
 		break
@@ -1403,6 +1455,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"issue_date":             issueDate,
 				"result":                 r.Result,
 				"name_sys_category":      sysCategory.Name,
+				"uid":                    r.Uid,
 			}
 		}
 		break
@@ -1434,6 +1487,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1463,6 +1517,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":              r.Checked,
 				"created":              r.Created,
 				"name_sys_category":    sysCategory.Name,
+				"uid":                  r.Uid,
 			}
 		}
 		break
@@ -1487,6 +1542,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":              r.Checked,
 				"created":              r.Created,
 				"name_sys_category":    sysCategory.Name,
+				"uid":                  r.Uid,
 			}
 		}
 		break
@@ -1512,6 +1568,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1537,6 +1594,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1562,6 +1620,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1584,6 +1643,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"checked":            r.Checked,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1609,6 +1669,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_category":      r.ParentsLostCategory.Name,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1634,6 +1695,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_category":      r.RadiationWorkCategory.Name,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1659,6 +1721,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_category":      r.VeteranCategory.Name,
 				"created":            r.Created,
 				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
 			}
 		}
 		break
@@ -1687,7 +1750,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 
 func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.VDocuments
 	db := conn.Where(`id_document=?`, ID).Find(&doc)
@@ -1707,11 +1770,11 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 		filename := *doc.PathFile
 		path := getPath(doc.EntrantsId, doc.NameTable, doc.Created) + `/` + filename
 		f, err := os.Open(path)
-		defer f.Close()
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			return
 		} else {
+			defer f.Close()
 			reader := bufio.NewReader(f)
 			content, _ := ioutil.ReadAll(reader)
 			ext := mimetype.Detect(content)
@@ -1723,12 +1786,11 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 			}
 			result.Items = file
 		}
-
 	} else {
-		result.Items = doc
+		message := "Файл не найден."
+		result.Message = &message
+		return
 	}
-
 	result.Done = true
-
 	return
 }

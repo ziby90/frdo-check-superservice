@@ -6,6 +6,7 @@ import (
 	"persons/config"
 	"persons/digest"
 	"persons/service"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,6 +28,10 @@ type CompetitiveGroup struct {
 	Campaign          digest.Campaign        `gorm:"foreignkey:IdCampaign" json:"-"`
 	IdCampaign        uint                   `json:"id_campaign"`
 	Number            int64                  `json:"number"`
+}
+
+type DirectionCompetitiveGroups struct {
+	IdDirection uint `json:"id_direction"`
 }
 
 type AddCompetitiveGroup struct {
@@ -119,6 +124,176 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	} else {
 		result.Done = true
 		message := `Достижения не найдены.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+
+func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var db *gorm.DB
+	var directions []RowsCls
+	db = conn.Select(`id, name`).Table(`cls.v_direction_specialty`)
+	if len(keys[`id_entrant`]) > 0 {
+		if v, ok := strconv.Atoi(keys[`id_entrant`][0]); ok == nil {
+			var idDirection []DirectionCompetitiveGroups
+			_ = conn.Raw(`select  cg.id_direction 
+						from app.applications a 
+						join cmp.competitive_groups cg on cg.id=a.id_competitive_group 
+						where id_entrant = ? 
+						group by cg.id_direction `, v).Scan(&idDirection)
+			if len(idDirection) >= 3 {
+				var existDirection []uint
+				for _, val := range idDirection {
+					existDirection = append(existDirection, val.IdDirection)
+				}
+				if len(existDirection) > 0 {
+					db = db.Where(`id IN (?)`, existDirection)
+				}
+			}
+		} else {
+			message := `Неверный идентификатор абитуриента.`
+			result.Message = &message
+			return
+		}
+	}
+	if len(keys[`search`]) > 0 {
+		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(keys[`search`][0])+`%`)
+	}
+
+	db = db.Find(&directions)
+	if db.Error != nil {
+		message := db.Error.Error()
+		result.Message = &message
+		return
+	}
+	result.Done = true
+	result.Items = directions
+	return
+}
+
+func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitiveGroups []digest.CompetitiveGroup
+	var db *gorm.DB
+
+	db = conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	if len(keys[`id_entrant`]) > 0 {
+		if v, ok := strconv.Atoi(keys[`id_entrant`][0]); ok == nil {
+			var idDirection []DirectionCompetitiveGroups
+			_ = conn.Raw(`select  cg.id_direction 
+						from app.applications a 
+						join cmp.competitive_groups cg on cg.id=a.id_competitive_group 
+						where id_entrant = ? 
+						group by cg.id_direction `, v).Scan(&idDirection)
+			if len(idDirection) >= 3 {
+				var existDirection []uint
+				for _, val := range idDirection {
+					existDirection = append(existDirection, val.IdDirection)
+				}
+				if len(existDirection) > 0 {
+					db = db.Where(`id_direction IN (?)`, existDirection)
+				}
+			}
+			var existApplication []digest.Application
+			_ = conn.Where(`id_entrant=? AND id_organization=?`, v, result.User.CurrentOrganization.Id).Find(&existApplication)
+
+			if len(existApplication) >= 0 {
+				var existCompetitiveIds []uint
+				for _, val := range existApplication {
+					existCompetitiveIds = append(existCompetitiveIds, val.IdCompetitiveGroup)
+				}
+				if len(existCompetitiveIds) > 0 {
+					db = db.Where(`id NOT IN (?)`, existCompetitiveIds)
+				}
+			}
+		} else {
+			message := `Неверный идентификатор абитуриента.`
+			result.Message = &message
+			return
+		}
+	} else {
+		message := `Нет идентификатора абитуриента.`
+		result.Message = &message
+		return
+	}
+
+	for key, value := range keys {
+		if len(value) > 0 {
+			switch key {
+			case `id_campaign`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_campaign=?`, v)
+				}
+				break
+			case `id_education_form`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_form=?`, v)
+				}
+				break
+			case `id_education_level`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_level=?`, v)
+				}
+				break
+			case `id_education_source`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_source=?`, v)
+				}
+				break
+			case `id_direction`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_direction=?`, v)
+				}
+				break
+			case `id_level_budget`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_level_budget=?`, v)
+				}
+				break
+			case `search`:
+				db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(value[0])+`%`)
+				break
+			}
+		}
+	}
+
+	db = db.Preload(`EducationLevel`).Preload(`Campaign`).Preload(`LevelBudget`).Preload(`EducationSource`).Preload(`EducationForm`).Preload(`Direction`).Find(&competitiveGroups)
+
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Достижения не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, competitveGroup := range competitiveGroups {
+			c := map[string]interface{}{
+				`id`:           competitveGroup.Id,
+				`name`:         competitveGroup.Name,
+				`uid`:          competitveGroup.UID,
+				`id_direction`: competitveGroup.IdDirection,
+				`created`:      competitveGroup.Created,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Конкурсные группы не найдены.`
 		result.Message = &message
 		result.Items = []digest.CompetitiveGroup{}
 		return

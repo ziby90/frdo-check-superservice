@@ -9,7 +9,7 @@ type Application struct {
 	EntrantsId               uint                `json:"id_entrant" gorm:"column:id_entrant" schema:"id_entrant"`
 	CompetitiveGroup         CompetitiveGroup    `gorm:"foreignkey:IdCompetitiveGroup"`
 	IdCompetitiveGroup       uint                `json:"id_competitive_group"`
-	IdCompetitiveGroupTarget uint                `json:"id_competitive_group_target"`
+	IdCompetitiveGroupTarget *uint               `json:"id_competitive_group_target"`
 	AppNumber                string              `json:"app_number"`
 	RegistrationDate         time.Time           `json:"registration_date" schema:"registration_date"`
 	Rating                   float32             `json:"rating" schema:"rating"`
@@ -18,12 +18,12 @@ type Application struct {
 	Priority                 int64               `json:"priority" schema:"priority"`
 	FirstHigherEducation     bool                `json:"first_higher_education" schema:"first_higher_education"`
 	NeedHostel               bool                `json:"need_hostel" schema:"need_hostel"`
-	IdDisabledDocument       uint                `json:"id_disabled_document" schema:"id_disabled_document"`
+	IdDisabledDocument       *uint               `json:"id_disabled_document" schema:"id_disabled_document"`
 	SpecialConditions        bool                `json:"special_conditions" schema:"special_conditions"`
 	DistanceTest             bool                `json:"distance_test" schema:"distance_test"`
 	DistancePlace            *string             `json:"distance_place" schema:"distance_place"`
 	ViolationTypes           ViolationTypes      `json:"violation_type" gorm:"foreignkey:id_violation"`
-	IdViolation              uint                `json:"id_violation" schema:"id_violation"`
+	IdViolation              *uint               `json:"id_violation" schema:"id_violation"`
 	EgeCheck                 *time.Time          `json:"ege_check" schema:"ege_check"`
 	Agreed                   *bool               `json:"agreed" schema:"agreed"`
 	Disagreed                *bool               `json:"disagreed" schema:"disagreed"`
@@ -37,10 +37,23 @@ type Application struct {
 	ReturnDate               *time.Time          `json:"return_date" schema:"return_date"`
 	Original                 bool                `json:"original" schema:"original"`
 	OriginalDoc              *time.Time          `json:"original_doc" schema:"original_doc"`
-	IdBenefit                uint                `json:"id_benefit" schema:"id_benefit"`
+	IdBenefit                *uint               `json:"id_benefit" schema:"id_benefit"`
 	Uid                      *string             `json:"uid" schema:"uid"`
 	Created                  time.Time           `json:"created"` // Дата создания
 	StatusComment            *string             `json:"status_comment" schema:"status_comment"`
+}
+
+type Documents struct {
+	Id                    uint                  `json:"id" schema:"id"` // Идентификатор
+	Application           Application           `gorm:"foreignkey:IdApplication"`
+	IdApplication         uint                  `json:"id_application"`
+	Document              VDocuments            `gorm:"foreignkey:IdDocument"`
+	IdDocument            uint                  `json:"id_document"`
+	DocumentSysCategory   DocumentSysCategories `gorm:"foreignkey:IdDocumentSysCategory"`
+	IdDocumentSysCategory uint                  `json:"id_document_sys_category"`
+	Uid                   *string               `json:"uid" schema:"uid"`
+	OriginalDoc           *time.Time            `json:"original_doc"`
+	Created               time.Time             `json:"created"` // Дата создания
 }
 
 type OrderAdmission struct {
@@ -51,4 +64,7 @@ func (Application) TableName() string {
 }
 func (OrderAdmission) TableName() string {
 	return "app.order_admission"
+}
+func (Documents) TableName() string {
+	return "app.documents"
 }

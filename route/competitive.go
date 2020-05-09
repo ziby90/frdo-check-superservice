@@ -27,6 +27,14 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/competitive/list", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		keys := r.URL.Query()
+		res.User = *handlers.CheckAuthCookie(r)
+		res.GetListCompetitiveGroups(keys)
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	r.HandleFunc("/competitive/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		var cmp handlers.AddCompetitiveGroup
