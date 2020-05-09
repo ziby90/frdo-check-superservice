@@ -25,7 +25,7 @@ func AddApplicationHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
-	r.HandleFunc("/application/add", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/applications/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		res.User = *handlers.CheckAuthCookie(r)
 		var cmp handlers.AddApplication

@@ -25,7 +25,7 @@ import (
 //}
 
 func getPath(idEntrant uint, category string, t time.Time) string {
-	path := `./uploads/docs/` + fmt.Sprintf(`%v`, idEntrant) + `/` + category + `/` + t.Format(`2006-01-02`)
+	path := `./uploads/docs/` + fmt.Sprintf(`%v`, idEntrant) + `/` + category + `/` + t.Format(`02-01-2006`)
 	return path
 }
 
@@ -1437,7 +1437,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.CompositionThemes, "IdCompositionTheme")
 			db = conn.Model(&r).Related(&r.AppealStatuses, "IdAppealStatus")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                     r.Id,
 				"id_ident_document":      r.IdIdentDocument,
@@ -1466,8 +1466,8 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.Region, "IdRegion")
 			db = conn.Model(&r).Related(&r.Subject, "IdSubject")
-			issueDate := r.IssueDate.Format("2006-01-02")
-			resultDate := r.ResultDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
+			resultDate := r.ResultDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1498,7 +1498,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.Direction, "IdDirection")
 			db = conn.Model(&r).Related(&r.EducationLevel, "IdEducationLevel")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                   r.Id,
 				"id_ident_document":    r.IdIdentDocument,
@@ -1527,7 +1527,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.DisabilityType, "IdDisabilityType")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                   r.Id,
 				"id_ident_document":    r.IdIdentDocument,
@@ -1546,13 +1546,41 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			}
 		}
 		break
+	case "identification":
+		var r digest.Identifications
+		db = conn.Find(&r, ID)
+		if r.Id > 0 {
+			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
+			db = conn.Model(&r).Related(&r.Okcm, "IdOkcm")
+			issueDate := r.IssueDate.Format("02-01-2006")
+			result.Items = map[string]interface{}{
+				"id":                 r.Id,
+				"id_document_type":   r.DocumentType.Id,
+				"name_document_type": r.DocumentType.Name,
+				"surname":            r.Surname,
+				"name":               r.Name,
+				"patronymic":         r.Patronymic,
+				"doc_series":         r.DocSeries,
+				"doc_number":         r.DocNumber,
+				"doc_organization":   r.DocOrganization,
+				"id_okcm":            r.IdOkcm,
+				"name_okcm":          r.Okcm.ShortName,
+				"issue_date":         issueDate,
+				"subdivision_code":   r.SubdivisionCode,
+				"checked":            r.Checked,
+				"created":            r.Created,
+				"name_sys_category":  sysCategory.Name,
+				"uid":                r.Uid,
+			}
+		}
+		break
 	case "militaries":
 		var r digest.Militaries
 		db = conn.Find(&r, ID)
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.MilitaryCategories, "IdCategory")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1578,7 +1606,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.Olympics, "IdOlympic")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1604,7 +1632,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.OrphanCategories, "IdCategory")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1629,7 +1657,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		db = conn.Find(&r, ID)
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1653,7 +1681,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.ParentsLostCategory, "IdCategory")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1679,7 +1707,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.RadiationWorkCategory, "IdCategory")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,
@@ -1705,7 +1733,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.VeteranCategory, "IdCategory")
-			issueDate := r.IssueDate.Format("2006-01-02")
+			issueDate := r.IssueDate.Format("02-01-2006")
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
 				"id_ident_document":  r.IdIdentDocument,

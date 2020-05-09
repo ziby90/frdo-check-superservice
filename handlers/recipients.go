@@ -142,7 +142,7 @@ func (result *ResultInfo) GetInfoEntrantApp(ID uint) {
 		result.Items = response
 		return
 	} else {
-		result.Done = true
+		result.Done = false
 		message := `Абитуриент не найден.`
 		result.Message = &message
 		return
