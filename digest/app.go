@@ -112,7 +112,7 @@ func GetApplication(id uint) (*Application, error) {
 	db := conn.Preload(`CompetitiveGroup`).Find(&item, id)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
-			return nil, db.Error
+			return nil, errors.New(`Заявление не найдено. `)
 		}
 		return nil, errors.New(`Ошибка подключения к БД. `)
 	}

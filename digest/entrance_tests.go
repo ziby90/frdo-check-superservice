@@ -1,6 +1,8 @@
 package digest
 
 import (
+	"errors"
+	"persons/config"
 	"time"
 )
 
@@ -24,6 +26,23 @@ type EntranceTest struct {
 	Actual                bool             `json:"actual"`
 	Organization          Organization     `gorm:"foreignkey:IdOrganization"`
 	IdOrganization        uint             `json:"id_organization"`
+}
+
+func GetEntranceTest(id uint) (*EntranceTest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var item EntranceTest
+	db := conn.Preload(`CompetitiveGroup`).Find(&item, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Вступительный тест не найден. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if item.Id <= 0 {
+		return nil, errors.New(`Вступительный тест не найден. `)
+	}
+	return &item, nil
 }
 
 // TableNames

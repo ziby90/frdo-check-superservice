@@ -211,7 +211,35 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-
+	// добавление вступительного теста к заявлению
+	r.HandleFunc("/applications/{id:[0-9]+}/entrants/add", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var data handlers.AddApplicationEntranceTest
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckApplicationByUser(uint(id), res.User)
+			if err == nil {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &data)
+				data.IdApplication = uint(id)
+				if err == nil {
+					res.AddEntranceTestApplication(data)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 	//
 	//r.HandleFunc("/entrants/{id:[0-9]+}/others", func(w http.ResponseWriter, r *http.Request) {
 	//	res := handlers.ResultInfo{}

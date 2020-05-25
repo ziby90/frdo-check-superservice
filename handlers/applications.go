@@ -57,6 +57,14 @@ type DocsApplication struct {
 	Type string `json:"type"`
 }
 
+type AddApplicationEntranceTest struct {
+	IdApplication  uint
+	IdEntranceTest uint    `json:"id_entrance_test"`
+	ResultValue    int64   `json:"result_value"`
+	IdDocument     uint    `json:"id_document"`
+	Uid            *string `json:"uid"`
+}
+
 //func CheckHandlerPost(w http.ResponseWriter, r *http.Request) {
 //	data := AddNewData{
 //		Params: map[string]interface{}{},
@@ -808,6 +816,96 @@ func (result *ResultInfo) AddAppAchievement(data digest.AppAchievements) {
 	result.Items = map[string]interface{}{
 		`id_application`:  application.Id,
 		`id_achievements`: new.Id,
+	}
+	result.Done = true
+	tx.Commit()
+	return
+
+}
+func (result *ResultInfo) AddEntranceTestApplication(data AddApplicationEntranceTest) {
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var new digest.AppEntranceTest
+	entranceTest, err := digest.GetEntranceTest(data.IdEntranceTest)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	application, err := digest.GetApplication(data.IdApplication)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	doc, err := digest.GetVDocuments(data.IdDocument)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	if doc.EntrantsId != application.EntrantsId {
+		result.SetErrorResult(`Абитуриент документа и заявления не совпадает`)
+		tx.Rollback()
+		return
+	}
+	new.IdDocument = &doc.IdDocument
+
+	if entranceTest.CompetitiveGroup.IdCampaign != application.CompetitiveGroup.IdCampaign {
+		result.SetErrorResult(`Приемная компания вступительного испытания не совпадает с приемной компанией заявления`)
+		tx.Rollback()
+		return
+	}
+
+	if data.Uid != nil {
+		var exist digest.AppEntranceTest
+		_ = tx.Where(`upper(uid)=upper(?) AND id_application=?`, data.Uid, data.IdApplication).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Вступительное испытание с данным uid уже существуют`)
+			tx.Rollback()
+			return
+		} else {
+			new.Uid = data.Uid
+		}
+	}
+
+	new.Created = time.Now()
+	new.IdApplication = application.Id
+	new.IdEntranceTest = data.IdEntranceTest
+	new.ResultValue = data.ResultValue
+
+	if entranceTest.IsEge {
+		var egeDoc digest.Ege
+		db := tx.Where(`id=?`, data.IdDocument).Find(&egeDoc)
+		if db.Error != nil || egeDoc.Id <= 0 {
+			result.SetErrorResult(`Документ ЕГЭ не найден`)
+			tx.Rollback()
+			return
+		}
+		new.IssueDate = egeDoc.IssueDate
+		t := true
+		new.HasEge = &t
+		new.IdResultSource = 1 // Свидетельство ЕГЭ
+		new.EgeValue = &egeDoc.Mark
+	} else {
+		result.SetErrorResult(`Раздел в разработке. Сделано только для ЕГЭ.`)
+		tx.Rollback()
+		return
+	}
+
+	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&new)
+	if db.Error != nil {
+		result.SetErrorResult(`Ошибка при добавлении вступительного испытания к заявлению ` + db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_application`:   application.Id,
+		`id_entrance_test`: new.Id,
 	}
 	result.Done = true
 	tx.Commit()

@@ -403,7 +403,7 @@ func GetVDocuments(id uint) (*VDocuments, error) {
 	db := conn.Where(`id_document=?`, id).Find(&item)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
-			return nil, db.Error
+			return nil, errors.New(`Документ не найден. `)
 		}
 		return nil, errors.New(`Ошибка подключения к БД. `)
 	}
