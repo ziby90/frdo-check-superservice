@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 	"time"
 )
@@ -12,6 +14,21 @@ var EntrantsSearchArray = []string{
 	`name`,
 	`patronymic`,
 	`snils`,
+}
+var PriorityTable = []string{
+	`identification`,
+	`educations`,
+	`ege`,
+	`orphans`,
+	`veteran`,
+	`olympics`,
+	`militaries`,
+	`other`,
+	`disability`,
+	`compatriot`,
+	`parents_lost`,
+	`radiation_work`,
+	`composition`,
 }
 
 type DocsResponseByCategory struct {
@@ -25,6 +42,12 @@ type AddEntrantData struct {
 	Entrant        digest.Entrants        `json:"entrant"`
 	Identification digest.Identifications `json:"identification"`
 	Education      digest.Educations      `json:"education"`
+}
+
+type CategoryDocs struct {
+	Name string        `json:"name_category"`
+	Code string        `json:"code_category"`
+	Docs []interface{} `json:"docs"`
 }
 
 //
@@ -81,13 +104,132 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 	if db.RowsAffected > 0 {
 		db = conn.Model(&entrant).Related(&entrant.Gender, `IdGender`)
 		db = conn.Model(&entrant).Related(&entrant.Okcm, `IdOkcm`)
-		db = conn.Model(&entrant).Related(&entrant.FactAddr, `IdFactAddr`)
-		db = conn.Model(&entrant).Related(&entrant.RegistrationAddr, `IdRegistrationAddr`)
 		result.Done = true
-		result.Items = entrant
+		birthday := entrant.Birthday.Format("2006-01-02")
+		response := map[string]interface{}{
+			`id`:          entrant.Id,
+			`created`:     entrant.Created,
+			"snils":       entrant.Snils,
+			"surname":     entrant.Surname,
+			"name":        entrant.Name,
+			"patronymic":  entrant.Patronymic,
+			"id_gender":   entrant.Gender.Id,
+			"name_gender": entrant.Gender.Name,
+			"birthday":    birthday,
+			"birthplace":  entrant.Birthplace,
+			"phone":       entrant.Phone,
+			"email":       entrant.Email,
+			"id_okcm":     entrant.Okcm.Id,
+			`name_okcm`:   entrant.Okcm.ShortName,
+		}
+		fmt.Println(entrant.IdFactAddr)
+		var factAdrr digest.Address
+		if entrant.IdFactAddr != nil {
+			db = conn.Preload(`Region`).Find(&factAdrr, entrant.IdFactAddr)
+			if factAdrr.Id > 0 {
+				response[`fact_address`] = map[string]interface{}{
+					"id":                factAdrr.Id,
+					"full_addr":         factAdrr.FullAddr,
+					"index_addr":        factAdrr.IndexAddr,
+					"id_region":         factAdrr.Region.Id,
+					"name_region":       factAdrr.Region.Name,
+					"area":              factAdrr.Area,
+					"city":              factAdrr.City,
+					"city_area":         factAdrr.CityArea,
+					"place":             factAdrr.Place,
+					"street":            factAdrr.Street,
+					"additional_area":   factAdrr.AdditionalArea,
+					"additional_street": factAdrr.AdditionalStreet,
+					"house":             factAdrr.House,
+					"building1":         factAdrr.Building1,
+					"building2":         factAdrr.Building2,
+					"apartment":         factAdrr.Apartment,
+					"id_author":         factAdrr.IdAuthor,
+				}
+			}
+		} else {
+			response[`fact_address`] = nil
+		}
+
+		var regAdrr digest.Address
+		if entrant.IdFactAddr != nil {
+			db = conn.Preload(`Region`).Where(`id=?`, entrant.IdRegistrationAddr).Find(&regAdrr)
+			if regAdrr.Id > 0 {
+				response[`registration_address`] = map[string]interface{}{
+					"id":                regAdrr.Id,
+					"full_addr":         regAdrr.FullAddr,
+					"index_addr":        regAdrr.IndexAddr,
+					"id_region":         regAdrr.Region.Id,
+					"name_region":       regAdrr.Region.Name,
+					"area":              regAdrr.Area,
+					"city":              regAdrr.City,
+					"city_area":         regAdrr.CityArea,
+					"place":             regAdrr.Place,
+					"street":            regAdrr.Street,
+					"additional_area":   regAdrr.AdditionalArea,
+					"additional_street": regAdrr.AdditionalStreet,
+					"house":             regAdrr.House,
+					"building1":         regAdrr.Building1,
+					"building2":         regAdrr.Building2,
+					"apartment":         regAdrr.Apartment,
+					"id_author":         regAdrr.IdAuthor,
+				}
+			}
+		} else {
+			response[`registration_address`] = nil
+		}
+		result.Items = response
 		return
 	} else {
 		result.Done = true
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+}
+func (result *ResultInfo) GetInfoEntrantApp(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+	db := conn.Find(&entrant, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		var countApp int64
+		db = conn.Select("count(distinct(id_organization))").Table(`app.applications`).Where(`id_entrant=?`, ID).Count(&countApp)
+		var applications []digest.Application
+		db = conn.Table(`app.applications`).Where(`id_entrant=? AND id_organization=?`, ID, result.User.CurrentOrganization.Id).Find(&applications)
+		birthday := entrant.Birthday.Format(`2006-01-02`)
+		apps := []interface{}{} // ну вот надо так чикиной, че иде мне подчеркивает(
+		for index, _ := range applications {
+			apps = append(apps, map[string]interface{}{
+				"id":         applications[index].Id,
+				"app_number": applications[index].AppNumber,
+			})
+		}
+		response := map[string]interface{}{
+			`surname`:       entrant.Surname,
+			`name`:          entrant.Name,
+			`patronymic`:    entrant.Patronymic,
+			`birthday`:      birthday,
+			`snils`:         entrant.Snils,
+			`count_org_app`: countApp,
+			`app_org`:       apps,
+		}
+		result.Done = true
+		result.Items = response
+		return
+	} else {
+		result.Done = false
 		message := `Абитуриент не найден.`
 		result.Message = &message
 		return
@@ -222,6 +364,193 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 
 }
 
+func (result *ResultInfo) GetListDocsIdentsEntrant(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+
+	db := conn.Find(&entrant, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var items []interface{}
+	if db.RowsAffected > 0 {
+		var identifications []digest.Identifications
+		db = conn.Preload(`DocumentType`).Model(&entrant).Related(&identifications)
+		for index := range identifications {
+			db = conn.Model(&identifications[index]).Related(&identifications[index].DocumentType, `IdDocumentType`)
+			issueDate := identifications[index].IssueDate.Format(`2006-01-02`)
+			name := identifications[index].DocumentType.Name + ` ` + identifications[index].DocSeries + ` ` + identifications[index].DocNumber + ` от ` + issueDate
+			items = append(items, map[string]interface{}{
+				"id":   identifications[index].Id,
+				"name": name,
+			})
+		}
+
+		result.Done = true
+		result.Items = items
+		return
+	} else {
+		result.Done = true
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+
+}
+
+func (result *ResultInfo) GetShortListDocsEntrant(idEntrant uint, keys map[string][]string) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entrant digest.Entrants
+
+	db := conn.Find(&entrant, idEntrant)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Абитуриент не найден.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var items []interface{}
+	if db.RowsAffected > 0 {
+		var allDocuments []digest.AllDocuments
+		cmd := `
+					with a as (select id as id_entrant from persons.entrants where id=?),
+					b as (SELECT id, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id_entrant=a.id_entrant)
+					UNION
+					SELECT ege.id, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
+						FROM documents.ege ege
+						join cls.subjects sbj ON sbj.id = ege.id_subject WHERE EXISTS(SELECT 1 FROM a WHERE ege.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
+					FROM documents.compatriot compar WHERE EXISTS(SELECT 1 FROM a WHERE compar.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
+					FROM documents.composition compos WHERE EXISTS(SELECT 1 FROM a WHERE compos.id_entrant=a.id_entrant)
+					UNION
+					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
+					FROM documents.identification ident WHERE EXISTS(SELECT 1 FROM a WHERE ident.id_entrant=a.id_entrant))
+					SELECT b.*, sys.id as id_sys_categories, sys."name" as name_sys_categories, dt."name" as name_document_type
+					from b  
+					join cls.document_sys_categories sys on b.name_table = sys.name_table
+					join cls.document_types dt on dt.id = b.id_document_type			
+					Where b.id IS NOT NULL
+`
+		if len(keys[`categories`]) > 0 {
+			var categories []string
+			fmt.Println()
+			for _, v := range keys[`categories`] {
+				if service.SearchStringInSliceString(v, PriorityTable) >= 0 {
+					categories = append(categories, `'`+v+`'`)
+				}
+			}
+			if len(categories) > 0 {
+				cmd += ` AND b.name_table IN (` + strings.Join(categories, `,`) + `) `
+			}
+		}
+		if len(keys[`no_categories`]) > 0 {
+			var categories []string
+			for _, v := range keys[`no_categories`] {
+				if service.SearchStringInSliceString(v, PriorityTable) >= 0 {
+					categories = append(categories, `'`+v+`'`)
+				}
+			}
+			if len(categories) > 0 {
+				cmd += ` AND b.name_table NOT IN (` + strings.Join(categories, `,`) + `) `
+			}
+		}
+		db = conn.Raw(cmd, idEntrant).Scan(&allDocuments)
+		if db.Error != nil {
+			result.Done = false
+			message := db.Error.Error()
+			result.Message = &message
+			return
+		}
+		sysCategory := make(map[string]CategoryDocs)
+		for index := range allDocuments {
+			var category CategoryDocs
+			if val, ok := sysCategory[allDocuments[index].NameTable]; ok {
+				category = val
+			} else {
+				category.Name = allDocuments[index].NameSysCategories
+				category.Code = allDocuments[index].NameTable
+			}
+			var issueDate *string
+			if allDocuments[index].IssueDate != nil {
+				date := *allDocuments[index].IssueDate
+				dateF := date.Format(`2006-01-02`)
+				issueDate = &dateF
+			} else {
+				issueDate = nil
+			}
+
+			category.Docs = append(category.Docs, map[string]interface{}{
+				"id":               allDocuments[index].Id,
+				"doc_number":       allDocuments[index].DocNumber,
+				"doc_series":       allDocuments[index].DocSeries,
+				"id_document_type": allDocuments[index].IdDocumentType,
+				//"id_sys_categories": 		allDocuments[index].IdSysCategories,
+				"issue_date":         issueDate,
+				"mark":               allDocuments[index].Mark,
+				"name_document_type": allDocuments[index].NameDocumentType,
+				"name_subject":       allDocuments[index].NameSubject,
+				//"name_sys_categories": 		allDocuments[index].NameSysCategories,
+				//"name_table": 				allDocuments[index].NameTable,
+			})
+			sysCategory[allDocuments[index].NameTable] = category
+		}
+		for index, _ := range PriorityTable {
+			if val, ok := sysCategory[PriorityTable[index]]; ok {
+				items = append(items, val)
+			}
+		}
+		if len(items) < 1 {
+			result.Items = []digest.AllDocuments{}
+		} else {
+			result.Items = items
+		}
+		result.Done = true
+		return
+	} else {
+		result.Done = false
+		message := `Абитуриент не найден.`
+		result.Message = &message
+		return
+	}
+
+}
+
 func (result *Result) GetListEntrants() {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -329,10 +658,11 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 		return
 	}
 
-	if entrantData.Entrant.RegistrationAddr.IdRegion > 0 {
+	if entrantData.Entrant.RegistrationAddr != nil {
 		var registrAddr digest.Address
-		registrAddr = entrant.RegistrationAddr
+		registrAddr = *entrant.RegistrationAddr
 		registrAddr.IdAuthor = result.User.Id
+		entrant.RegistrationAddr.IdAuthor = result.User.Id
 
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&registrAddr)
 		if db.Error != nil {
@@ -341,13 +671,13 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 			tx.Rollback()
 			return
 		}
-		entrant.IdRegistrationAddr = registrAddr.Id
+		entrant.IdRegistrationAddr = &registrAddr.Id
 		entrant.RegistrationAddr.Id = registrAddr.Id
 	}
 
-	if entrantData.Entrant.FactAddr.IdRegion > 0 {
+	if entrantData.Entrant.FactAddr != nil {
 		var factAddr digest.Address
-		factAddr = entrant.FactAddr
+		factAddr = *entrant.FactAddr
 		factAddr.IdAuthor = result.User.Id
 
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&factAddr)
@@ -358,8 +688,9 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 			return
 		}
 
-		entrant.IdFactAddr = factAddr.Id
+		entrant.IdFactAddr = &factAddr.Id
 		entrant.FactAddr.Id = factAddr.Id
+		entrant.FactAddr.IdAuthor = result.User.Id
 	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&entrant)
@@ -372,6 +703,7 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 
 	var identification digest.Identifications
 	identification = entrantData.Identification
+	identification.IdOrganization = result.User.CurrentOrganization.Id
 	identification.EntrantsId = entrant.Id
 	identification.Created = time.Now()
 	identification.Name = strings.TrimSpace(identification.Name)

@@ -138,6 +138,14 @@ func SearchStringInSliceString(a string, list []string) int {
 	}
 	return -1
 }
+func SearchUintInSliceUint(a uint, list []uint) int {
+	for index, b := range list {
+		if b == a {
+			return index
+		}
+	}
+	return -1
+}
 
 //
 //func NumberInSliceNumber(a int64, list []int64) bool {

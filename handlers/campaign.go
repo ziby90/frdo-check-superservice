@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"fmt"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -39,7 +41,7 @@ type CampaignResponse struct {
 	Created            time.Time `json:"created"`    // Дата создания
 }
 
-var campaignSearchArray = []string{
+var CampaignSearchArray = []string{
 	`name`,
 }
 
@@ -48,9 +50,18 @@ func (result *Result) GetListCampaign() {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaigns []digest.Campaign
-	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(result.Sort.Field + ` ` + result.Sort.Order)
+	sortField := `year_start`
+	sortOrder := `desc`
+	if result.Sort.Field != `` {
+		sortField = result.Sort.Field
+	} else {
+		result.Sort.Field = sortField
+	}
+
+	fmt.Print(result.Sort.Field, sortField)
+	db := conn.Preload(`CampaignType`).Preload(`CampaignStatus`).Where(`id_organization=?`, result.User.CurrentOrganization.Id)
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], campaignSearchArray) >= 0 {
+		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
@@ -59,8 +70,8 @@ func (result *Result) GetListCampaign() {
 
 	}
 	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&campaigns)
-	var campaignResponses []CampaignResponse
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&campaigns)
+	var responses []interface{}
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -74,24 +85,153 @@ func (result *Result) GetListCampaign() {
 	}
 	if db.RowsAffected > 0 {
 		for _, campaign := range campaigns {
-			db = conn.Model(&campaign).Related(&campaign.CampaignType, `IdCampaignType`)
-			db = conn.Model(&campaign).Related(&campaign.CampaignStatus, `IdCampaignStatus`)
-			c := CampaignResponse{
-				Id:                 campaign.Id,
-				UID:                campaign.Uid,
-				Name:               campaign.Name,
-				IdCampaignType:     campaign.CampaignType.Id,
-				NameCampaignType:   campaign.CampaignType.Name,
-				IdCampaignStatus:   campaign.CampaignStatus.Id,
-				NameCampaignStatus: campaign.CampaignStatus.Name,
-				YearStart:          campaign.YearStart,
-				YearEnd:            campaign.YearEnd,
-				Created:            campaign.Created,
+
+			c := map[string]interface{}{
+				`id`:                   campaign.Id,
+				`uid`:                  campaign.Uid,
+				`name`:                 campaign.Name,
+				`id_campaign_type`:     campaign.CampaignType.Id,
+				`name_campaign_type`:   campaign.CampaignType.Name,
+				`id_campaign_status`:   campaign.CampaignStatus.Id,
+				`name_campaign_status`: campaign.CampaignStatus.Name,
+				`year_start`:           campaign.YearStart,
+				`year_end`:             campaign.YearEnd,
+				`created`:              campaign.Created,
 			}
-			campaignResponses = append(campaignResponses, c)
+			responses = append(responses, c)
 		}
 		result.Done = true
-		result.Items = campaignResponses
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+
+func (result *ResultList) GetShortListCampaign() {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaigns []digest.Campaign
+	sortField := `created`
+	sortOrder := `asc`
+
+	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(sortField + ` ` + sortOrder)
+
+	if result.Search != `` {
+		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	}
+	db = db.Find(&campaigns)
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компании не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, campaign := range campaigns {
+			c := map[string]interface{}{
+				`id`:   campaign.Id,
+				`name`: campaign.Name,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+
+func (result *ResultInfo) GetEducationLevelCampaign(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+
+	db := conn.Find(&campaign, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var responses []interface{}
+	if db.RowsAffected > 0 {
+		var campEducLevels []digest.CampaignEducLevel
+		db = conn.Where(`id_campaign=?`, campaign.Id).Find(&campEducLevels)
+		for index, _ := range campEducLevels {
+			var educLevel digest.EducationLevel
+			conn.First(&educLevel, campEducLevels[index].IdEducationLevel)
+			responses = append(responses, map[string]interface{}{
+				`id`:   educLevel.Id,
+				`name`: educLevel.Name,
+			})
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Компании не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+
+func (result *ResultInfo) GetEducationFormCampaign(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+
+	db := conn.Find(&campaign, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var responses []interface{}
+	if db.RowsAffected > 0 {
+		var campEducForms []digest.CampaignEducForm
+		db = conn.Where(`id_campaign=?`, campaign.Id).Find(&campEducForms)
+		for index, _ := range campEducForms {
+			var educForm digest.EducationForm
+			conn.First(&educForm, campEducForms[index].IdEducationForm)
+			responses = append(responses, map[string]interface{}{
+				`id`:   educForm.Id,
+				`name`: educForm.Name,
+			})
+		}
+		result.Done = true
+		result.Items = responses
 		return
 	} else {
 		result.Done = true
@@ -179,6 +319,13 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	campaign.Created = time.Now()
 	campaign.Name = campaignData.Name
 	if campaignData.UID != nil {
+		var exist digest.Campaign
+		tx.Where(`uid=? and id_organization=?`, campaignData.UID, user.CurrentOrganization.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`У данной организации есть компания с данным UID`)
+			tx.Commit()
+			return
+		}
 		campaign.Uid = campaignData.UID
 	}
 	campaign.IdCampaignType = campaignData.IdCampaignType
@@ -240,7 +387,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, educLevelId).Select(`id`).Row()
 		var idEducLevelCampaignType uint
 		err := row.Scan(&idEducLevelCampaignType)
-		if err != nil && idEducLevelCampaignType <= 0 {
+		if err != nil || idEducLevelCampaignType <= 0 {
 			result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
 			tx.Rollback()
 			return
@@ -272,4 +419,22 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	result.Items = campaign.Id
 	result.Done = true
 	tx.Commit()
+}
+
+func CheckCampaignByUser(idCampaign uint, user digest.User) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var count int
+	if user.Role.Code == `administrator` {
+		return nil
+	}
+	db := conn.Table(`cmp.campaigns`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idCampaign).Count(&count)
+	if db.Error != nil {
+		return db.Error
+	}
+	if count > 0 {
+		return nil
+	} else {
+		return errors.New(`У пользователя нет доступа к данной компании `)
+	}
 }

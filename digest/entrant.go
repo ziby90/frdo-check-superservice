@@ -14,10 +14,10 @@ type Entrants struct {
 	Birthplace         string    `json:"birthplace"`
 	Phone              string    `json:"phone"`
 	Email              string    `json:"email"`
-	IdRegistrationAddr uint      `json:"id_registration_address"`
-	RegistrationAddr   Address   `json:"registration_addr" gorm:"foreignkey:IdRegistrationAddr"`
-	IdFactAddr         uint      `json:"id_fact_address"`
-	FactAddr           Address   `json:"fact_addr" gorm:"foreignkey:IdFactAddr"`
+	IdRegistrationAddr *uint     `json:"id_registration_address"`
+	RegistrationAddr   *Address  `json:"registration_addr" gorm:"foreignkey:IdRegistrationAddr"`
+	IdFactAddr         *uint     `json:"id_fact_address"`
+	FactAddr           *Address  `json:"fact_addr" gorm:"foreignkey:IdFactAddr"`
 	Okcm               Okcm      `json:"okcm" gorm:"foreignkey:IdOkcm"`
 	IdOkcm             uint      `json:"id_okcm"`
 	Created            time.Time `json:"created"` // Дата создания

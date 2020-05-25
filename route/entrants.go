@@ -21,6 +21,20 @@ func AddEntrantHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 
+	r.HandleFunc("/entrants/{id:[0-9]+}/short", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetInfoEntrantApp(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	r.HandleFunc("/entrants/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		var data handlers.AddEntrantData
@@ -68,6 +82,33 @@ func AddEntrantHandler(r *mux.Router) {
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
 			res.GetDocsIdentsEntrant(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
+	r.HandleFunc("/entrants/{id:[0-9]+}/idents/list", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetListDocsIdentsEntrant(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
+	r.HandleFunc("/entrants/{id:[0-9]+}/docs/short", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		keys := r.URL.Query()
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetShortListDocsEntrant(uint(id), keys)
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message

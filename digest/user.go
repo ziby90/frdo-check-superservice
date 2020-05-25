@@ -19,6 +19,7 @@ type CurrentOrganization struct {
 	ShortTitle string `json:"short_title"`
 	Ogrn       string `json:"ogrn"`
 	Kpp        string `json:"kpp"`
+	IdEiis     string `json:"id_eiis"`
 }
 
 type Role struct {

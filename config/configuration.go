@@ -3,13 +3,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
-	"time"
-
 	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	"github.com/jmoiron/sqlx"
+	"os"
+	"strconv"
+	"time"
 )
 
 var (
@@ -18,18 +17,20 @@ var (
 )
 
 type DbConnection struct {
-	ConnSQLx    sqlx.DB
-	ConnGORM    gorm.DB
-	Transaction *gorm.DB
+	ConnSQLx     sqlx.DB
+	ConnGORM     gorm.DB
+	ConnSmevGorm gorm.DB
+	Transaction  *gorm.DB
 }
 
 // Configuration struct of config
 type Configuration struct {
-	Port     string `json:"port"`
-	DbString string `json:"dbstring"`
-	Dblog    bool   `json:"dblog"`
-	Salt     string `json:"salt"`
-	Mailer   Mailer `json:"mailer"`
+	Port         string `json:"port"`
+	DbString     string `json:"dbstring"`
+	DbStringSmev string `json:"dbstringsmev"`
+	Dblog        bool   `json:"dblog"`
+	Salt         string `json:"salt"`
+	Mailer       Mailer `json:"mailer"`
 
 	//Sms      Sms    `json:"sms"`
 	JwtRequestDeamon DeamonContext `json:"jwtRequestDeamon"`
@@ -239,6 +240,14 @@ func GetDbConnection() {
 		Db.ConnGORM = *gdb
 	} else {
 		fmt.Println("Ошибка подключения gorm")
+		fmt.Println(err)
+	}
+	sdb, err := gorm.Open("postgres", Conf.DbStringSmev)
+	sdb.DB().SetMaxIdleConns(0)
+	if err == nil {
+		Db.ConnSmevGorm = *sdb
+	} else {
+		fmt.Println("Ошибка подключения gorm smev")
 		fmt.Println(err)
 	}
 }

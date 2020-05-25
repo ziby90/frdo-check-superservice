@@ -7,39 +7,40 @@ import (
 // КЦП
 type AdmissionVolume struct {
 	Id                 uint      `gorm:"primary_key";json:"id"` // Идентификатор
-	Uid                string    `xml:"UID" json:"uid" `        // Идентификатор от организации
+	Uid                *string   `xml:"UID" json:"uid" `        // Идентификатор от организации
 	Direction          Direction `gorm:"foreignkey:IdDirection"`
-	IdDirection        uint      // Идентификатор направления
-	IdCampaign         uint      // Идентификатор направления
+	IdDirection        uint      `json:"id_specialty"` // Идентификатор направления
+	IdCampaign         uint      `json:"id_campaign"`  // Идентификатор направления
 	ReceptionCampaign  Campaign
-	CampaignUID        CampaignUID    `xml:"Campaign"` // Идентификатор направления
+	CampaignUID        CampaignUID    `json:"Campaign"` // Идентификатор направления
 	EducationLevel     EducationLevel `gorm:"foreignkey:IdEducationLevel"`
-	IdEducationLevel   uint
-	NameEducationLevel string
-	CodeEducationLevel string
-	BudgetO            int64        `xml:"budget_o,omitempty"`
-	BudgetOz           int64        `xml:"budget_oz,omitempty"`
-	BudgetZ            int64        `xml:"budget_z,omitempty"`
-	QuotaO             int64        `xml:"quota_o,omitempty"`
-	QuotaOz            int64        `xml:"quota_oz,omitempty"`
-	QuotaZ             int64        `xml:"quota_z,omitempty"`
-	PaidO              int64        `xml:"paid_o,omitempty"`
-	PaidOz             int64        `xml:"paid_oz,omitempty"`
-	PaidZ              int64        `xml:"paid_z,omitempty"`
-	TargetO            int64        `xml:"target_o,omitempty"`
-	TargetOz           int64        `xml:"target_oz,omitempty"`
-	TargetZ            int64        `xml:"target_z,omitempty"`
-	Created            time.Time    `xml:"created"`
-	IdAuthor           uint         `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
-	Actual             bool         `xml:"actual"`
-	Organization       Organization `gorm:"foreignkey:IdOrganization"`
-	CodeSpecialty      string       `json:"code_specialty"`
-	NameSpecialty      string       `json:"name_specialty"`
-	IdGroups           uint         `json:"id_groups"`
-	CodeGroups         string       `json:"code_groups"`
-	NameGroups         string       `json:"name_groups"`
-	Distributed        bool         `json:"distributed"`
-	IdOrganization     uint         // Идентификатор организации
+	IdEducationLevel   uint           `json:"id_education_level"`
+	NameEducationLevel string         `gorm:"-"`
+	CodeEducationLevel string         `gorm:"-"`
+	BudgetO            int64          `json:"budget_o,omitempty"`
+	BudgetOz           int64          `json:"budget_oz,omitempty"`
+	BudgetZ            int64          `json:"budget_z,omitempty"`
+	QuotaO             int64          `json:"quota_o,omitempty"`
+	QuotaOz            int64          `json:"quota_oz,omitempty"`
+	QuotaZ             int64          `json:"quota_z,omitempty"`
+	PaidO              int64          `json:"paid_o,omitempty"`
+	PaidOz             int64          `json:"paid_oz,omitempty"`
+	PaidZ              int64          `json:"paid_z,omitempty"`
+	TargetO            int64          `json:"target_o,omitempty"`
+	TargetOz           int64          `json:"target_oz,omitempty"`
+	TargetZ            int64          `json:"target_z,omitempty"`
+	Created            time.Time      `json:"created"`
+	IdAuthor           uint           `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
+	Actual             bool           `json:"actual"`
+	Organization       Organization   `gorm:"foreignkey:IdOrganization"`
+	IdOrganization     uint           // Идентификатор организации
+	CodeSpecialty      string         `json:"code_specialty" gorm:"-"`
+	NameSpecialty      string         `json:"name_specialty" gorm:"-"`
+	IdGroups           uint           `json:"id_groups" gorm:"-"`
+	CodeGroups         string         `json:"code_groups" gorm:"-"`
+	NameGroups         string         `json:"name_groups" gorm:"-"`
+	Distributed        bool           `json:"distributed" gorm:"-"`
+	SumDistributed     bool           `json:"sum_distributed" gorm:"-"`
 }
 type DistributedAdmissionVolume struct {
 	Id                uint            `gorm:"primary_key";json:"id"` // Идентификатор
@@ -47,7 +48,7 @@ type DistributedAdmissionVolume struct {
 	AdmissionVolumeId uint            `json:"id_admission_volume"  gorm:"column:id_admission_volume"`
 	LevelBudget       LevelBudget     `gorm:"foreignkey:IdLevelBudget"`
 	IdLevelBudget     uint            `json:"id_level_budget"`
-	Uid               string          `xml:"UID" json:"uid" ` // Идентификатор от организации
+	Uid               *string         `xml:"UID" json:"uid" ` // Идентификатор от организации
 	BudgetO           int64           `xml:"budget_o,omitempty"`
 	BudgetOz          int64           `xml:"budget_oz,omitempty"`
 	BudgetZ           int64           `xml:"budget_z,omitempty"`
