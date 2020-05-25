@@ -949,6 +949,56 @@ func (result *ResultInfo) RemoveCompetitive(idCompetitive uint) {
 
 }
 
+func (result *ResultList) GetEntranceTestsSelectListByCompetitive(idCompetitive uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+
+	var items []digest.EntranceTest
+	sortField := `created`
+	sortOrder := `desc`
+	db := conn.Where(`id_competitive_group=? AND actual`, idCompetitive).Order(sortField + ` ` + sortOrder)
+
+	if result.Search != `` {
+		//db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
+	}
+
+	db = db.Preload(`EntranceTestType`).Preload(`Subject`).Find(&items)
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Вступительные испытания не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, item := range items {
+			c := map[string]interface{}{
+				`id`:                      item.Id,
+				`name_entrance_test_type`: item.EntranceTestType.Name,
+				`name_subject`:            item.Subject.Name,
+				`min_score`:               item.MinScore,
+				`is_ege`:                  item.IsEge,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Достижения не найдены.`
+		result.Message = &message
+		result.Items = []digest.IndividualAchievements{}
+		return
+	}
+}
+
 func CheckCompetitiveGroupByUser(idCompetitiveGroup uint, user digest.User) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)

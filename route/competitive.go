@@ -211,4 +211,25 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	r.HandleFunc("/competitive/{id:[0-9]+}/tests/select", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultList
+		keys := r.URL.Query()
+		res.User = *handlers.CheckAuthCookie(r)
+		res.MakeUrlParams(keys)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCompetitiveGroupByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetEntranceTestsSelectListByCompetitive(uint(id))
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 }

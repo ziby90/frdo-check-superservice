@@ -240,6 +240,50 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
+	// удаление вступительного теста к заявлению
+	r.HandleFunc("/applications/tests/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{
+			Done:    false,
+			Message: nil,
+			Items:   nil,
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.RemoveApplicationTest(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// удаление документа к заявлению
+	r.HandleFunc("/applications/{id_application:[0-9]+}/docs/{id_document:[0-9]+}/{code_category}/remove", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{
+			Done:    false,
+			Message: nil,
+			Items:   nil,
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		idApplication, err := strconv.ParseInt(vars[`id_application`], 10, 32)
+		if err == nil {
+			idDocument, err := strconv.ParseInt(vars[`id_document`], 10, 32)
+			if err == nil {
+				codeCategory := fmt.Sprintf(`%v`, vars[`code_category`])
+				res.RemoveApplicationDocuments(uint(idApplication), uint(idDocument), codeCategory)
+			} else {
+				message := `Неверный параметр id_document.`
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id_application.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+
 	//
 	//r.HandleFunc("/entrants/{id:[0-9]+}/others", func(w http.ResponseWriter, r *http.Request) {
 	//	res := handlers.ResultInfo{}

@@ -283,44 +283,35 @@ func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 			db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.EntranceTestType, `IdEntranceTestType`)
 			db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.Subject, `IdSubject`)
 
-			r := make(map[string]interface{})
-			r[`test_info`] = map[string]interface{}{
-				"id":                      appEntranceTests[index].EntranceTest.Id,
+			r := map[string]interface{}{
+				"id":                      appEntranceTests[index].Id,
+				"uid":                     appEntranceTests[index].Uid,
+				"id_entrance_test":        appEntranceTests[index].IdEntranceTest,
 				"id_entrance_test_type":   appEntranceTests[index].EntranceTest.EntranceTestType.Id,
 				"name_entrance_test_type": appEntranceTests[index].EntranceTest.EntranceTestType.Name,
-				"id_subject":              appEntranceTests[index].EntranceTest.Subject.Id,
-				"name_subject":            appEntranceTests[index].EntranceTest.Subject.Name,
-				"priority":                appEntranceTests[index].EntranceTest.Priority,
-				"uid":                     appEntranceTests[index].EntranceTest.Uid,
-				"test_name":               appEntranceTests[index].EntranceTest.TestName,
-				"min_score":               appEntranceTests[index].EntranceTest.MinScore,
 				"is_ege":                  appEntranceTests[index].EntranceTest.IsEge,
+				"name_subject":            appEntranceTests[index].EntranceTest.Subject.Name,
+				"test_name":               appEntranceTests[index].EntranceTest.TestName,
+				"priority":                appEntranceTests[index].EntranceTest.Priority,
+				"min_score":               appEntranceTests[index].EntranceTest.MinScore,
+				"result_value":            appEntranceTests[index].ResultValue,
 			}
-			var doc map[string]interface{}
+
 			if appEntranceTests[index].IdDocument != nil {
+				var category digest.DocumentSysCategories
+				db = conn.Where(`name_table=?`, `ege`).Find(&category)
+				if category.Id == 0 || db.Error != nil {
+					result.SetErrorResult(`Категория документа не найдена`)
+					return
+				}
 				var d digest.Ege
 				db = conn.Preload(`DocumentType`).Preload(`Subject`).Where("id=?", *appEntranceTests[index].IdDocument).Find(&d)
-				issueDate := d.IssueDate.Format(`2006-01-02`)
-				doc = map[string]interface{}{
-					"id":            d.Id,
-					"code_category": `ege`,
-					"name_category": `Свидетельство о результатах ЕГЭ`,
-					"subject": map[string]interface{}{
-						"name": d.Subject.Name,
-						"id":   d.Subject.Id,
-					},
-					"mark":       d.Mark,
-					"issue_date": issueDate,
-				}
+				//issueDate := d.IssueDate.Format(`2006-01-02`)
+				r["id_document"] = d.Id
+				r["document_code_category"] = `ege`
+				r["document_name_category"] = category.Name
 			}
-			issueDate := appEntranceTests[index].IssueDate.Format(`2006-01-02`)
-			r[`data`] = map[string]interface{}{
-				"id":               appEntranceTests[index].Id,
-				"id_entrance_test": appEntranceTests[index].IdEntranceTest,
-				"issue_date":       issueDate,
-				"uid":              appEntranceTests[index].Uid,
-				"doc":              doc,
-			}
+
 			tests = append(tests, r)
 		}
 		result.Items = []digest.AppEntranceTest{}
@@ -1020,6 +1011,116 @@ func (result *ResultInfo) RemoveApplicationAchievement(idAchievement uint) {
 		tx.Commit()
 		result.Items = map[string]interface{}{
 			`id_achievement`: idAchievement,
+		}
+		return
+	} else {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+}
+func (result *ResultInfo) RemoveApplicationTest(idTest uint) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var old digest.AppEntranceTest
+	db := tx.Find(&old, idTest)
+	if old.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Вступительное испытание не найдено`)
+		tx.Rollback()
+		return
+	}
+	var application digest.Application
+	db = tx.Find(&application, old.IdApplication)
+	if application.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Заявление не найдено`)
+		tx.Rollback()
+		return
+	}
+	if application.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Организация заявления не совпадает с выбранной вами`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Where(`id=?`, idTest).Delete(&old)
+	if db.Error == nil {
+		result.Done = true
+		tx.Commit()
+		result.Items = map[string]interface{}{
+			`id_entrance_test`: idTest,
+		}
+		return
+	} else {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+}
+func (result *ResultInfo) RemoveApplicationDocuments(idApplication uint, idDocument uint, codeCategory string) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var category digest.DocumentSysCategories
+	db := tx.Where(`name_table=?`, codeCategory).Find(&category)
+	if category.Id == 0 || db.Error != nil {
+		fmt.Println(db.Error)
+		result.SetErrorResult(`Категория документа не найдена`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Documents
+	fmt.Println(`*****************************`)
+	fmt.Println(idDocument, idApplication, category.Id)
+	db = tx.Where(`id_document=? AND id_application=? AND id_document_sys_category=?`, idDocument, idApplication, category.Id).Find(&old)
+	if old.Id == 0 || db.Error != nil {
+		fmt.Println(db.Error)
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var application digest.Application
+	db = tx.Find(&application, old.IdApplication)
+	if application.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Заявление не найдено`)
+		tx.Rollback()
+		return
+	}
+	if application.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Организация заявления не совпадает с выбранной вами`)
+		tx.Rollback()
+		return
+	}
+	var countIdentDocs int
+	var countEducDocs int
+	db = conn.Table(`app.documents`).Select(`id`).Where(`id_application=? AND id_document_sys_category=10 AND id_document!=?`, idApplication, idDocument).Count(&countIdentDocs)
+	db = conn.Table(`app.documents`).Select(`id`).Where(`id_application=? AND id_document_sys_category=4 AND id_document!=?`, idApplication, idDocument).Count(&countEducDocs)
+	if countIdentDocs < 1 {
+		result.SetErrorResult(`У заявления должен быть хоть один документ, удостоверяющий личность`)
+		tx.Rollback()
+		return
+	}
+	if countEducDocs < 1 {
+		result.SetErrorResult(`У заявления должен быть хоть один документ об образовании`)
+		tx.Rollback()
+		return
+	}
+	db = tx.Where(`id=?`, old.Id).Delete(&old)
+
+	if db.Error == nil {
+		var appEntranceTest []digest.AppEntranceTest
+		db = tx.Where(`id_document=? AND id_application=?`, idDocument, idApplication).Delete(&appEntranceTest)
+		result.Done = true
+		tx.Commit()
+		result.Items = map[string]interface{}{
+			`id_document`: idDocument,
 		}
 		return
 	} else {
