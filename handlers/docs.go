@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
+	sendToEpguPath "gitlab.com/unkal/sendtoepgu/path_files"
 	"io"
 	"io/ioutil"
 	"os"
@@ -25,7 +25,8 @@ import (
 //}
 
 func getPath(idEntrant uint, category string, t time.Time) string {
-	path := `./uploads/docs/` + fmt.Sprintf(`%v`, idEntrant) + `/` + category + `/` + t.Format(`02-01-2006`)
+	path, _ := sendToEpguPath.GetPath(idEntrant, t, category)
+	//path := `./uploads/docs/` + fmt.Sprintf(`%v`, idEntrant) + `/` + category + `/` + t.Format(`02-01-2006`)
 	return path
 }
 
@@ -1500,27 +1501,27 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"register_number":      r.RegisterNumber,
-				"doc_number":           r.DocNumber,
-				"mark":                 r.Mark,
-				"issue_date":           issueDate,
-				"result_date":          resultDate,
-				"id_region":            r.Region.Id,
-				"name_region":          r.Region.Name,
-				"id_subject":           r.Subject.Id,
-				"name_subject":         r.Subject.Name,
-				"checked":              r.Checked,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"register_number":     r.RegisterNumber,
+				"doc_number":          r.DocNumber,
+				"mark":                r.Mark,
+				"issue_date":          issueDate,
+				"result_date":         resultDate,
+				"id_region":           r.Region.Id,
+				"name_region":         r.Region.Name,
+				"id_subject":          r.Subject.Id,
+				"name_subject":        r.Subject.Name,
+				"checked":             r.Checked,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
 			}
 		}
 		break

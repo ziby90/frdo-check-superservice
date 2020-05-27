@@ -211,6 +211,7 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// выпадайка на список вступительных испытаний у конкурсной группы
 	r.HandleFunc("/competitive/{id:[0-9]+}/tests/select", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultList
 		keys := r.URL.Query()

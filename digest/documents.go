@@ -348,6 +348,7 @@ type AllDocuments struct {
 	NameTable         string     `json:"name_table"`
 	Mark              *int64     `json:"mark"`
 	NameSubject       *string    `json:"name_subject"`
+	Checked           bool       `json:"checked"`
 }
 
 func (Compatriot) TableName() string {

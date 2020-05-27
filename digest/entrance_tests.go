@@ -15,7 +15,7 @@ type EntranceTest struct {
 	IsEge                 bool             `json:"is_ege"`
 	MinScore              int64            `json:"min_score"`
 	Subject               Subject          `gorm:"foreignkey:IdSubject"`
-	IdSubject             uint             `json:"id_subject"`
+	IdSubject             *uint            `json:"id_subject"`
 	EntranceTestType      EntranceTestType `gorm:"foreignkey:IdEntranceTestType"`
 	IdEntranceTestType    uint             `json:"id_entrance_test_type"`
 	CompetitiveGroup      CompetitiveGroup `gorm:"foreignkey:IdCompetitiveGroup"`

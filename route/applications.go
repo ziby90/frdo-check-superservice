@@ -23,7 +23,7 @@ func AddApplicationHandler(r *mux.Router) {
 		res.MakeUrlParams(keys)
 		//res.MakeUrlParamsSearch(keys, handlers.ApplicationSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
-		res.GetApplications()
+		res.GetApplications(keys)
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// добавление заявления
@@ -168,6 +168,26 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// документы заявления кратакая запись чисто айдишников
+	r.HandleFunc("/applications/{id:[0-9]+}/docs/short", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckApplicationByUser(uint(id), res.User)
+			if err == nil {
+				res.GetApplicationDocsByIdShort(uint(id))
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 	// вступительные тесты заявления
 	r.HandleFunc("/applications/{id:[0-9]+}/tests/list", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
@@ -212,7 +232,7 @@ func AddApplicationHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// добавление вступительного теста к заявлению
-	r.HandleFunc("/applications/{id:[0-9]+}/entrants/add", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/applications/{id:[0-9]+}/tests/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		var data handlers.AddApplicationEntranceTest
 		res.User = *handlers.CheckAuthCookie(r)
@@ -226,6 +246,35 @@ func AddApplicationHandler(r *mux.Router) {
 				data.IdApplication = uint(id)
 				if err == nil {
 					res.AddEntranceTestApplication(data)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
+	// добавление документов к заявлению
+	r.HandleFunc("/applications/{id:[0-9]+}/docs/add", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var data handlers.AddApplicationDocs
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckApplicationByUser(uint(id), res.User)
+			if err == nil {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &data)
+				data.IdApplication = uint(id)
+				if err == nil {
+					res.AddDocsApplication(data)
 				} else {
 					m := err.Error()
 					res.Message = &m

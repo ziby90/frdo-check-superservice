@@ -43,6 +43,7 @@ type Application struct {
 	OriginalDoc              *time.Time          `json:"original_doc" schema:"original_doc"`
 	IdBenefit                *uint               `json:"id_benefit" schema:"id_benefit"`
 	Uid                      *string             `json:"uid" schema:"uid"`
+	UidEpgu                  *int64              `json:"uid_epgu" schema:"uid_epgu"`
 	Created                  time.Time           `json:"created"` // Дата создания
 	StatusComment            *string             `json:"status_comment" schema:"status_comment"`
 }
@@ -85,6 +86,24 @@ type AppEntranceTest struct {
 	Created        time.Time      `json:"created"` // Дата создания
 }
 
+type VApplications struct {
+	Id                   uint      `json:"id" schema:"id"` // Идентификатор
+	IdOrganization       uint      `json:"id_organization"`
+	IdEntrant            uint      `json:"id_entrant"`
+	EntrantFullname      string    `json:"entrant_fullname"`
+	EntrantSnils         string    `json:"entrant_snils"`
+	IdCompetitiveGroup   uint      `json:"id_competitive_group"`
+	NameCompetitiveGroup string    `json:"name_competitive_group"`
+	AppNumber            string    `json:"app_number"`
+	RegistrationDate     time.Time `json:"registration_date"`
+	Rating               float32   `json:"rating" schema:"rating"`
+	IdStatus             uint      `json:"id_status" schema:"id_status"`
+	NameStatus           string    `json:"name_status" schema:"name_status"`
+	Agreed               *bool     `json:"agreed" schema:"agreed"`
+	Original             bool      `json:"original" schema:"original"`
+	Uid                  *string   `json:"uid" schema:"uid"`
+	Created              time.Time `json:"created"` // Дата создания
+}
 type AppAchievements struct {
 	Id                  uint                   `json:"id" schema:"id"` // Идентификатор
 	Application         Application            `gorm:"foreignkey:IdApplication"`
@@ -136,4 +155,7 @@ func (OrderAdmission) TableName() string {
 }
 func (Documents) TableName() string {
 	return "app.documents"
+}
+func (VApplications) TableName() string {
+	return "app.v_applications"
 }

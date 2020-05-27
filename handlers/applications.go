@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	sendToEpgu "gitlab.com/unkal/sendtoepgu/send_to_epgu_xml"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -51,6 +52,10 @@ type AddApplication struct {
 	StatusComment *string           `json:"status_comment" schema:"status_comment"`
 	Docs          []DocsApplication `json:"docs" schema:"docs"`
 }
+type AddApplicationDocs struct {
+	IdApplication uint
+	Docs          []DocsApplication `json:"docs" schema:"docs"`
+}
 
 type DocsApplication struct {
 	Id   uint   `json:"id"`
@@ -88,11 +93,11 @@ type AddApplicationEntranceTest struct {
 //
 //}
 
-func (result *Result) GetApplications() {
+func (result *Result) GetApplications(keys map[string][]string) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	var applications []digest.Application
+	var applications []digest.VApplications
 	sortField := `created`
 	sortOrder := `desc`
 	if result.Sort.Field != `` {
@@ -102,11 +107,15 @@ func (result *Result) GetApplications() {
 	}
 
 	fmt.Print(result.Sort.Field, sortField)
-	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`)
-	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], ApplicationSearchArray) >= 0 {
-			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
-		}
+	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	if len(keys[`search_number`]) > 0 {
+		db = db.Where(`UPPER(app_number) LIKE ?`, `%`+strings.ToUpper(keys[`search_number`][0])+`%`)
+	}
+	if len(keys[`search_fullname`]) > 0 {
+		db = db.Where(`UPPER(entrant_fullname) LIKE ?`, `%`+strings.ToUpper(keys[`search_fullname`][0])+`%`)
+	}
+	if len(keys[`search_snils`]) > 0 {
+		db = db.Where(`UPPER(entrant_snils) LIKE ?`, `%`+strings.ToUpper(keys[`search_snils`][0])+`%`)
 	}
 
 	dbCount := db.Model(&applications).Count(&result.Paginator.TotalCount)
@@ -121,15 +130,16 @@ func (result *Result) GetApplications() {
 			response = append(response, map[string]interface{}{
 				"id":                     applications[index].Id,
 				"app_number":             applications[index].AppNumber,
-				"name_competitive_group": applications[index].CompetitiveGroup.Name,
-				"entrant_fullname":       applications[index].Entrants.Surname + ` ` + applications[index].Entrants.Name + ` ` + applications[index].Entrants.Patronymic,
-				"entrant_snils":          applications[index].Entrants.Snils,
-				"id_status":              applications[index].Status.Id,
-				"name_status":            applications[index].Status.Name,
+				"name_competitive_group": applications[index].NameCompetitiveGroup,
+				"entrant_fullname":       applications[index].EntrantFullname,
+				"entrant_snils":          applications[index].EntrantSnils,
+				"id_status":              applications[index].IdStatus,
+				"name_status":            applications[index].NameStatus,
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
 				"original":               applications[index].Original,
 				"rating":                 applications[index].Rating,
+				"created":                applications[index].Created,
 			})
 		}
 		result.Done = true
@@ -340,37 +350,37 @@ func (result *ResultInfo) GetApplicationDocsById(idApplication uint) {
 		var responseDocs []interface{}
 		var allDocuments []digest.AllDocuments
 		cmd := `
-					 with a as(SELECT id_document, id_document_sys_category FROM app.documents WHERE id_application = ?),
-					b as (SELECT id, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id =a.id_document)
+					with a as(SELECT id_document, id_document_sys_category FROM app.documents WHERE id_application = ?),
+					b as (SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id =a.id_document and a.id_document_sys_category= 4)
 					UNION
-					SELECT ege.id, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
+					SELECT ege.id, checked, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
 						FROM documents.ege ege
-						join cls.subjects sbj ON sbj.id = ege.id_subject WHERE EXISTS(SELECT 1 FROM a WHERE ege.id =a.id_document)
+						join cls.subjects sbj ON sbj.id = ege.id_subject WHERE EXISTS(SELECT 1 FROM a WHERE ege.id =a.id_document and a.id_document_sys_category= 12)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id =a.id_document and a.id_document_sys_category= 1)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id =a.id_document and a.id_document_sys_category= 2)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id =a.id_document and a.id_document_sys_category= 3)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id =a.id_document and a.id_document_sys_category= 5)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id =a.id_document and a.id_document_sys_category= 6)
 					UNION
-					SELECT id, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id =a.id_document and a.id_document_sys_category= 7)
 					UNION
-					SELECT id, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
-					FROM documents.compatriot compar WHERE EXISTS(SELECT 1 FROM a WHERE compar.id =a.id_document)
+					SELECT id, checked, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
+					FROM documents.compatriot compar WHERE EXISTS(SELECT 1 FROM a WHERE compar.id =a.id_document and a.id_document_sys_category= 8)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id =a.id_document and a.id_document_sys_category= 9)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id =a.id_document)
+					SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id =a.id_document and a.id_document_sys_category= 11)
 					UNION
-					SELECT id, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
-					FROM documents.composition compos WHERE EXISTS(SELECT 1 FROM a WHERE compos.id =a.id_document)
+					SELECT id, checked, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
+					FROM documents.composition compos WHERE EXISTS(SELECT 1 FROM a WHERE compos.id =a.id_document and a.id_document_sys_category= 13)
 					UNION
-					SELECT id, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
-					FROM documents.identification ident WHERE EXISTS(SELECT 1 FROM a WHERE ident.id =a.id_document))
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
+					FROM documents.identification ident WHERE EXISTS(SELECT 1 FROM a WHERE ident.id =a.id_document and a.id_document_sys_category= 10))
 					SELECT b.*, sys.id as id_sys_categories, sys."name" as name_sys_categories, dt."name" as name_document_type
 					from b  
 					join cls.document_sys_categories sys on b.name_table = sys.name_table
@@ -408,6 +418,7 @@ func (result *ResultInfo) GetApplicationDocsById(idApplication uint) {
 				"doc_series":       allDocuments[index].DocSeries,
 				"id_document_type": allDocuments[index].IdDocumentType,
 				"id_entrant":       application.EntrantsId,
+				"checked":          allDocuments[index].Checked,
 				//"id_sys_categories": 		allDocuments[index].IdSysCategories,
 				"issue_date":         issueDate,
 				"mark":               allDocuments[index].Mark,
@@ -425,6 +436,8 @@ func (result *ResultInfo) GetApplicationDocsById(idApplication uint) {
 		}
 		if len(responseDocs) == 0 {
 			result.SetErrorResult(`Документы у заявления не найдены`)
+			result.Done = true
+			result.Items = []digest.AllDocuments{}
 			return
 		}
 		response = map[string]interface{}{
@@ -433,6 +446,96 @@ func (result *ResultInfo) GetApplicationDocsById(idApplication uint) {
 		}
 		result.Done = true
 		result.Items = response
+		return
+	} else {
+		result.Done = false
+		message := `Заявление не найдено.`
+		result.Message = &message
+		return
+	}
+
+}
+func (result *ResultInfo) GetApplicationDocsByIdShort(idApplication uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var application digest.Application
+	responseDoсs := make(map[string][]interface{})
+	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
+
+	if db.RowsAffected > 0 {
+		var allDocuments []digest.AllDocuments
+		cmd := `
+					 with a as(SELECT id_document, id_document_sys_category FROM app.documents WHERE id_application = ?),
+					b as (SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id =a.id_document and a.id_document_sys_category= 4)
+					UNION
+					SELECT ege.id, checked, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
+						FROM documents.ege ege
+						join cls.subjects sbj ON sbj.id = ege.id_subject WHERE EXISTS(SELECT 1 FROM a WHERE ege.id =a.id_document and a.id_document_sys_category= 12)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id =a.id_document and a.id_document_sys_category= 1)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id =a.id_document and a.id_document_sys_category= 2)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id =a.id_document and a.id_document_sys_category= 3)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id =a.id_document and a.id_document_sys_category= 5)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id =a.id_document and a.id_document_sys_category= 6)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id =a.id_document and a.id_document_sys_category= 7)
+					UNION
+					SELECT id, checked, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
+					FROM documents.compatriot compar WHERE EXISTS(SELECT 1 FROM a WHERE compar.id =a.id_document and a.id_document_sys_category= 8)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id =a.id_document and a.id_document_sys_category= 9)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id =a.id_document and a.id_document_sys_category= 11)
+					UNION
+					SELECT id, checked, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
+					FROM documents.composition compos WHERE EXISTS(SELECT 1 FROM a WHERE compos.id =a.id_document and a.id_document_sys_category= 13)
+					UNION
+					SELECT id, checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
+					FROM documents.identification ident WHERE EXISTS(SELECT 1 FROM a WHERE ident.id =a.id_document and a.id_document_sys_category= 10))
+					SELECT b.*, sys.id as id_sys_categories, sys."name" as name_sys_categories, dt."name" as name_document_type
+					from b  
+					join cls.document_sys_categories sys on b.name_table = sys.name_table
+					join cls.document_types dt on dt.id = b.id_document_type			
+					Where b.id IS NOT NULL
+`
+		db = conn.Raw(cmd, idApplication).Scan(&allDocuments)
+		if db.Error != nil {
+			result.Done = false
+			message := db.Error.Error()
+			result.Message = &message
+			return
+		}
+		sysCategory := make(map[string]CategoryDocs)
+		for index := range allDocuments {
+			var category CategoryDocs
+			if val, ok := sysCategory[allDocuments[index].NameTable]; ok {
+				category = val
+			} else {
+				category.Name = allDocuments[index].NameSysCategories
+				category.Code = allDocuments[index].NameTable
+			}
+			category.Docs = append(category.Docs, allDocuments[index].Id)
+			sysCategory[allDocuments[index].NameTable] = category
+		}
+		for index, _ := range PriorityTable {
+			if val, ok := sysCategory[PriorityTable[index]]; ok {
+				responseDoсs[val.Code] = val.Docs
+			}
+		}
+		if len(responseDoсs) == 0 {
+			result.SetErrorResult(`Документы у заявления не найдены`)
+			result.Done = true
+			result.Items = []digest.AllDocuments{}
+			return
+		}
+
+		result.Done = true
+		result.Items = responseDoсs
 		return
 	} else {
 		result.Done = false
@@ -654,7 +757,7 @@ func (result *ResultInfo) AddApplication(data AddApplication) {
 						return
 					}
 					idsDocs = append(idsDocs, newDoc.Id)
-					if value.Type == `ege` {
+					if doc.NameTable == `ege` {
 						var ege digest.Ege
 						db = conn.Preload(`Subject`).Where(`id=?`, value.Id).Find(&ege)
 						// TODO add app.entrance_test
@@ -903,6 +1006,125 @@ func (result *ResultInfo) AddEntranceTestApplication(data AddApplicationEntrance
 	return
 
 }
+func (result *ResultInfo) AddDocsApplication(data AddApplicationDocs) {
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	application, err := digest.GetApplication(data.IdApplication)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	var idsDocs []uint
+	if len(data.Docs) > 0 {
+		for _, value := range data.Docs {
+			if value.Type == `identification` {
+				var doc digest.Identifications
+				db := conn.Where(`id=? AND id_entrant=?`, value.Id, application.EntrantsId).Find(&doc)
+				if doc.Id <= 0 {
+					result.SetErrorResult(`Документ ` + fmt.Sprintf(`%v`, value.Id) + ` не найден`)
+					tx.Rollback()
+					return
+				}
+				var exist digest.Documents
+				db = conn.Where(`id_application=? AND id_document=?`, data.IdApplication, value.Id).Find(&exist)
+				if exist.Id > 0 {
+					result.SetErrorResult(`Документ ` + fmt.Sprintf(`%v`, value.Id) + ` уже добавлен к данному заявлению`)
+					tx.Rollback()
+					return
+				}
+				var newDoc digest.Documents
+				newDoc.IdDocument = doc.Id
+				newDoc.IdApplication = application.Id
+				newDoc.IdDocumentSysCategory = 10 // sys_category for identification
+				newDoc.Created = time.Now()
+				db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&newDoc)
+				if db.Error != nil {
+					result.SetErrorResult(`Ошибка при добавлении доумента, удостоверяющего личность, у заявления ` + db.Error.Error())
+					tx.Rollback()
+					return
+				}
+				idsDocs = append(idsDocs, newDoc.Id)
+			} else {
+				var doc digest.VDocuments
+				db := conn.Where(`id_document=? AND id_entrant=?`, value.Id, application.EntrantsId).Find(&doc)
+				if doc.IdDocument <= 0 {
+					result.SetErrorResult(`Документ ` + fmt.Sprintf(`%v`, value.Id) + ` не найден`)
+					tx.Rollback()
+					return
+				}
+				var exist digest.Documents
+				db = conn.Where(`id_application=? AND id_document=?`, data.IdApplication, value.Id).Find(&exist)
+				if exist.Id > 0 {
+					result.SetErrorResult(`Документ ` + fmt.Sprintf(`%v`, value.Id) + ` уже добавлен к данному заявлению`)
+					tx.Rollback()
+					return
+				}
+				var newDoc digest.Documents
+				newDoc.IdDocument = doc.IdDocument
+				newDoc.IdApplication = application.Id
+				newDoc.IdDocumentSysCategory = doc.IdSysCategories
+				newDoc.Created = time.Now()
+
+				db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&newDoc)
+				if db.Error != nil {
+					result.SetErrorResult(`Ошибка при добавлении документа у заявления ` + db.Error.Error())
+					tx.Rollback()
+					return
+				}
+				idsDocs = append(idsDocs, newDoc.Id)
+				if doc.NameTable == `ege` {
+					var ege digest.Ege
+					db = conn.Preload(`Subject`).Where(`id=?`, value.Id).Find(&ege)
+					// TODO add app.entrance_test
+					var entranceTest digest.EntranceTest
+					db = conn.Where(`id_competitive_group=? AND id_subject=?`, application.CompetitiveGroup.Id, ege.IdSubject).Find(&entranceTest)
+					if entranceTest.Id <= 0 {
+						result.SetErrorResult(`Вступительный тест у конкурсной группы с предметом "` + fmt.Sprintf(`%v`, ege.Subject.Name) + `" не найден`)
+						tx.Rollback()
+						return
+					}
+					rTrue := true
+					appEntranceTest := digest.AppEntranceTest{
+						IdApplication:  application.Id,
+						IdEntranceTest: entranceTest.Id,
+						IdDocument:     &value.Id,
+						IdResultSource: 1,
+						ResultValue:    ege.Mark,
+						HasEge:         &rTrue,
+						EgeValue:       &ege.Mark,
+						IssueDate:      ege.IssueDate,
+						Created:        time.Now(),
+					}
+					db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&appEntranceTest)
+					if db.Error != nil {
+						result.SetErrorResult(`Ошибка при добавлении вступительного сипытания у заявления ` + db.Error.Error())
+						tx.Rollback()
+						return
+					}
+				}
+			}
+		}
+	} else {
+		result.SetErrorResult(`Не найдено ни одного документа`)
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_application`: application.Id,
+		`id_docs`:        idsDocs,
+	}
+	result.Done = true
+	tx.Commit()
+	return
+
+}
 func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 	conn := &config.Db.ConnGORM
 	tx := conn.Begin()
@@ -939,6 +1161,11 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 		result.SetErrorResult(`Ошибка при изменении статуса заявления ` + db.Error.Error())
 		tx.Rollback()
 		return
+	}
+	if application.UidEpgu != nil {
+		sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
+		err = sendToEpgu.PrepareSendStatementResponse(*application.UidEpgu, sendToEpgu.NewApplication)
+		fmt.Println(err)
 	}
 	result.Items = map[string]interface{}{
 		`id_application`: application.Id,
@@ -1103,12 +1330,12 @@ func (result *ResultInfo) RemoveApplicationDocuments(idApplication uint, idDocum
 	db = conn.Table(`app.documents`).Select(`id`).Where(`id_application=? AND id_document_sys_category=10 AND id_document!=?`, idApplication, idDocument).Count(&countIdentDocs)
 	db = conn.Table(`app.documents`).Select(`id`).Where(`id_application=? AND id_document_sys_category=4 AND id_document!=?`, idApplication, idDocument).Count(&countEducDocs)
 	if countIdentDocs < 1 {
-		result.SetErrorResult(`У заявления должен быть хоть один документ, удостоверяющий личность`)
+		result.SetErrorResult(`У заявления должен быть хотя бы один документ, удостоверяющий личность`)
 		tx.Rollback()
 		return
 	}
 	if countEducDocs < 1 {
-		result.SetErrorResult(`У заявления должен быть хоть один документ об образовании`)
+		result.SetErrorResult(`У заявления должен быть хотя бы один документ об образовании`)
 		tx.Rollback()
 		return
 	}

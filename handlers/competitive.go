@@ -981,9 +981,14 @@ func (result *ResultList) GetEntranceTestsSelectListByCompetitive(idCompetitive 
 			c := map[string]interface{}{
 				`id`:                      item.Id,
 				`name_entrance_test_type`: item.EntranceTestType.Name,
-				`name_subject`:            item.Subject.Name,
 				`min_score`:               item.MinScore,
 				`is_ege`:                  item.IsEge,
+				`priority`:                item.Priority,
+			}
+			if item.Subject.Id > 0 {
+				c[`name_subject`] = item.Subject.Name
+			} else {
+				c[`name_subject`] = item.TestName
 			}
 			responses = append(responses, c)
 		}
