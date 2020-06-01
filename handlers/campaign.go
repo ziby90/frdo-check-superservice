@@ -27,7 +27,6 @@ type CampaignMain struct {
 	Created             time.Time `json:"created"`    // Дата создания
 
 }
-
 type CampaignResponse struct {
 	Id                 uint      `json:"id"`   // Идентификатор
 	UID                *string   `json:"uid"`  // Идентификатор от организации
@@ -39,6 +38,12 @@ type CampaignResponse struct {
 	YearStart          int64     `json:"year_start"` // Год начала компании
 	YearEnd            int64     `json:"year_end"`   // Год окончания компании
 	Created            time.Time `json:"created"`    // Дата создания
+}
+type AddEndData struct {
+	IdCampaign       uint      `json:"id_campaign"`
+	IdEducationLevel uint      `json:"id_education_level"`
+	IdEducationForm  uint      `json:"id_education_form"`
+	EndDate          time.Time `json:"end_date"`
 }
 
 var CampaignSearchArray = []string{
@@ -94,6 +99,7 @@ func (result *Result) GetListCampaign() {
 				`name_campaign_type`:   campaign.CampaignType.Name,
 				`id_campaign_status`:   campaign.CampaignStatus.Id,
 				`name_campaign_status`: campaign.CampaignStatus.Name,
+				`code_campaign_status`: campaign.CampaignStatus.Code,
 				`year_start`:           campaign.YearStart,
 				`year_end`:             campaign.YearEnd,
 				`created`:              campaign.Created,
@@ -301,6 +307,103 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		result.Message = &message
 		result.Items = []digest.Campaign{}
 		return
+	}
+}
+
+func (result *ResultInfo) GetEndDateCampaign(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Find(&campaign, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var endDate []digest.VEndApplication
+	db = conn.Where(`id=? AND id_app_accept_phase IS NULL`, campaign.Id).Find(&endDate)
+
+	if db.RowsAffected > 0 {
+		var r []interface{}
+		for index, _ := range endDate {
+			r = append(r, map[string]interface{}{
+				`id_end_application`:   endDate[index].IdEndApplication,
+				`id_education_level`:   endDate[index].IdEducationLevel,
+				`name_education_level`: endDate[index].EducationLevel,
+				`id_education_form`:    endDate[index].IdEducationForm,
+				`name_education_form`:  endDate[index].EducationForm,
+				`end_date`:             endDate[index].EndDate,
+				`order_end_app`:        endDate[index].OrderEndApp,
+				`created`:              endDate[index].Created,
+			})
+		}
+		result.Done = true
+		result.Items = r
+		return
+	} else {
+		message := `Не найдены даты. `
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Find(&campaign, data.IdCampaign)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+
+	var endDate digest.VEndApplication
+	db = conn.Where(`id=? AND id_app_accept_phase IS NULL AND id_education_level=? AND id_education_form=?`, campaign.Id, data.IdEducationLevel, data.IdEducationForm).Find(&endDate)
+	t := time.Now()
+	var new digest.EndApplication
+	if endDate.Id <= 0 {
+		result.SetErrorResult(`Недопустимые значения`)
+		return
+	}
+	if endDate.IdEndApplication == nil {
+		new.Created = t
+		new.IdCampaign = data.IdCampaign
+		new.IdEducationForm = data.IdEducationForm
+		new.IdEducationLevel = data.IdEducationLevel
+		new.IdOrganization = result.User.CurrentOrganization.Id
+
+	} else {
+		var old digest.EndApplication
+		db = conn.Where(`id=?`, endDate.IdEndApplication).Find(&old)
+		new = old
+		new.Changed = &t
+	}
+	new.Actual = true
+	new.EndDate = data.EndDate
+	db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
+	if db.Error != nil {
+		m := db.Error.Error()
+		result.Message = &m
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_end_application`: new.Id,
 	}
 }
 

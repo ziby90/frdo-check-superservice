@@ -23,6 +23,39 @@ type Campaign struct {
 	Created          time.Time    `json:"created"` // Дата создания
 }
 
+type EndApplication struct {
+	Id               uint       `gorm:"primary_key" json:"id"` // Идентификатор
+	IdCampaign       uint       `json:"id_campaign"`
+	IdAppAcceptPhase *uint      `json:"id_app_accept_phase"`
+	IdEducationLevel uint       `json:"id_education_level"`
+	IdEducationForm  uint       `json:"id_education_form"`
+	EndDate          time.Time  `json:"end_date"`
+	OrderEndApp      *string    `json:"order_end_app"`
+	Actual           bool       `json:"actual"`
+	IdOrganization   uint       // Идентификатор организации
+	Created          time.Time  `json:"created"`       // Дата создания
+	Changed          *time.Time `json:"changed"`       // Дата создания
+	Uid              *string    `xml:"UID" json:"uid"` // Идентификатор от организации
+}
+type VEndApplication struct {
+	Id               uint       `gorm:"primary_key" json:"id"` // Идентификатор
+	Campaign         string     `json:"name_campaign"`
+	IdAppAcceptPhase *uint      `json:"id_app_accept_phase"`
+	AppAcceptPhase   *string    `json:"name_app_accept_phase"`
+	EducationLevel   string     `json:"name_education_level"`
+	IdEducationLevel uint       `json:"id_education_level"`
+	EducationForm    string     `json:"name_education_form"`
+	IdEducationForm  uint       `json:"id_education_form"`
+	IdEndApplication *uint      `json:"id_end_application"`
+	EndDate          *time.Time `json:"end_date"`
+	OrderEndApp      *string    `json:"order_end_app"`
+	Actual           *bool      `json:"actual"`
+	IdOrganization   *uint      // Идентификатор организации
+	Created          *time.Time `json:"created"`       // Дата создания
+	Changed          *time.Time `json:"changed"`       // Дата создания
+	Uid              *string    `xml:"UID" json:"uid"` // Идентификатор от организации
+}
+
 type EducationForms struct {
 	EducationFormID []uint `xml:"EducationFormID"` // Идентификаторы формы образования
 }
@@ -51,6 +84,12 @@ func (CampaignEducForm) TableName() string {
 }
 func (CampaignEducLevel) TableName() string {
 	return "cmp.campaigns_educ_level"
+}
+func (EndApplication) TableName() string {
+	return "cmp.end_application"
+}
+func (VEndApplication) TableName() string {
+	return "cmp.v_end_application"
 }
 
 func (r *Campaign) Check(payload string) error {

@@ -7,153 +7,12 @@ import (
 	"strconv"
 
 	"github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/pkg/errors"
 )
 
-var toUserErrorMessage = map[uint]string{
-	500: "Внутренняя ошибка сервера",
-}
-var NoType = ErrorType{Type: 0, ToUserType: 0}
+//------------------------------------------------------------------------------------
 
-type ErrorType struct {
-	Type       uint
-	ToUserType uint
-}
-
-type AlterSuperservisError struct {
-	ErrorType     ErrorType
-	OriginalError error
-	ContextInfo   []errorContext
-}
-
-// func NewAlterSuperservisError() *AlterSuperservisError {
-// 	return &AlterSuperservisError{ErrorType: NoType, OriginalError: errors.New(`AlterStandart error`)}
-// }
-
-// func (*AlterSuperservisError) New(ErrorCode, ToUserErrorCode uint, msg string) *AlterSuperservisError {
-// 	return &AlterSuperservisError{ErrorType: ErrorType{Type: ErrorCode, ToUserType: ToUserErrorCode}, OriginalError: errors.New(msg)}
-// }
-
-// func (AE *AlterSuperservisError) Error1() string {
-// 	return AE.OriginalError.Error()
-// }
-
-// func (*AlterSuperservisError) AddErrorContext(err error, field, message string) error {
-// 	if customErr, ok := err.(AlterSuperservisError); ok {
-// 		context := append(customErr.ContextInfo, errorContext{Field: field, Message: message})
-// 		return AlterSuperservisError{ErrorType: customErr.ErrorType, OriginalError: customErr.OriginalError, ContextInfo: context}
-// 	} else {
-// 		return AlterSuperservisError{ErrorType: NoType, OriginalError: "err", ContextInfo: customErr.ContextInfo}
-// 	}
-// }
-
-type SuperservisError struct {
-	errorType     ErrorType
-	originalError error
-	contextInfo   []errorContext
-}
-
-type superservisJsonBError struct {
-	Code          int               `json:"code"`
-	OriginalError string            `json:"originalError"`
-	Context       map[string]string `json:"context"`
-}
-
-func NewTokenErrorContext() *TokenErrorContext {
-	return &TokenErrorContext{}
-}
-
-type TokenErrorContext struct {
-	Header           TokenErrorHeader `xml:"-"`
-	ErrorCode        uint
-	ErrorDescription string
-	EntityType       string
-	UID              string
-	UIDParent        string
-}
-
-type TokenErrorHeader struct {
-	IDToken  uint
-	DataType string
-	Cert64   string
-}
-
-type errorContext struct {
-	Field   string
-	Message string
-}
-
-func (error SuperservisError) Error() string {
-	return error.originalError.Error()
-}
-
-func (Etype ErrorType) New(msg string) error {
-	return SuperservisError{errorType: Etype, originalError: errors.New(msg)}
-}
-
-func (Etype ErrorType) Newf(msg string, args ...interface{}) error {
-	err := fmt.Errorf(msg, args...)
-	return SuperservisError{errorType: Etype, originalError: err}
-}
-
-func (Etype ErrorType) Wrap(err error, msg string) error {
-
-	return Etype.Wrapf(err, msg)
-}
-
-func (Etype ErrorType) Wrapf(err error, msg string, args ...interface{}) error {
-	newErr := errors.Wrapf(err, msg, args...)
-	return SuperservisError{errorType: Etype, originalError: newErr}
-}
-
-// New creates a no type error
-
-func NewSuperservisError() *SuperservisError {
-	return &SuperservisError{errorType: NoType, originalError: errors.New(`Standart error`)}
-}
-
-func NewSuperservisGormError(GormErorrs []error) error {
-	NewSErr := SuperservisError{errorType: NoType, originalError: errors.New(`Ошибка(и) при выполнении операции в БД`)}
-	if len(GormErorrs) > 0 {
-		for i, Error := range GormErorrs {
-			NewSErr = AddErrorContext(NewSErr, strconv.Itoa(i), Error.Error()).(SuperservisError)
-		}
-		return NewSErr
-	}
-	return nil
-}
-
-func New(ErrorCode, ToUserErrorCode uint, msg string) error {
-	return SuperservisError{errorType: ErrorType{Type: ErrorCode, ToUserType: ToUserErrorCode}, originalError: errors.New(msg)}
-}
-
-// Newf creates a no type error with formatted message
-func Newf(msg string, args ...interface{}) error {
-	return SuperservisError{errorType: NoType, originalError: errors.New(fmt.Sprintf(msg, args...))}
-}
-
-// Wrap wrans an error with a string
-func Wrap(err error, msg string) error {
-	return Wrapf(err, msg)
-}
-
-// Cause gives the original error
-func Cause(err error) error {
-	return errors.Cause(err)
-}
-
-// Wrapf wraps an error with format string
-func Wrapf(err error, msg string, args ...interface{}) error {
-	wrappedError := errors.Wrapf(err, msg, args...)
-	if customErr, ok := err.(SuperservisError); ok {
-		return SuperservisError{
-			errorType:     customErr.errorType,
-			originalError: wrappedError,
-			contextInfo:   customErr.contextInfo,
-		}
-	}
-
-	return SuperservisError{errorType: NoType, originalError: wrappedError}
+type ErrorGetter interface {
+	AddError(UID, ErrorDecryption string, ErrorCode uint, UIDEpgu int64)
 }
 
 // AddErrorContext adds a context to an error
@@ -166,12 +25,29 @@ func AddErrorContext(err error, field, message string) error {
 	}
 }
 
+// AddAlterErrorContext adds a context to an AlterSuperservisError
+func AddAlterErrorContext(err error, AddErr AlterSuperservisError) error {
+	if customErr, ok := err.(AlterSuperservisError); ok {
+		context := append(customErr.ContextInfo, AddErr)
+		return AlterSuperservisError{ErrorType: customErr.ErrorType, OriginalError: customErr.OriginalError, ContextInfo: context}
+	} else {
+		return AlterSuperservisError{ErrorType: AlterErrorType{}, OriginalError: err, ContextInfo: customErr.ContextInfo}
+	}
+}
+
 // GetErrorContext returns the error context
 func GetErrorContext(err error) map[string]string {
 	if customErr, ok := err.(SuperservisError); ok {
 		mapContext := make(map[string]string)
 		for i, contextInfostr := range customErr.contextInfo {
 			mapContext[strconv.Itoa(i)] = "field :" + contextInfostr.Field + " message : " + contextInfostr.Message
+		}
+		return mapContext
+	}
+	if customErr, ok := err.(AlterSuperservisError); ok {
+		mapContext := make(map[string]string)
+		for i, contextInfostr := range customErr.ContextInfo {
+			mapContext[strconv.Itoa(i)] = "field :" + contextInfostr.ErrorType.Object + " message : " + contextInfostr.Error()
 		}
 		return mapContext
 	}
@@ -189,13 +65,48 @@ func GetOriginalErrorMesageAndContext(err error) map[string]string {
 		}
 		return mapContext
 	}
+	if customErr, ok := err.(AlterSuperservisError); ok {
+		mapContext := make(map[string]string)
+		mapContext["0"] = "field: OriginalErrorText" + " message :" + err.Error()
+		for i, contextInfostr := range customErr.ContextInfo {
+			mapContext[strconv.Itoa(i+1)] = "field :" + contextInfostr.ErrorType.Object + " message : " + contextInfostr.Error()
+		}
+		return mapContext
+	}
+
 	return nil
 }
 
+func GetErrsToToken(err error, ErrPayload ErrorGetter) {
+	ToUserErrType := GetErrorCodeToUser(err)
+	if ToUserErrType >= 6000 {
+		ErrPayload.AddError("", "Ошибка сервера", 6000, 0)
+	} else {
+		if customErr, ok := err.(SuperservisError); ok {
+			ErrPayload.AddError("", customErr.Error(), customErr.errorType.ToUserType, 0)
+			return
+		}
+		if customErr, ok := err.(AlterSuperservisError); ok {
+			ErrPayload.AddError(customErr.ErrorType.UID, customErr.Error(), customErr.ErrorType.ToUserCode, customErr.ErrorType.UIDEpgu)
+			return
+		}
+		if customErr, ok := err.(AlterSuperservisErrorContainer); ok {
+			fmt.Println(len(customErr.Errors))
+			for _, ErrItem := range customErr.Errors {
+				ErrPayload.AddError(ErrItem.ErrorType.UID, ErrItem.Error(), ErrItem.ErrorType.ToUserCode, ErrItem.ErrorType.UIDEpgu)
+			}
+		}
+
+	}
+
+	//Сделать логирование в ошибки файл
+
+}
+
 func GetContextToUser(err error) (ToUserCode uint, Context string) {
-	ToUserErrType := GetToUserType(err)
-	if ToUserErrType >= 500 {
-		if val, ok := toUserErrorMessage[ToUserErrType]; ok {
+	ToUserErrType := GetErrorCodeToUser(err)
+	if ToUserErrType >= 6000 {
+		if val, ok := toUserErrorMessage[int(ToUserErrType)]; ok {
 			Context = val
 		} else {
 			Context = "Неизвестная ошибка"
@@ -217,13 +128,30 @@ func GetType(err error) uint {
 	if SuperservisError, ok := err.(*SuperservisError); ok {
 		return SuperservisError.errorType.Type
 	}
+	if AlterSuperservisError, ok := err.(*AlterSuperservisError); ok {
+		return AlterSuperservisError.ErrorType.Code
+	}
 	return NoType.Type
 }
 
 // GetType returns the error type ToUserType
-func GetToUserType(err error) uint {
+func GetErrorCode(err error) uint {
+	if SuperservisError, ok := err.(SuperservisError); ok {
+		return SuperservisError.errorType.Type
+	}
+	if AlterSuperservisError, ok := err.(AlterSuperservisError); ok {
+		return AlterSuperservisError.ErrorType.ToUserCode
+	}
+	return NoType.Type
+}
+
+// GetType returns the error type ToUserType
+func GetErrorCodeToUser(err error) uint {
 	if SuperservisError, ok := err.(SuperservisError); ok {
 		return SuperservisError.errorType.ToUserType
+	}
+	if AlterSuperservisError, ok := err.(AlterSuperservisError); ok {
+		return AlterSuperservisError.ErrorType.ToUserCode
 	}
 	return NoType.ToUserType
 }

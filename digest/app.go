@@ -48,6 +48,15 @@ type Application struct {
 	StatusComment            *string             `json:"status_comment" schema:"status_comment"`
 }
 
+type ApplicationsAgreedHistory struct {
+	Id             uint      `json:"id" schema:"id"` // Идентификатор
+	IdApplication  uint      `json:"id_application"`
+	Agreed         bool      `json:"agreed"`
+	Date           time.Time `json:"date"`
+	IdOrganization *uint     `json:"id_organization"`
+	Created        time.Time `json:"created"` // Дата создания
+}
+
 type Documents struct {
 	Id                    uint                  `json:"id" schema:"id"` // Идентификатор
 	Application           Application           `gorm:"foreignkey:IdApplication"`
@@ -117,6 +126,7 @@ type AppAchievements struct {
 	Name                string                 `json:"name"`
 	Mark                *int64                 `json:"mark"`
 	Uid                 *string                `json:"uid" schema:"uid"`
+	UidEpgu             *string                `json:"uid_epgu" schema:"uid_epgu"`
 	PathFile            *string                `json:"path_file" schema:"file" schema:"file"`
 	Created             time.Time              `json:"created"` // Дата создания
 }
@@ -143,6 +153,9 @@ func GetApplication(id uint) (*Application, error) {
 
 func (Application) TableName() string {
 	return "app.applications"
+}
+func (ApplicationsAgreedHistory) TableName() string {
+	return "app.applications_agreed_history"
 }
 func (AppAchievements) TableName() string {
 	return "app.achievements"

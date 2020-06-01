@@ -56,6 +56,7 @@ var ListClsTableName = []string{
 	`parents_lost_categories`,
 	`radiation_work_categories`,
 	`regions`,
+	`return_types`,
 	`subjects`,
 	`veteran_categories`,
 	`v_direction_specialty`,

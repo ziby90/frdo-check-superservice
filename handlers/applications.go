@@ -38,20 +38,42 @@ type AddApplication struct {
 	DistancePlace     *string `json:"distance_place" schema:"distance_place"`
 	//IdViolation              	uint                `json:"id_violation" schema:"id_violation"`
 	//EgeCheck                 	*time.Time          `json:"ege_check" schema:"ege_check"`
-	Agreed        *bool      `json:"agreed" schema:"agreed"`
-	Disagreed     *bool      `json:"disagreed" schema:"disagreed"`
-	AgreedDate    *time.Time `json:"agreed_date" schema:"agreed_date"`
-	DisagreedDate *time.Time `json:"disagreed_date" schema:"disagreed_date"`
-	//IdOrderAdmission         	*uint               `json:"id_order_admission" schema:"id_order_admission"`
-	//OrderAdmissionDate       	*time.Time          `json:"order_admission_date" schema:"order_admission_date"`
-	//IdReturnType             	*uint               `json:"id_return_type" schema:"id_return_type"`
-	//ReturnDate               	*time.Time          `json:"return_date" schema:"return_date"`
-	Original bool `json:"original" schema:"original"`
+	Agreed             *bool      `json:"agreed" schema:"agreed"`
+	Disagreed          *bool      `json:"disagreed" schema:"disagreed"`
+	AgreedDate         *time.Time `json:"agreed_date" schema:"agreed_date"`
+	DisagreedDate      *time.Time `json:"disagreed_date" schema:"disagreed_date"`
+	IdOrderAdmission   *uint      `json:"id_order_admission" schema:"id_order_admission"`
+	OrderAdmissionDate *time.Time `json:"order_admission_date" schema:"order_admission_date"`
+	IdReturnType       *uint      `json:"id_return_type" schema:"id_return_type"`
+	ReturnDate         *time.Time `json:"return_date" schema:"return_date"`
+	Original           bool       `json:"original" schema:"original"`
 	//IdBenefit                	uint                `json:"id_benefit" schema:"id_benefit"`
 	Uid           *string           `json:"uid" schema:"uid"`
 	StatusComment *string           `json:"status_comment" schema:"status_comment"`
 	Docs          []DocsApplication `json:"docs" schema:"docs"`
 }
+
+type EditApplicationInfo struct {
+	IdApplication      uint       `json:"id_application"`
+	Rating             float32    `json:"rating" schema:"rating"`
+	Priority           int64      `json:"priority" schema:"priority"`
+	NeedHostel         bool       `json:"need_hostel" schema:"need_hostel"`
+	SpecialConditions  bool       `json:"special_conditions" schema:"special_conditions"`
+	DistanceTest       bool       `json:"distance_test" schema:"distance_test"`
+	DistancePlace      *string    `json:"distance_place" schema:"distance_place"`
+	Agreed             *bool      `json:"agreed" schema:"agreed"`
+	Disagreed          *bool      `json:"disagreed" schema:"disagreed"`
+	AgreedDate         *time.Time `json:"agreed_date" schema:"agreed_date"`
+	DisagreedDate      *time.Time `json:"disagreed_date" schema:"disagreed_date"`
+	IdOrderAdmission   *uint      `json:"id_order_admission" schema:"id_order_admission"`
+	OrderAdmissionDate *time.Time `json:"order_admission_date" schema:"order_admission_date"`
+	IdReturnType       *uint      `json:"id_return_type" schema:"id_return_type"`
+	ReturnDate         *time.Time `json:"return_date" schema:"return_date"`
+	Original           bool       `json:"original" schema:"original"`
+	OriginalDoc        *time.Time `json:"original_doc" schema:"original_doc"`
+	Uid                *string    `json:"uid" schema:"uid"`
+}
+
 type AddApplicationDocs struct {
 	IdApplication uint
 	Docs          []DocsApplication `json:"docs" schema:"docs"`
@@ -251,11 +273,7 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 		var info interface{}
 		info = map[string]interface{}{
 			"id":                     application.Id,
-			"id_entrant":             application.EntrantsId,
-			"app_number":             application.AppNumber,
 			"id_status":              application.Status.Id,
-			"name_status":            application.Status.Name,
-			"registration_date":      application.RegistrationDate,
 			"first_higher_education": application.FirstHigherEducation,
 			"need_hostel":            application.NeedHostel,
 			"distance_test":          application.DistanceTest,
@@ -264,9 +282,186 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 			"agreed":                 application.Agreed,
 			"original":               application.Original,
 			"rating":                 application.Rating,
+			"disagreed":              application.Disagreed,
+			"agreed_date":            application.AgreedDate,
+			"disagreed_date":         application.DisagreedDate,
+			"original_doc":           application.OriginalDoc,
+			"return_date":            application.ReturnDate,
+			"id_return_type":         application.IdReturnType,
+			"priority":               application.Priority,
+			"uid":                    application.Uid,
 		}
 		result.Done = true
 		result.Items = info
+		return
+	} else {
+		result.Done = false
+		message := `Заявление не найдено.`
+		result.Message = &message
+		return
+	}
+
+}
+func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	idOrganization := result.User.CurrentOrganization.Id
+	conn.LogMode(config.Conf.Dblog)
+	var old digest.Application
+	db := conn.Where(`id_organization=? AND id=? `, result.User.CurrentOrganization.Id, data.IdApplication).Preload(`Status`).Find(&old)
+
+	if db.RowsAffected > 0 {
+		if old.Status.Code != nil && *old.Status.Code != `app_edit` {
+			result.SetErrorResult(`Заявление не находится в статусе редактирования`)
+			return
+		}
+		var new digest.Application
+		new = old
+		if data.Uid != nil {
+			if old.Uid != nil && *old.Uid != *data.Uid {
+				var exist digest.Application
+				db = conn.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
+				if exist.Id > 0 {
+					result.SetErrorResult(`Заявление с данным uid уже существует у выбранной организации`)
+					return
+				}
+			}
+			new.Uid = data.Uid
+		}
+		new.Rating = data.Rating
+		new.Priority = data.Priority
+		new.NeedHostel = data.NeedHostel
+		new.SpecialConditions = data.SpecialConditions
+		new.DistanceTest = data.DistanceTest
+		new.DistancePlace = data.DistancePlace
+
+		if data.Agreed != nil && *data.Agreed {
+			if old.Agreed == nil || (*old.Agreed != *data.Agreed) {
+				count := 0
+				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed`, new.Id).Count(&count)
+				if count >= 2 {
+					result.SetErrorResult(`Подать согласие можно не более двух раз`)
+					return
+				}
+				new.Agreed = data.Agreed
+				new.AgreedDate = data.AgreedDate
+				applicationAgreedHistory := digest.ApplicationsAgreedHistory{
+					IdApplication:  new.Id,
+					Agreed:         true,
+					Date:           *new.AgreedDate,
+					IdOrganization: &idOrganization,
+					Created:        time.Now(),
+				}
+				db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&applicationAgreedHistory)
+				if db.Error != nil {
+					result.SetErrorResult(`Ошибка при обновлении подачи согласия ` + db.Error.Error())
+					tx.Rollback()
+					return
+				}
+			}
+		}
+
+		if data.Disagreed != nil {
+			if *data.Disagreed && (old.Disagreed == nil || *old.Disagreed == false) {
+				countDisagreed := 0
+				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed IS FALSE`, new.Id).Count(&countDisagreed)
+				if countDisagreed >= 2 {
+					result.SetErrorResult(`Отозвать согласие можно не более двух раз`)
+					return
+				}
+				new.Disagreed = data.Disagreed
+				new.DisagreedDate = data.DisagreedDate
+				applicationAgreedHistory := digest.ApplicationsAgreedHistory{
+					IdApplication:  new.Id,
+					Agreed:         false,
+					Date:           *new.DisagreedDate,
+					IdOrganization: &idOrganization,
+					Created:        time.Now(),
+				}
+				db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&applicationAgreedHistory)
+				if db.Error != nil {
+					result.SetErrorResult(`Ошибка при обновлении отзыва согласия ` + db.Error.Error())
+					tx.Rollback()
+					return
+				}
+			}
+			// опять принесли согалсие
+			if *data.Disagreed == false && (old.Disagreed == nil || *old.Disagreed) {
+				count := 0
+				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed`, new.Id).Count(&count)
+				if count >= 2 {
+					result.SetErrorResult(`Подать согласие можно не более двух раз`)
+					return
+				}
+				// надо обновить дату подачи согласия
+				new.Agreed = data.Agreed
+				new.AgreedDate = data.AgreedDate
+				applicationAgreedHistory := digest.ApplicationsAgreedHistory{
+					IdApplication:  new.Id,
+					Agreed:         true,
+					Date:           *new.AgreedDate,
+					IdOrganization: &idOrganization,
+					Created:        time.Now(),
+				}
+				db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&applicationAgreedHistory)
+				if db.Error != nil {
+					result.SetErrorResult(`Ошибка при обновлении подачи согласия ` + db.Error.Error())
+					tx.Rollback()
+					return
+				}
+				new.Disagreed = data.Disagreed
+			}
+		}
+
+		new.IdOrderAdmission = data.IdOrderAdmission
+		new.OrderAdmissionDate = data.OrderAdmissionDate
+
+		if old.Original == false && data.Original {
+			if data.OriginalDoc == nil {
+				result.SetErrorResult(`Не указана дата подачи оригиналов документов`)
+				return
+			}
+			new.Original = data.Original
+			new.OriginalDoc = data.OriginalDoc
+		}
+
+		if old.Original == true && data.Original == false {
+			if data.ReturnDate == nil {
+				result.SetErrorResult(`Не указана дата возврата оригиналов документов`)
+				return
+			}
+			if data.IdReturnType == nil {
+				result.SetErrorResult(`Не указан тип возврата оригиналов документов`)
+				return
+			}
+			if data.IdReturnType != old.IdReturnType {
+				var returnType digest.ReturnTypes
+				db = conn.Where(`id=?`, data.IdReturnType).Find(&returnType)
+				if returnType.Id <= 0 {
+					result.SetErrorResult(`Не найден тип вовзрата`)
+					return
+				}
+			}
+			new.Original = data.Original
+			new.IdReturnType = data.IdReturnType
+			new.ReturnDate = data.ReturnDate
+		}
+
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
+		if db.Error != nil {
+			result.SetErrorResult(`Ошибка при обновлении данных заявления ` + db.Error.Error())
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		result.Done = true
+		result.Items = map[string]interface{}{
+			"id_application": new.Id,
+		}
 		return
 	} else {
 		result.Done = false

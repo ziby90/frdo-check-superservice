@@ -252,14 +252,29 @@ func (result *ResultInfo) RemoveOrganizationDirection(directions IdsDirectionOrg
 	return
 }
 
-func (result *Result) GetDirectionsByOrganization() {
+func (result *Result) GetDirectionsByOrganization(keys map[string][]string) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var orgDirections []digest.VOrganizationsDirections
 	db := conn.Where(`actual is TRUE AND id_organization=?`, result.User.CurrentOrganization.Id)
-	for _, search := range result.Search {
-		db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+	if len(keys[`search_parent`]) > 0 {
+		db = db.Where(`(UPPER(code_parent || ' ' || name_parent) LIKE ?)`, `%`+strings.ToUpper(keys[`search_parent`][0])+`%`)
+	}
+	if len(keys[`search_specialty`]) > 0 {
+		db = db.Where(`(UPPER(code || ' ' || name) LIKE ?)`, `%`+strings.ToUpper(keys[`search_specialty`][0])+`%`)
+	}
+	if len(keys[`search_education_level`]) > 0 {
+		var idsEducLevel []uint
+		for _, val := range keys[`search_education_level`] {
+			id, err := strconv.ParseInt(val, 10, 32)
+			if err == nil {
+				idsEducLevel = append(idsEducLevel, uint(id))
+			}
+		}
+		if len(idsEducLevel) > 0 {
+			db = db.Where(`id_education_level IN (?)`, idsEducLevel)
+		}
 
 	}
 	dbCount := db.Model(&orgDirections).Count(&result.Paginator.TotalCount)

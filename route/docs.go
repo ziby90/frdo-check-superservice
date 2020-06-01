@@ -71,6 +71,7 @@ func AddDocsHandler(r *mux.Router) {
 				} else {
 					f = nil
 				}
+
 				res.AddCompatriot(uint(idEntrant), cmp, f)
 				break
 			case `composition`:

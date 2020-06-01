@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bufio"
+	"crypto/sha1"
+	"encoding/hex"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
 	sendToEpguPath "gitlab.com/unkal/sendtoepgu/path_files"
@@ -63,13 +65,13 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Compatriot
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -107,6 +109,9 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -115,7 +120,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -128,7 +133,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -167,13 +172,13 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Composition
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -218,6 +223,9 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -226,7 +234,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -239,7 +247,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -278,13 +286,13 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Disability
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -322,6 +330,9 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -330,7 +341,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -343,7 +354,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -382,13 +393,13 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Ege
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -432,6 +443,9 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -440,7 +454,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -453,7 +467,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -493,13 +507,13 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Educations
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -545,6 +559,9 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -553,7 +570,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -566,7 +583,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -606,13 +623,13 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Identifications
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -644,6 +661,9 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -652,7 +672,7 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -665,7 +685,7 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -705,13 +725,13 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Militaries
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -749,6 +769,9 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -757,7 +780,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -770,7 +793,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -810,13 +833,13 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.OlympicsDocs
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -854,6 +877,9 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -862,7 +888,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -875,7 +901,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -915,13 +941,13 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Orphans
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -959,6 +985,9 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -967,7 +996,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -980,7 +1009,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -1020,13 +1049,13 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Other
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -1058,6 +1087,9 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1066,7 +1098,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1079,7 +1111,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -1119,13 +1151,13 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.ParentsLost
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -1163,6 +1195,9 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1171,7 +1206,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1184,7 +1219,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -1224,13 +1259,13 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.RadiationWork
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -1268,6 +1303,9 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1276,7 +1314,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1289,7 +1327,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -1329,13 +1367,13 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, idEntrant)
 
-	path := getPath(idEntrant, category.NameTable, time.Now())
 	if entrant.Id == 0 {
 		result.SetErrorResult(`Абитуриент не найден`)
 		tx.Rollback()
 		return
 	}
 	var doc digest.Veteran
+	path := getPath(idEntrant, doc.TableName(), time.Now())
 	doc = cmp
 	doc.IdOrganization = result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
@@ -1373,6 +1411,9 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 		doc.Uid = cmp.Uid
 	}
 	if f != nil {
+		ext := filepath.Ext(path + `/` + f.Header.Filename)
+		sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+		name := hex.EncodeToString(sha1FileName[:]) + ext
 		if _, err := os.Stat(path); err != nil {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
@@ -1381,7 +1422,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 				return
 			}
 		}
-		dst, err := os.Create(filepath.Join(path, f.Header.Filename))
+		dst, err := os.Create(filepath.Join(path, name))
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1394,7 +1435,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 			tx.Rollback()
 			return
 		}
-		doc.PathFile = &(f.Header.Filename)
+		doc.PathFile = &name
 	} else {
 		doc.PathFile = nil
 	}
@@ -1889,7 +1930,7 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 	}
 	if doc.PathFile != nil {
 		filename := *doc.PathFile
-		path := getPath(doc.EntrantsId, doc.NameTable, doc.Created) + `/` + filename
+		path := getPath(doc.EntrantsId, `documents.`+doc.NameTable, doc.Created) + `/` + filename
 		f, err := os.Open(path)
 		if err != nil {
 			result.SetErrorResult(err.Error())

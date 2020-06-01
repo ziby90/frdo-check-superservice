@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"persons/config"
 	"persons/digest"
-	"persons/service"
 	"strings"
 	"time"
 )
@@ -17,6 +16,23 @@ type GroupsSpecialty struct {
 	Count   int           `json:"count"`
 	Items   []interface{} `json:"items, omitempty"`
 	IdItems []int         `json:"id_items, omitempty"`
+}
+type EditDistributedAdmissionVolume struct {
+	IdAdmissionVolume uint    `json:"id_admission_volume"`
+	IdLevelBudget     uint    `json:"id_level_budget"`
+	Uid               *string `json:"UID" json:"uid" ` // Идентификатор от организации
+	BudgetO           int64   `json:"budget_o"`
+	BudgetOz          int64   `json:"budget_oz"`
+	BudgetZ           int64   `json:"budget_z"`
+	QuotaO            int64   `json:"quota_o"`
+	QuotaOz           int64   `json:"quota_oz"`
+	QuotaZ            int64   `json:"quota_z"`
+	PaidO             int64   `json:"paid_o"`
+	PaidOz            int64   `json:"paid_oz"`
+	PaidZ             int64   `json:"paid_z"`
+	TargetO           int64   `json:"target_o"`
+	TargetOz          int64   `json:"target_oz"`
+	TargetZ           int64   `json:"target_z"`
 }
 
 type SumAdmVolume struct {
@@ -82,6 +98,12 @@ type GroupsEducations struct {
 	Items          map[string]GroupsSpecialty `json:"groups_specialty"`
 }
 
+var AdmissionVolumeSearchArray = []string{
+	`code_specialty`,
+	`name_specialty`,
+	`code_name`,
+}
+
 func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -89,9 +111,7 @@ func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 	var admissions []digest.AdmissionVolume
 	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id, id_direction, id_education_level`)
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
-			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
-		}
+		db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 	}
 	dbCount := db.Model(&admissions).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
@@ -237,10 +257,13 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	var admissions []digest.AdmissionVolume
 	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_direction`)
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
+		if search[0] == `code_name` {
+			db = db.Where(`UPPER( code_specialty || ' ' || name_specialty) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		} else {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
+
 	dbCount := db.Model(&admissions).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -692,6 +715,78 @@ func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.Admissi
 		tx.Rollback()
 		return
 	}
+}
+
+func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmissionVolume) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var admission digest.AdmissionVolume
+	db := conn.Find(&admission, data.IdAdmissionVolume)
+	if admission.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`КЦП не найден`)
+		tx.Rollback()
+		return
+	}
+	var old digest.DistributedAdmissionVolume
+	db = conn.Find(&old, data.IdLevelBudget)
+	if old.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Уровень бюджета не найден`)
+		tx.Rollback()
+		return
+	}
+	if old.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Организация не соответствует`)
+		tx.Rollback()
+		return
+	}
+	var new digest.DistributedAdmissionVolume
+	new.IdOrganization = old.IdOrganization
+	t := time.Now()
+	new = old
+	new.Changed = &t
+	new.IdAuthor = result.User.Id
+	new.BudgetO = data.BudgetO
+	new.BudgetOz = data.BudgetOz
+	new.BudgetZ = data.BudgetZ
+	new.QuotaO = data.QuotaO
+	new.QuotaOz = data.QuotaOz
+	new.QuotaZ = data.QuotaZ
+	new.PaidO = old.PaidO
+	new.PaidOz = old.PaidOz
+	new.PaidZ = old.PaidZ
+	new.TargetO = data.TargetO
+	new.TargetOz = data.TargetOz
+	new.TargetZ = data.TargetZ
+	if data.Uid != nil {
+		var exist digest.DistributedAdmissionVolume
+		db = tx.Where(`upper(uid)=upper(?) AND id_organization=?`, data.Uid, result.User.CurrentOrganization.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Уровень бюджета с данным uid уже существуют`)
+			tx.Rollback()
+			return
+		} else {
+			new.Uid = data.Uid
+		}
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
+	if db.Error == nil {
+		tx.Commit()
+		result.Done = true
+		result.Items = map[string]interface{}{
+			`id_edit_level_budget`: new.Id,
+		}
+		return
+	} else {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
 }
 
 func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {

@@ -91,7 +91,7 @@ func AddOrgsHandler(r *mux.Router) {
 		res.MakeUrlParams(keys)
 		res.MakeUrlParamsSearch(keys, handlers.DirectionsSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
-		res.GetDirectionsByOrganization()
+		res.GetDirectionsByOrganization(keys)
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// направления обучения по вузам

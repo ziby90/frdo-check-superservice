@@ -10,6 +10,7 @@ func GetApiHandlerAuth(r *mux.Router) {
 	AddAchievementsHandler(r)
 	AddAdmissionHandler(r)
 	AddCompetitiveGroupsHandler(r)
+	AddCertificatesHandler(r)
 }
 
 func GetApiHandlerNoOrg(r *mux.Router) {

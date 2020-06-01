@@ -50,6 +50,20 @@ func AddAchievementsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// получаем файл у достижения заявления
+	r.HandleFunc("/applications/achievements/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
+			res.GetFileAppAchievement(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 	// добавление достижений
 	r.HandleFunc("/achievements/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

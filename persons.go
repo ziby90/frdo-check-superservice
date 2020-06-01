@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"gitlab.com/unkal/sendtoepgu/config_sendtoepgu"
 	"net/http"
 	"persons/config"
 	"persons/digest"
@@ -52,6 +53,7 @@ func organizationMw(next http.Handler) http.Handler {
 
 func main() {
 	config.GetDbConnection()
+	config_sendtoepgu.PathToFiles = `uploads/`
 	// общие маршруты
 	routeAll := mux.NewRouter()
 	route.GetApiHandlerNoAuth(routeAll)

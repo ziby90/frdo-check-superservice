@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"bufio"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
+	"io/ioutil"
+	"os"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -104,7 +108,6 @@ func (result *Result) GetListAchievement() {
 		return
 	}
 }
-
 func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -147,15 +150,20 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 				}
 			}
 			c := map[string]interface{}{
-				`id`:               items[index].Id,
-				`uid`:              items[index].Uid,
-				`id_category`:      items[index].AchievementCategory.Id,
-				`name_category`:    items[index].AchievementCategory.Name,
-				`max_value`:        items[index].Achievement.MaxValue,
-				`id_achievement`:   items[index].Achievement.Id,
-				`name_achievement`: items[index].Achievement.Name,
-				`mark`:             items[index].Mark,
-				`document`:         doc,
+				`id`:             items[index].Id,
+				`uid`:            items[index].Uid,
+				`id_category`:    items[index].AchievementCategory.Id,
+				`name_category`:  items[index].AchievementCategory.Name,
+				`max_value`:      items[index].Achievement.MaxValue,
+				`id_achievement`: items[index].Achievement.Id,
+				`mark`:           items[index].Mark,
+				`document`:       doc,
+				`file`:           items[index].PathFile != nil,
+			}
+			if items[index].UidEpgu != nil {
+				c[`name_achievement`] = items[index].Name
+			} else {
+				c[`name_achievement`] = items[index].Achievement.Name
 			}
 			responses = append(responses, c)
 		}
@@ -170,7 +178,6 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 		return
 	}
 }
-
 func (result *Result) GetListAchievementByCompanyId(idCampaign uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -235,7 +242,6 @@ func (result *Result) GetListAchievementByCompanyId(idCampaign uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) GetInfoAchievement(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -277,7 +283,6 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, user digest.User) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -321,7 +326,6 @@ func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, 
 	result.Done = true
 	tx.Commit()
 }
-
 func (result *ResultInfo) RemoveAchievement(idAchievement uint) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -352,7 +356,6 @@ func (result *ResultInfo) RemoveAchievement(idAchievement uint) {
 		return
 	}
 }
-
 func (result *ResultList) GetAchievementsSelectListByCompetitive(idCompetitive uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -453,4 +456,51 @@ func (result *ResultList) GetAchievementsSelectListByCampaign(idCampaign uint) {
 		result.Items = []digest.IndividualAchievements{}
 		return
 	}
+}
+
+func (result *ResultInfo) GetFileAppAchievement(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.AppAchievements
+	db := conn.Preload(`Application`).Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Достижение не найдено."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	if doc.PathFile != nil {
+		filename := *doc.PathFile
+		path := getPath(doc.Application.EntrantsId, doc.TableName(), doc.Created) + `/` + filename
+		f, err := os.Open(path)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		} else {
+			defer f.Close()
+			reader := bufio.NewReader(f)
+			content, _ := ioutil.ReadAll(reader)
+			ext := mimetype.Detect(content)
+			file := digest.FileC{
+				Content: content,
+				Size:    int64(len(content)),
+				Title:   filename,
+				Type:    ext.Extension(),
+			}
+			result.Items = file
+		}
+	} else {
+		message := "Файл не найден."
+		result.Message = &message
+		return
+	}
+	result.Done = true
+	return
 }

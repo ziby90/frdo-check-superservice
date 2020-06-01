@@ -35,7 +35,7 @@ func TestGetType(t *testing.T) {
 	t.Parallel()
 	assert.New(t)
 	typeErr := GetType(standartSSErr)
-	var typeJ ErrorType
+	var typeJ SuperservisError
 	assert.IsType(t, typeJ, typeErr, "Возвращен не тип ошибки суперсервиса")
 	typeErr = GetType(standartErr)
 	assert.EqualValues(t, 0, typeErr, "Возвращено значение не по умолчанию")

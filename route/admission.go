@@ -18,6 +18,7 @@ func AddAdmissionHandler(r *mux.Router) {
 		res := handlers.NewResult()
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.AdmissionVolumeSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
@@ -39,6 +40,7 @@ func AddAdmissionHandler(r *mux.Router) {
 		res := handlers.NewResult()
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.AdmissionVolumeSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
@@ -201,6 +203,42 @@ func AddAdmissionHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// редактирование конкретного уровня бюджета у кцп
+	r.HandleFunc("/admission/{id:[0-9]+}/budget/{id_budget:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.EditDistributedAdmissionVolume
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			idBudget, err := strconv.ParseInt(vars[`id_budget`], 10, 32)
+			if err == nil {
+				err = handlers.CheckAdmissionVolumeByUser(uint(id), res.User)
+				if err != nil {
+					message := err.Error()
+					res.Message = &message
+				} else {
+					b, _ := ioutil.ReadAll(r.Body)
+					err := json.Unmarshal(b, &cmp)
+					if err == nil {
+						cmp.IdAdmissionVolume = uint(id)
+						cmp.IdLevelBudget = uint(idBudget)
+						res.EditAdmissionLevelBudget(cmp)
+					} else {
+						m := err.Error()
+						res.Message = &m
+					}
+				}
+			} else {
+				message := `Неверный параметр id_budget.`
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 	// информация по кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.Result{}

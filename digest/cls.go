@@ -34,6 +34,7 @@ type Benefit struct {
 type CampaignStatus struct {
 	Id       uint `xml:"CampaignStatusID"`
 	Name     string
+	Code     *string
 	Created  time.Time
 	IdAuthor uint // Идентификатор автора
 	Actual   bool `json:"actual"` // Актуальность
