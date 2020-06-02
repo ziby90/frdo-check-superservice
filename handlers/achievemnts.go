@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
 	"io/ioutil"
@@ -260,17 +261,19 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 		return
 	}
 	if db.RowsAffected > 0 {
-
 		db = conn.Model(&achievement).Related(&achievement.AchievementCategory, `IdCategory`)
-		c := AchievementMain{
-			Id:           achievement.Id,
-			UID:          achievement.Uid,
-			Name:         achievement.Name,
-			IdCampaign:   achievement.IdCampaign,
-			IdCategory:   achievement.AchievementCategory.Id,
-			NameCategory: achievement.AchievementCategory.Name,
-			MaxValue:     achievement.MaxValue,
-			Created:      achievement.Created,
+		var campaign digest.Campaign
+		db = conn.Where(`id=?`, achievement.IdCampaign).Find(&campaign)
+		c := map[string]interface{}{
+			`id`:            achievement.Id,
+			`uid`:           achievement.Uid,
+			`name`:          achievement.Name,
+			`id_campaign`:   achievement.IdCampaign,
+			`name_campaign`: campaign.Name,
+			`id_category`:   achievement.AchievementCategory.Id,
+			`name_category`: achievement.AchievementCategory.Name,
+			`max_value`:     achievement.MaxValue,
+			`created`:       achievement.Created,
 		}
 		result.Done = true
 		result.Items = c
@@ -315,7 +318,8 @@ func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, 
 		return
 	}
 	achievement.IdCategory = achData.IdCategory
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&achievement)
+	fmt.Println(achievement.Id)
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&achievement)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
 		tx.Rollback()
@@ -323,6 +327,66 @@ func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, 
 	}
 
 	result.Items = achievement
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditAchievement(data AchievementMain) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var achievement digest.IndividualAchievements
+
+	db := tx.Where(`id=?`, data.Id).Find(&achievement)
+	if achievement.Id <= 0 {
+		result.SetErrorResult(`Достижение не найдено.`)
+		tx.Rollback()
+		return
+	}
+	if achievement.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Достижение принадлежит другой организации.`)
+		tx.Rollback()
+		return
+	}
+
+	achievement.Name = data.Name
+	if data.UID != nil && data.UID != achievement.Uid {
+		var exist digest.IndividualAchievements
+		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, achievement.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Достижение с данным uid уже существует у данной организации.`)
+			tx.Rollback()
+			return
+		}
+		achievement.Uid = data.UID
+	}
+	if achievement.IdCategory != data.IdCategory {
+		var category digest.AchievementCategory
+		db = tx.Find(&category, data.IdCategory)
+		if category.Id < 1 {
+			result.SetErrorResult(`Категория не найдена`)
+			tx.Rollback()
+			return
+		}
+		achievement.IdCategory = data.IdCategory
+	}
+
+	achievement.MaxValue = data.MaxValue
+	achievement.Name = data.Name
+	t := time.Now()
+	achievement.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&achievement)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_achievement`: achievement.Id,
+	}
 	result.Done = true
 	tx.Commit()
 }

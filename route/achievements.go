@@ -83,6 +83,29 @@ func AddAchievementsHandler(r *mux.Router) {
 
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
+	// изменение достижения
+	r.HandleFunc("/achievements/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.AchievementMain
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			b, _ := ioutil.ReadAll(r.Body)
+			err := json.Unmarshal(b, &cmp)
+			res.User = *handlers.CheckAuthCookie(r)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				cmp.Id = uint(id)
+				res.EditAchievement(cmp)
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 	// достижения по компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()

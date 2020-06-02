@@ -83,6 +83,35 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// редактирование приемной компании
+	r.HandleFunc("/campaign/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.CampaignMain
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					cmp.Id = uint(id)
+					res.EditCampaign(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 	// короткий список компаний для выпадаек
 	r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultList
@@ -100,20 +129,6 @@ func AddCampaignHandler(r *mux.Router) {
 		err := json.Unmarshal(b, &cmp)
 		if err == nil {
 			res.AddCampaign(cmp, *handlers.CheckAuthCookie(r))
-		} else {
-			m := err.Error()
-			res.Message = &m
-		}
-		service.ReturnJSON(w, res)
-	}).Methods("Post")
-	// редактирование приемной компании
-	r.HandleFunc("/campaign/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		var cmp handlers.CampaignMain
-		b, _ := ioutil.ReadAll(r.Body)
-		err := json.Unmarshal(b, &cmp)
-		if err == nil {
-			//TODO сделать редактирование
 		} else {
 			m := err.Error()
 			res.Message = &m

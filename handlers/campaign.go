@@ -406,6 +406,133 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 		`id_end_application`: new.Id,
 	}
 }
+func (result *ResultInfo) EditCampaign(data CampaignMain) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var campaign digest.Campaign
+
+	db := tx.Where(`id=? AND actual`, data.Id).Find(&campaign)
+	if campaign.Id <= 0 {
+		result.SetErrorResult(`Приемная компания не найдена`)
+		tx.Rollback()
+		return
+	}
+
+	if campaign.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Приемная компания принадлежит другой организации.`)
+		tx.Rollback()
+		return
+	}
+
+	campaign.Name = strings.TrimSpace(data.Name)
+	if data.UID != nil && data.UID != campaign.Uid {
+		var exist digest.Campaign
+		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, campaign.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Приемная компания с данным uid уже существует у данной организации.`)
+			tx.Rollback()
+			return
+		}
+		campaign.Uid = data.UID
+	}
+
+	if campaign.IdCampaignType != data.IdCampaignType {
+		var category digest.CampaignType
+		db = tx.Find(&category, data.IdCampaignType)
+		if category.Id < 1 {
+			result.SetErrorResult(`Тип приемной компании не найден`)
+			tx.Rollback()
+			return
+		}
+		campaign.IdCampaignType = data.IdCampaignType
+	}
+	t := time.Now()
+	campaign.Changed = &t
+
+	// проверка года окончания
+	if int(data.YearEnd) < 1900 || int(data.YearEnd) > time.Now().Year() {
+		result.SetErrorResult(`Год окончания за пределами`)
+		tx.Rollback()
+		return
+	}
+	campaign.YearEnd = data.YearEnd
+	// проверка года начала
+	if int(data.YearStart) < 1900 || int(data.YearStart) > time.Now().Year() {
+		result.SetErrorResult(`Год начала за пределами`)
+		tx.Rollback()
+		return
+	}
+	campaign.YearStart = data.YearStart
+	if data.YearStart > campaign.YearEnd {
+		result.SetErrorResult(`Год начала не может быть позже года окончания`)
+		tx.Rollback()
+		return
+	}
+	if len(data.EducationLevels) > 0 {
+		db = tx.Where(`id_campaign=?`, campaign.Id).Delete(digest.CampaignEducLevel{})
+		for _, educLevelId := range data.EducationLevels {
+			var educationLevel digest.EducationLevel
+			tx.Find(&educationLevel, educLevelId)
+			if !educationLevel.Actual {
+				result.SetErrorResult(`Уровень образования не найден`)
+				tx.Rollback()
+				return
+			}
+			row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.IdCampaignType, educLevelId).Select(`id`).Row()
+			var idEducLevelCampaignType uint
+			err := row.Scan(&idEducLevelCampaignType)
+			if err != nil || idEducLevelCampaignType <= 0 {
+				result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+				tx.Rollback()
+				return
+			}
+			campaignEducLevel := digest.CampaignEducLevel{
+				IdCampaign:       campaign.Id,
+				IdEducationLevel: educLevelId,
+				IdOrganization:   result.User.CurrentOrganization.Id,
+			}
+			db = tx.Create(&campaignEducLevel)
+		}
+	}
+
+	if len(data.EducationForms) > 0 {
+		db = tx.Where(`id_campaign=?`, campaign.Id).Delete(digest.CampaignEducForm{})
+		for _, educFormId := range data.EducationForms {
+			var educationForm digest.EducationForm
+			tx.Find(&educationForm, educFormId)
+			if !educationForm.Actual {
+				result.SetErrorResult(`Форма образования не найдена`)
+				tx.Rollback()
+				return
+			}
+			campaignEducForm := digest.CampaignEducForm{
+				IdCampaign:      campaign.Id,
+				IdEducationForm: educFormId,
+				IdOrganization:  result.User.CurrentOrganization.Id,
+			}
+			db = tx.Create(&campaignEducForm)
+		}
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&campaign)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_campaign`: campaign.Id,
+	}
+	tx.Commit()
+	return
+
+}
 
 func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
 	conn := config.Db.ConnGORM

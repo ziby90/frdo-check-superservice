@@ -27,7 +27,7 @@ type CompetitiveGroup struct {
 	IdLevelBudget     *uint                  `json:"id_level_budget"`
 	Campaign          digest.Campaign        `gorm:"foreignkey:IdCampaign" json:"-"`
 	IdCampaign        uint                   `json:"id_campaign"`
-	Number            int64                  `json:"number"`
+	Number            *int64                 `json:"number"`
 }
 
 type DirectionCompetitiveGroups struct {
@@ -380,18 +380,18 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 		competitive.UID = data.CompetitiveGroup.UID
 	}
 	competitive.Actual = true
-
+	number := data.CompetitiveGroup.Number
 	switch competitive.IdEducationSource {
 	case 1: // Бюджетные места
 		switch competitive.IdEducationForm {
 		case 1: // Очная форма
-			competitive.BudgetO = data.CompetitiveGroup.Number
+			competitive.BudgetO = *number
 			break
 		case 2: // Очно-заочная(вечерняя)
-			competitive.BudgetOz = data.CompetitiveGroup.Number
+			competitive.BudgetOz = *number
 			break
 		case 3: // Заочная
-			competitive.BudgetZ = data.CompetitiveGroup.Number
+			competitive.BudgetZ = *number
 			break
 		default:
 			result.SetErrorResult(`Ошибка`)
@@ -402,13 +402,13 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	case 2: // Квота приема лиц, имеющих особое право
 		switch competitive.IdEducationForm {
 		case 1: // Очная форма
-			competitive.QuotaO = data.CompetitiveGroup.Number
+			competitive.QuotaO = *number
 			break
 		case 2: // Очно-заочная(вечерняя)
-			competitive.QuotaOz = data.CompetitiveGroup.Number
+			competitive.QuotaOz = *number
 			break
 		case 3: // Заочная
-			competitive.QuotaZ = data.CompetitiveGroup.Number
+			competitive.QuotaZ = *number
 			break
 		default:
 			result.SetErrorResult(`Ошибка`)
@@ -419,13 +419,13 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	case 3: // С оплатой обучения
 		switch competitive.IdEducationForm {
 		case 1: // Очная форма
-			competitive.PaidO = data.CompetitiveGroup.Number
+			competitive.PaidO = *number
 			break
 		case 2: // Очно-заочная(вечерняя)
-			competitive.PaidOz = data.CompetitiveGroup.Number
+			competitive.PaidOz = *number
 			break
 		case 3: // Заочная
-			competitive.PaidZ = data.CompetitiveGroup.Number
+			competitive.PaidZ = *number
 			break
 		default:
 			result.SetErrorResult(`Ошибка`)
@@ -436,13 +436,13 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	case 4: // Целевой прием
 		switch competitive.IdEducationForm {
 		case 1: // Очная форма
-			competitive.TargetO = data.CompetitiveGroup.Number
+			competitive.TargetO = *number
 			break
 		case 2: // Очно-заочная(вечерняя)
-			competitive.TargetOz = data.CompetitiveGroup.Number
+			competitive.TargetOz = *number
 			break
 		case 3: // Заочная
-			competitive.TargetZ = data.CompetitiveGroup.Number
+			competitive.TargetZ = *number
 			break
 		default:
 			result.SetErrorResult(`Ошибка`)
@@ -537,6 +537,208 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	}
 
 	tx.Rollback()
+	return
+
+}
+
+func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var competitive digest.CompetitiveGroup
+
+	db := tx.Where(`id=? AND actual`, data.Id).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+	var applications []digest.Application
+	db = tx.Where(`id_competitive_groups=? `, competitive.Id).Find(&applications)
+	if len(applications) > 0 {
+		result.SetErrorResult(`Найдены заявления с данной конкурсной группой. Редактирование невозможно`)
+		tx.Rollback()
+		return
+	}
+
+	if competitive.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Конкурсная группа принадлежит другой организации.`)
+		tx.Rollback()
+		return
+	}
+
+	competitive.Name = strings.TrimSpace(data.Name)
+	if data.UID != nil && data.UID != competitive.UID {
+		var exist digest.CompetitiveGroup
+		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, competitive.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Конкурсная группа с данным uid уже существует у данной организации.`)
+			tx.Rollback()
+			return
+		}
+		competitive.UID = data.UID
+	}
+	if competitive.IdEducationLevel != data.IdEducationLevel {
+		var category digest.EducationLevel
+		db = tx.Find(&category, data.IdEducationLevel)
+		if category.Id < 1 {
+			result.SetErrorResult(`Уровень образования не найден`)
+			tx.Rollback()
+			return
+		}
+		competitive.IdEducationLevel = data.IdEducationLevel
+	}
+	if competitive.IdEducationForm != data.IdEducationForm {
+		var category digest.EducationForm
+		db = tx.Find(&category, data.EducationForm)
+		if category.Id < 1 {
+			result.SetErrorResult(`Форма образования не найдена`)
+			tx.Rollback()
+			return
+		}
+		competitive.IdEducationForm = data.IdEducationForm
+	}
+	if data.IdLevelBudget != nil && competitive.IdLevelBudget != data.IdLevelBudget {
+		var category digest.LevelBudget
+		db = tx.Find(&category, *data.IdLevelBudget)
+		if category.Id < 1 {
+			result.SetErrorResult(`Увроень бюджета не найден`)
+			tx.Rollback()
+			return
+		}
+		competitive.IdLevelBudget = data.IdLevelBudget
+	}
+	if competitive.IdEducationSource != data.IdEducationSource {
+		var category digest.EducationSource
+		db = tx.Find(&category, data.IdEducationSource)
+		if category.Id < 1 {
+			result.SetErrorResult(`Источник финансирования не найден`)
+			tx.Rollback()
+			return
+		}
+		competitive.IdEducationSource = data.IdEducationSource
+	}
+	t := time.Now()
+
+	competitive.Changed = &t
+
+	var campaign digest.Campaign
+	db = tx.Preload(`CampaignType`).Find(&campaign, competitive.IdCampaign)
+	if campaign.Id < 1 {
+		result.SetErrorResult(`Компания не найдена`)
+		tx.Rollback()
+		return
+	}
+	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, data.IdEducationLevel).Select(`id`).Row()
+	var idEducLevelCampaignType uint
+	err := row.Scan(&idEducLevelCampaignType)
+	if err != nil || idEducLevelCampaignType <= 0 {
+		result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+		tx.Rollback()
+		return
+	}
+	if competitive.IdDirection != data.IdDirection {
+		var direction digest.Direction
+		db = tx.Where(`id_education_level=?`, data.IdEducationLevel).Find(&direction, data.IdDirection)
+		if direction.Id < 1 {
+			result.SetErrorResult(`Специальность не найдена`)
+			tx.Rollback()
+			return
+		}
+		competitive.IdDirection = data.IdDirection
+	}
+	if data.Number != nil {
+		number := data.Number
+		switch competitive.IdEducationSource {
+		case 1: // Бюджетные места
+			switch competitive.IdEducationForm {
+			case 1: // Очная форма
+				competitive.BudgetO = *number
+				break
+			case 2: // Очно-заочная(вечерняя)
+				competitive.BudgetOz = *number
+				break
+			case 3: // Заочная
+				competitive.BudgetZ = *number
+				break
+			default:
+				result.SetErrorResult(`Ошибка`)
+				tx.Rollback()
+				return
+			}
+			break
+		case 2: // Квота приема лиц, имеющих особое право
+			switch competitive.IdEducationForm {
+			case 1: // Очная форма
+				competitive.QuotaO = *number
+				break
+			case 2: // Очно-заочная(вечерняя)
+				competitive.QuotaOz = *number
+				break
+			case 3: // Заочная
+				competitive.QuotaZ = *number
+				break
+			default:
+				result.SetErrorResult(`Ошибка`)
+				tx.Rollback()
+				return
+			}
+			break
+		case 3: // С оплатой обучения
+			switch competitive.IdEducationForm {
+			case 1: // Очная форма
+				competitive.PaidO = *number
+				break
+			case 2: // Очно-заочная(вечерняя)
+				competitive.PaidOz = *number
+				break
+			case 3: // Заочная
+				competitive.PaidZ = *number
+				break
+			default:
+				result.SetErrorResult(`Ошибка`)
+				tx.Rollback()
+				return
+			}
+			break
+		case 4: // Целевой прием
+			switch competitive.IdEducationForm {
+			case 1: // Очная форма
+				competitive.TargetO = *number
+				break
+			case 2: // Очно-заочная(вечерняя)
+				competitive.TargetOz = *number
+				break
+			case 3: // Заочная
+				competitive.TargetZ = *number
+				break
+			default:
+				result.SetErrorResult(`Ошибка`)
+				tx.Rollback()
+				return
+			}
+		default:
+			result.SetErrorResult(`Ошибка`)
+			tx.Rollback()
+			return
+		}
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_competitive_group`: competitive.Id,
+	}
+	tx.Commit()
 	return
 
 }

@@ -21,6 +21,7 @@ type Campaign struct {
 	Organization     Organization `gorm:"foreignkey:IdOrganization"`
 	IdOrganization   uint         // Идентификатор организации
 	Created          time.Time    `json:"created"` // Дата создания
+	Changed          *time.Time   `json:"changed"` // Дата создания
 }
 
 type EndApplication struct {

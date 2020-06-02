@@ -1956,3 +1956,84 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = true
 	return
 }
+
+func (result *ResultInfo) RemoveFileDoc(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.VDocuments
+	db := conn.Where(`id_document=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	if doc.PathFile != nil {
+		db = conn.Exec(`UPDATE documents.`+doc.NameTable+` SET path_file=null WHERE id=?`, doc.IdDocument)
+		if db.Error != nil {
+			result.SetErrorResult(db.Error.Error())
+			return
+		}
+	} else {
+		message := "Файл не найден."
+		result.Message = &message
+		return
+	}
+	result.Done = true
+	return
+}
+func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.VDocuments
+	db := conn.Where(`id_document=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	path := getPath(doc.EntrantsId, `documents.`+doc.NameTable, time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	db = conn.Exec(`UPDATE documents.`+doc.NameTable+` SET path_file=? WHERE id=?`, &name, doc.IdDocument)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Done = true
+	return
+}

@@ -16,6 +16,7 @@ type IndividualAchievements struct {
 	Name                string              `json:"name"`                                  // Наименование
 	MaxValue            int64               `json:"max_value"`                             // Максимальное значение
 	Created             time.Time           `json:"created"`                               // Дата создания
+	Changed             *time.Time          `json:"changed"`                               // Дата изменения
 	IdAuthor            uint                `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
 	Actual              bool                `json:"actual"`                                // Актуальность
 	Organization        Organization        `gorm:"foreignkey:IdOrganization"`
