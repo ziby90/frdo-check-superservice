@@ -29,6 +29,7 @@ func AddDocsHandler(r *mux.Router) {
 	r.HandleFunc("/docs/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
 			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
@@ -43,6 +44,7 @@ func AddDocsHandler(r *mux.Router) {
 	r.HandleFunc("/docs/{id:[0-9]+}/file/remove", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
 			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?

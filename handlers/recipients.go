@@ -431,35 +431,35 @@ func (result *ResultInfo) GetShortListDocsEntrant(idEntrant uint, keys map[strin
 		var allDocuments []digest.AllDocuments
 		cmd := `
 					with a as (select id as id_entrant from persons.entrants where id=?),
-					b as (SELECT id,checked, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id_entrant=a.id_entrant)
+					b as (SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series, NULL::integer as mark, NULL::character varying as name_subject, issue_date, 'educations' as name_table  FROM documents.educations educ WHERE EXISTS(SELECT 1 FROM a WHERE educ.id_entrant=a.id_entrant)
 					UNION
-					SELECT ege.id,checked, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
+					SELECT ege.id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, NULL::character varying as doc_series, mark, sbj.name as name_subject,  issue_date, 'ege' as name_table
 						FROM documents.ege ege
 						join cls.subjects sbj ON sbj.id = ege.id_subject WHERE EXISTS(SELECT 1 FROM a WHERE ege.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'orphans' as name_table FROM documents.orphans orph WHERE EXISTS(SELECT 1 FROM a WHERE orph.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'veteran' as name_table FROM documents.veteran vet WHERE EXISTS(SELECT 1 FROM a WHERE vet.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'olympics' as name_table FROM documents.olympics olymp WHERE EXISTS(SELECT 1 FROM a WHERE olymp.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'militaries' as name_table FROM documents.militaries mil WHERE EXISTS(SELECT 1 FROM a WHERE mil.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'other' as name_table FROM documents.other oth WHERE EXISTS(SELECT 1 FROM a WHERE oth.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'disability' as name_table FROM documents.disability dis WHERE EXISTS(SELECT 1 FROM a WHERE dis.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, NULL::character varying as doc_number, id_document_type,  NULL::character varying as doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, NULL::timestamp with time zone as issue_date, 'compatriot' as name_table
 					FROM documents.compatriot compar WHERE EXISTS(SELECT 1 FROM a WHERE compar.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'parents_lost' as name_table FROM documents.parents_lost par WHERE EXISTS(SELECT 1 FROM a WHERE par.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id_entrant=a.id_entrant)
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'radiation_work' as name_table FROM documents.radiation_work rad WHERE EXISTS(SELECT 1 FROM a WHERE rad.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, NULL::character varying as doc_number, id_document_type, NULL::character varying as doc_series, NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'composition' as name_table
 					FROM documents.composition compos WHERE EXISTS(SELECT 1 FROM a WHERE compos.id_entrant=a.id_entrant)
 					UNION
-					SELECT id,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
+					SELECT id,id_entrant,uid_epgu,id_organization,checked, doc_number, id_document_type, doc_series,  NULL::integer  as mark, NULL::character varying as name_subject, issue_date, 'identification' as name_table
 					FROM documents.identification ident WHERE EXISTS(SELECT 1 FROM a WHERE ident.id_entrant=a.id_entrant))
 					SELECT b.*, sys.id as id_sys_categories, sys."name" as name_sys_categories, dt."name" as name_document_type
 					from b  
@@ -514,15 +514,22 @@ func (result *ResultInfo) GetShortListDocsEntrant(idEntrant uint, keys map[strin
 			} else {
 				issueDate = nil
 			}
-
+			canEdit := false
+			if allDocuments[index].IdOrganization != nil && *allDocuments[index].IdOrganization == result.User.CurrentOrganization.Id && allDocuments[index].UidEpgu == nil {
+				canEdit = true
+			}
 			category.Docs = append(category.Docs, map[string]interface{}{
 				"id":               allDocuments[index].Id,
 				"doc_number":       allDocuments[index].DocNumber,
 				"doc_series":       allDocuments[index].DocSeries,
+				"uid_epgu":         allDocuments[index].UidEpgu,
 				"id_document_type": allDocuments[index].IdDocumentType,
 				"checked":          allDocuments[index].Checked,
+				"id_organization":  allDocuments[index].IdOrganization,
+				"id_entrant":       allDocuments[index].IdEntrant,
 				//"id_sys_categories": 		allDocuments[index].IdSysCategories,
 				"issue_date":         issueDate,
+				"can_edit":           canEdit,
 				"mark":               allDocuments[index].Mark,
 				"name_document_type": allDocuments[index].NameDocumentType,
 				"name_subject":       allDocuments[index].NameSubject,

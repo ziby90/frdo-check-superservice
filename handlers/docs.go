@@ -526,7 +526,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 		return
 	}
 	if doc.IdDirection != nil {
-		db = tx.Find(&doc.Direction, doc.IdDirection)
+		db = tx.Find(&doc.Direction, *doc.IdDirection)
 		if db.Error != nil || doc.Direction.Id <= 0 {
 			result.SetErrorResult(`Не найдено направление`)
 			tx.Rollback()
@@ -1479,6 +1479,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			result.Items = map[string]interface{}{
 				"id":                       r.Id,
 				"id_ident_document":        r.IdIdentDocument,
+				"id_entrant":               r.IdEntrant,
 				"id_document_type":         r.DocumentType.Id,
 				"name_document_type":       r.DocumentType.Name,
 				"doc_name":                 r.DocName,
@@ -1487,9 +1488,10 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_compatriot_category": r.CompatriotCategory.Name,
 				"created":                  r.Created,
 				"name_sys_category":        sysCategory.Name,
+				"code_sys_category":        sysCategory.NameTable,
 				"uid":                      r.Uid,
 				"file":                     file,
-				"name_ident_document ":     getIdentName(r.IdIdentDocument),
+				"name_ident_document":      getIdentName(r.IdIdentDocument),
 			}
 		}
 		break
@@ -1508,6 +1510,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			result.Items = map[string]interface{}{
 				"id":                     r.Id,
 				"id_ident_document":      r.IdIdentDocument,
+				"id_entrant":             r.IdEntrant,
 				"id_document_type":       r.DocumentType.Id,
 				"name_document_type":     r.DocumentType.Name,
 				"doc_name":               r.DocName,
@@ -1524,7 +1527,8 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":      sysCategory.Name,
 				"uid":                    r.Uid,
 				"file":                   file,
-				"name_ident_document ":   getIdentName(r.IdIdentDocument),
+				"name_ident_document":    getIdentName(r.IdIdentDocument),
+				"code_sys_category":      sysCategory.NameTable,
 			}
 		}
 		break
@@ -1544,6 +1548,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
 				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.IdEntrant,
 				"id_document_type":    r.DocumentType.Id,
 				"name_document_type":  r.DocumentType.Name,
 				"doc_name":            r.DocName,
@@ -1563,6 +1568,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"uid":                 r.Uid,
 				"file":                file,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1581,6 +1587,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			result.Items = map[string]interface{}{
 				"id":                   r.Id,
 				"id_ident_document":    r.IdIdentDocument,
+				"id_entrant":           r.IdEntrant,
 				"id_document_type":     r.DocumentType.Id,
 				"name_document_type":   r.DocumentType.Name,
 				"doc_name":             r.DocName,
@@ -1598,7 +1605,8 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":    sysCategory.Name,
 				"uid":                  r.Uid,
 				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"name_ident_document":  getIdentName(r.IdIdentDocument),
+				"code_sys_category":    sysCategory.NameTable,
 			}
 		}
 		break
@@ -1616,6 +1624,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			result.Items = map[string]interface{}{
 				"id":                   r.Id,
 				"id_ident_document":    r.IdIdentDocument,
+				"id_entrant":           r.IdEntrant,
 				"id_document_type":     r.DocumentType.Id,
 				"name_document_type":   r.DocumentType.Name,
 				"id_disability_type":   r.DisabilityType.Id,
@@ -1629,7 +1638,8 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":    sysCategory.Name,
 				"uid":                  r.Uid,
 				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"name_ident_document":  getIdentName(r.IdIdentDocument),
+				"code_sys_category":    sysCategory.NameTable,
 			}
 		}
 		break
@@ -1646,6 +1656,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			}
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
+				"id_entrant":         r.EntrantsId,
 				"id_document_type":   r.DocumentType.Id,
 				"name_document_type": r.DocumentType.Name,
 				"surname":            r.Surname,
@@ -1663,6 +1674,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":  sysCategory.Name,
 				"uid":                r.Uid,
 				"file":               file,
+				"code_sys_category":  sysCategory.NameTable,
 			}
 		}
 		break
@@ -1678,23 +1690,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"id_category":          r.MilitaryCategories.Id,
-				"name_category":        r.MilitaryCategories.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"id_category":         r.MilitaryCategories.Id,
+				"name_category":       r.MilitaryCategories.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1710,23 +1724,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"id_olympic":           r.Olympics.Id,
-				"name_olympic":         r.Olympics.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"id_olympic":          r.Olympics.Id,
+				"name_olympic":        r.Olympics.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1742,23 +1758,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"id_category":          r.OrphanCategories.Id,
-				"name_category":        r.OrphanCategories.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_series":           r.DocSeries,
-				"doc_number":           r.DocNumber,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"id_category":         r.OrphanCategories.Id,
+				"name_category":       r.OrphanCategories.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_series":          r.DocSeries,
+				"doc_number":          r.DocNumber,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1773,21 +1791,23 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1803,23 +1823,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"id_category":          r.ParentsLostCategory.Id,
-				"name_category":        r.ParentsLostCategory.Name,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"id_category":         r.ParentsLostCategory.Id,
+				"name_category":       r.ParentsLostCategory.Name,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1835,23 +1857,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"id_category":          r.RadiationWorkCategory.Id,
-				"name_category":        r.RadiationWorkCategory.Name,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"id_category":         r.RadiationWorkCategory.Id,
+				"name_category":       r.RadiationWorkCategory.Name,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1867,23 +1891,25 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				file = true
 			}
 			result.Items = map[string]interface{}{
-				"id":                   r.Id,
-				"id_ident_document":    r.IdIdentDocument,
-				"id_document_type":     r.DocumentType.Id,
-				"name_document_type":   r.DocumentType.Name,
-				"doc_name":             r.DocName,
-				"doc_org":              r.DocOrg,
-				"doc_number":           r.DocNumber,
-				"doc_series":           r.DocSeries,
-				"issue_date":           issueDate,
-				"checked":              r.Checked,
-				"id_category":          r.VeteranCategory.Id,
-				"name_category":        r.VeteranCategory.Name,
-				"created":              r.Created,
-				"name_sys_category":    sysCategory.Name,
-				"uid":                  r.Uid,
-				"file":                 file,
-				"name_ident_document ": getIdentName(r.IdIdentDocument),
+				"id":                  r.Id,
+				"id_ident_document":   r.IdIdentDocument,
+				"id_entrant":          r.EntrantsId,
+				"id_document_type":    r.DocumentType.Id,
+				"name_document_type":  r.DocumentType.Name,
+				"doc_name":            r.DocName,
+				"doc_org":             r.DocOrg,
+				"doc_number":          r.DocNumber,
+				"doc_series":          r.DocSeries,
+				"issue_date":          issueDate,
+				"checked":             r.Checked,
+				"id_category":         r.VeteranCategory.Id,
+				"name_category":       r.VeteranCategory.Name,
+				"created":             r.Created,
+				"name_sys_category":   sysCategory.Name,
+				"uid":                 r.Uid,
+				"file":                file,
+				"name_ident_document": getIdentName(r.IdIdentDocument),
+				"code_sys_category":   sysCategory.NameTable,
 			}
 		}
 		break
@@ -1975,6 +2001,17 @@ func (result *ResultInfo) RemoveFileDoc(ID uint) {
 		result.Message = &message
 		return
 	}
+
+	if doc.UidEpgu != nil {
+		message := "Документы, загруженные через ЕПГУ не подлежат редактированию"
+		result.Message = &message
+		return
+	}
+	if (doc.IdOrganization != nil && *doc.IdOrganization != result.User.CurrentOrganization.Id) || doc.IdOrganization == nil {
+		message := "Выбранная организация не соответствует организации , создавшей документ."
+		result.Message = &message
+		return
+	}
 	if doc.PathFile != nil {
 		db = conn.Exec(`UPDATE documents.`+doc.NameTable+` SET path_file=null WHERE id=?`, doc.IdDocument)
 		if db.Error != nil {
@@ -1989,6 +2026,7 @@ func (result *ResultInfo) RemoveFileDoc(ID uint) {
 	result.Done = true
 	return
 }
+
 func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -2004,6 +2042,16 @@ func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
 			return
 		}
 		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	if doc.UidEpgu != nil {
+		message := "Документы, загруженные через ЕПГУ не подлежат редактированию"
+		result.Message = &message
+		return
+	}
+	if (doc.IdOrganization != nil && *doc.IdOrganization != result.User.CurrentOrganization.Id) || doc.IdOrganization == nil {
+		message := "Выбранная организация не соответствует организации , создавшей документ."
 		result.Message = &message
 		return
 	}
@@ -2029,6 +2077,7 @@ func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
 		result.SetErrorResult(err.Error())
 		return
 	}
+
 	db = conn.Exec(`UPDATE documents.`+doc.NameTable+` SET path_file=? WHERE id=?`, &name, doc.IdDocument)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())

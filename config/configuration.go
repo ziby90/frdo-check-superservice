@@ -25,12 +25,13 @@ type DbConnection struct {
 
 // Configuration struct of config
 type Configuration struct {
-	Port         string `json:"port"`
-	DbString     string `json:"dbstring"`
-	DbStringSmev string `json:"dbstringsmev"`
-	Dblog        bool   `json:"dblog"`
-	Salt         string `json:"salt"`
-	Mailer       Mailer `json:"mailer"`
+	Url          *string `json:"url"`
+	Port         string  `json:"port"`
+	DbString     string  `json:"dbstring"`
+	DbStringSmev string  `json:"dbstringsmev"`
+	Dblog        bool    `json:"dblog"`
+	Salt         string  `json:"salt"`
+	Mailer       Mailer  `json:"mailer"`
 
 	//Sms      Sms    `json:"sms"`
 	JwtRequestDeamon DeamonContext `json:"jwtRequestDeamon"`

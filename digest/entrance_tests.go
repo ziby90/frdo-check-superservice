@@ -10,7 +10,7 @@ import (
 type EntranceTest struct {
 	Id                    uint             `gorm:"primary_key";json:"id"` // Идентификатор
 	Uid                   *string          `json:"uid" `                  // Идентификатор от организации
-	TestName              string           `json:"test_name"`
+	TestName              *string          `json:"test_name"`
 	Priority              int64            `json:"priority"`
 	IsEge                 bool             `json:"is_ege"`
 	MinScore              int64            `json:"min_score"`

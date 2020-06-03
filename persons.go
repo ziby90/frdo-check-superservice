@@ -82,8 +82,11 @@ func main() {
 
 	fmt.Print("Server Listen...")
 	fmt.Println(configuration.Port)
-
-	err := http.ListenAndServe(":"+configuration.Port, routeAll)
+	path := ":" + configuration.Port
+	if configuration.Url != nil {
+		path = *configuration.Url + path
+	}
+	err := http.ListenAndServe(path, routeAll)
 
 	fmt.Println(err)
 }

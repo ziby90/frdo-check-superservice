@@ -976,6 +976,41 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 			"name_level_budget":     competitive.LevelBudget.Name,
 			"number":                number,
 		}
+		//for _, campEducLevel := range campEducLevels {
+		//	var educLevel digest.EducationLevel
+		//	db = conn.Find(&educLevel, campEducLevel.IdEducationLevel)
+		//	c.EducationLevels = append(c.EducationLevels, educLevel.Id)
+		//	c.EducationLevelsName = append(c.EducationLevelsName, educLevel.Name)
+		//}
+		result.Done = true
+		result.Items = c
+		return
+	} else {
+		result.Done = true
+		message := `Конкурсная группа не найдена.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+func (result *ResultInfo) GetEducationProgramsCompetitiveGroup(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitive digest.CompetitiveGroup
+	db := conn.Preload(`Campaign`).Find(&competitive, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Конкурсная группа не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
 		var idsPrograms []uint
 		db = conn.Where(`id_competitive_group=?`, ID).Table(`cmp.competitive_group_programs`).Pluck(`id`, &idsPrograms)
 		var programs []interface{}
@@ -989,6 +1024,35 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 				`uid`:                program.Uid,
 			})
 		}
+		result.Done = true
+		result.Items = programs
+		return
+	} else {
+		result.Done = true
+		message := `Конкурсная группа не найдена.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitive digest.CompetitiveGroup
+	db := conn.Preload(`Campaign`).Find(&competitive, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Конкурсная группа не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
 		var idsEntrance []uint
 		db = conn.Where(`id_competitive_group=?`, ID).Table(`cmp.entrance_test`).Pluck(`id`, &idsEntrance)
 		var entranceTests []interface{}
@@ -1008,18 +1072,8 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 				"is_ege":                  entrance.IsEge,
 			})
 		}
-		//for _, campEducLevel := range campEducLevels {
-		//	var educLevel digest.EducationLevel
-		//	db = conn.Find(&educLevel, campEducLevel.IdEducationLevel)
-		//	c.EducationLevels = append(c.EducationLevels, educLevel.Id)
-		//	c.EducationLevelsName = append(c.EducationLevelsName, educLevel.Name)
-		//}
 		result.Done = true
-		result.Items = map[string]interface{}{
-			`competitive`:        c,
-			`education_programs`: programs,
-			`entrance_tests`:     entranceTests,
-		}
+		result.Items = entranceTests
 		return
 	} else {
 		result.Done = true

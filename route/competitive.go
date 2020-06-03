@@ -193,6 +193,46 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// Образовательные программы конкурсной группы
+	r.HandleFunc("/competitive/{id:[0-9]+}/programs", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCompetitiveGroupByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetEducationProgramsCompetitiveGroup(uint(id))
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// Вступительные испытания конкурсной группы
+	r.HandleFunc("/competitive/{id:[0-9]+}/tests", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCompetitiveGroupByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetEntranceTestsCompetitiveGroup(uint(id))
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 	// удаление вступительного испытания у конкусрной группы
 	r.HandleFunc("/competitive/{id:[0-9]+}/entrance/{id_entrance:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

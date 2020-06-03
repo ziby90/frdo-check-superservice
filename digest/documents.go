@@ -329,8 +329,10 @@ type VDocuments struct {
 	DocumentName      string        `json:"document_name"`
 	NameSysCategories string        `json:"name_sys_categories"`
 	NameTable         string        `json:"name_table"`
+	UidEpgu           *string       `json:"uid_epgu"`
 	DocumentType      DocumentTypes `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType    uint          `json:"id_document_type"`
+	IdOrganization    *uint         `json:"id_organization"`
 	Created           time.Time     `json:"created"`                    // Дата создания
 	PathFile          *string       `json:"path_file" schema:"file"`    // Дата создания
 	DocName           *string       `json:"doc_name" schema:"doc_name"` // Дата создания
@@ -339,6 +341,7 @@ type VDocuments struct {
 type AllDocuments struct {
 	Id                uint       `json:"id"` // Идентификатор
 	DocNumber         *string    `json:"doc_number"`
+	IdEntrant         uint       `json:"id_entrant"`
 	DocSeries         *string    `json:"doc_series"`
 	IssueDate         *time.Time `json:"issue_date" schema:"issue_date"`
 	IdDocumentType    uint       `json:"id_document_type"`
@@ -347,8 +350,10 @@ type AllDocuments struct {
 	NameSysCategories string     `json:"name_sys_categories"`
 	NameTable         string     `json:"name_table"`
 	Mark              *int64     `json:"mark"`
+	IdOrganization    *uint      `json:"id_organization"`
 	NameSubject       *string    `json:"name_subject"`
 	Checked           bool       `json:"checked"`
+	UidEpgu           *string    `json:"uid_epgu"`
 }
 
 func (Compatriot) TableName() string {

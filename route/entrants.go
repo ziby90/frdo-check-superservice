@@ -53,6 +53,7 @@ func AddEntrantHandler(r *mux.Router) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.GetInfoEntrant(uint(id))
 		} else {
@@ -66,6 +67,7 @@ func AddEntrantHandler(r *mux.Router) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.GetDocsEntrant(uint(id))
 		} else {
@@ -79,6 +81,7 @@ func AddEntrantHandler(r *mux.Router) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.GetDocsIdentsEntrant(uint(id))
 		} else {
@@ -92,6 +95,7 @@ func AddEntrantHandler(r *mux.Router) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.GetListDocsIdentsEntrant(uint(id))
 		} else {
@@ -106,6 +110,7 @@ func AddEntrantHandler(r *mux.Router) {
 		keys := r.URL.Query()
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.GetShortListDocsEntrant(uint(id), keys)
 		} else {
