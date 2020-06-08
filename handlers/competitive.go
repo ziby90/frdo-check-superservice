@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"github.com/jinzhu/gorm"
 	"persons/config"
 	"persons/digest"
@@ -314,7 +313,12 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	competitive.Created = time.Now()
 	competitive.IdEducationLevel = data.CompetitiveGroup.IdEducationLevel
 	competitive.Name = strings.TrimSpace(data.CompetitiveGroup.Name)
-
+	err := CheckAddRemoveCompetitive(data.CompetitiveGroup.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var campaign digest.Campaign
 	db := tx.Preload(`CampaignType`).Find(&campaign, data.CompetitiveGroup.IdCampaign)
 	if campaign.Id < 1 {
@@ -324,7 +328,7 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	}
 	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, data.CompetitiveGroup.IdEducationLevel).Select(`id`).Row()
 	var idEducLevelCampaignType uint
-	err := row.Scan(&idEducLevelCampaignType)
+	err = row.Scan(&idEducLevelCampaignType)
 	if err != nil || idEducLevelCampaignType <= 0 {
 		result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
 		tx.Rollback()
@@ -557,14 +561,12 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 		tx.Rollback()
 		return
 	}
-	var applications []digest.Application
-	db = tx.Where(`id_competitive_groups=? `, competitive.Id).Find(&applications)
-	if len(applications) > 0 {
-		result.SetErrorResult(`Найдены заявления с данной конкурсной группой. Редактирование невозможно`)
+	err := CheckEditCompetitiveGroup(data.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
-
 	if competitive.IdOrganization != result.User.CurrentOrganization.Id {
 		result.SetErrorResult(`Конкурсная группа принадлежит другой организации.`)
 		tx.Rollback()
@@ -572,7 +574,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	}
 
 	competitive.Name = strings.TrimSpace(data.Name)
-	if data.UID != nil && data.UID != competitive.UID {
+	if data.UID != nil && data.UID != competitive.UID && *data.UID != `` {
 		var exist digest.CompetitiveGroup
 		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, competitive.Id).Find(&exist)
 		if exist.Id > 0 {
@@ -606,7 +608,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 		var category digest.LevelBudget
 		db = tx.Find(&category, *data.IdLevelBudget)
 		if category.Id < 1 {
-			result.SetErrorResult(`Увроень бюджета не найден`)
+			result.SetErrorResult(`Уровень бюджета не найден`)
 			tx.Rollback()
 			return
 		}
@@ -635,7 +637,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	}
 	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, data.IdEducationLevel).Select(`id`).Row()
 	var idEducLevelCampaignType uint
-	err := row.Scan(&idEducLevelCampaignType)
+	err = row.Scan(&idEducLevelCampaignType)
 	if err != nil || idEducLevelCampaignType <= 0 {
 		result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
 		tx.Rollback()
@@ -757,6 +759,12 @@ func (result *ResultInfo) AddProgram(idCompetitive uint, data AddCompetitiveGrou
 		tx.Rollback()
 		return
 	}
+	err := CheckEditProgramsCompetitiveGroup(competitive.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var idsPrograms []uint
 
 	if len(data.CompetitiveGroupPrograms) > 0 {
@@ -812,6 +820,12 @@ func (result *ResultInfo) AddEntrance(idCompetitive uint, data AddEntrance) {
 	db := conn.Find(&competitive, idCompetitive)
 	if competitive.Id == 0 {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+	err := CheckEditEntranceCompetitiveGroup(competitive.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
@@ -1025,7 +1039,12 @@ func (result *ResultInfo) GetEducationProgramsCompetitiveGroup(ID uint) {
 			})
 		}
 		result.Done = true
-		result.Items = programs
+		if len(programs) <= 0 {
+			result.Items = []digest.CompetitiveGroupProgram{}
+		} else {
+			result.Items = programs
+		}
+
 		return
 	} else {
 		result.Done = true
@@ -1073,7 +1092,15 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 			})
 		}
 		result.Done = true
-		result.Items = entranceTests
+		r := map[string]interface{}{
+			"id_campaign": competitive.Campaign.Id,
+		}
+		if len(entranceTests) <= 0 {
+			r[`tests`] = []digest.EntranceTest{}
+		} else {
+			r[`tests`] = entranceTests
+		}
+		result.Items = r
 		return
 	} else {
 		result.Done = true
@@ -1099,9 +1126,16 @@ func (result *ResultInfo) RemoveEntranceCompetitive(idCompetitive uint, idEntran
 		tx.Rollback()
 		return
 	}
+	err := CheckEditEntranceCompetitiveGroup(old.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var entrance digest.EntranceTest
 	db = conn.Where(`id_competitive_group=? AND id=?`, idCompetitive, idEntrance).Find(&entrance)
 	if entrance.Id > 0 {
+		db = tx.Exec(`DELETE FROM app.entrance_test WHERE id_entrance_test=?`, idEntrance)
 		db = tx.Where(`id_competitive_group=? AND id=?`, idCompetitive, idEntrance).Delete(&entrance)
 		if db.Error == nil {
 			result.Done = true
@@ -1135,6 +1169,12 @@ func (result *ResultInfo) RemoveProgramCompetitive(idCompetitive uint, idProgram
 	db := tx.Find(&old, idCompetitive)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+	err := CheckEditProgramsCompetitiveGroup(old.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
@@ -1177,7 +1217,12 @@ func (result *ResultInfo) RemoveCompetitive(idCompetitive uint) {
 		tx.Rollback()
 		return
 	}
-
+	err := CheckAddRemoveCompetitive(old.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var programs []digest.CompetitiveGroupProgram
 	db = conn.Where(`id_competitive_group=?`, idCompetitive).Find(&programs)
 	if len(programs) > 0 {
@@ -1257,23 +1302,5 @@ func (result *ResultList) GetEntranceTestsSelectListByCompetitive(idCompetitive 
 		result.Message = &message
 		result.Items = []digest.IndividualAchievements{}
 		return
-	}
-}
-
-func CheckCompetitiveGroupByUser(idCompetitiveGroup uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`cmp.competitive_groups`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idCompetitiveGroup).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данной конкурсной группе `)
 	}
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"persons/config"
 	"persons/digest"
@@ -490,25 +489,31 @@ func (result *ResultInfo) AddAdmission(admsData AddAdmission) {
 	}()
 	fmt.Println(admsData)
 	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := tx.Preload(`CampaignType`).Find(&campaign, admsData.IdCampaign)
+	if campaign.Id < 1 {
+		result.SetErrorResult(`Компания не найдена`)
+		tx.Rollback()
+		return
+	}
+	err := CheckAddAdmission(campaign.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	for _, admData := range admsData.Data {
 		for _, specialty := range admData.IdSpeciality {
 			var admission digest.AdmissionVolume
 			admission.Organization.Id = result.User.CurrentOrganization.Id
 			admission.IdOrganization = result.User.CurrentOrganization.Id
-			admission.IdAuthor = result.User.Id
+			admission.IdAuthor = &result.User.Id
 			admission.Created = time.Now()
 			admission.IdEducationLevel = admData.IdEducationLevel
 
-			var campaign digest.Campaign
-			db := tx.Preload(`CampaignType`).Find(&campaign, admsData.IdCampaign)
-			if campaign.Id < 1 {
-				result.SetErrorResult(`Компания не найдена`)
-				tx.Rollback()
-				return
-			}
 			row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, admData.IdEducationLevel).Select(`id`).Row()
 			var idEducLevelCampaignType uint
-			err := row.Scan(&idEducLevelCampaignType)
+			err = row.Scan(&idEducLevelCampaignType)
 			if err != nil || idEducLevelCampaignType <= 0 {
 				result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
 				tx.Rollback()
@@ -560,8 +565,22 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 	defer func() {
 		tx.Rollback()
 	}()
+	var admission digest.AdmissionVolume
+	conn.Where(`id=?`, idAdmission).Find(&admission)
+	if admission.Id <= 0 {
+		result.SetErrorResult(`КЦП не найдены`)
+		tx.Rollback()
+		return
+	}
+	err := CheckAddAdmission(admission.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var addIdsBudget []uint
 	conn.LogMode(config.Conf.Dblog)
+
 	for _, budget := range data.LevelsBudget {
 		var count int
 		var distributed digest.DistributedAdmissionVolume
@@ -580,7 +599,7 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 		distributed.IdLevelBudget = budget
 		distributed.AdmissionVolumeId = idAdmission
 		distributed.IdOrganization = result.User.CurrentOrganization.Id
-		distributed.IdAuthor = result.User.Id
+		distributed.IdAuthor = &result.User.Id
 		distributed.Created = time.Now()
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&distributed)
 		if db.Error == nil {
@@ -619,13 +638,19 @@ func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.Admissi
 		tx.Rollback()
 		return
 	}
+	err := CheckEditAdmission(oldAdmission.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	if oldAdmission.IdOrganization != result.User.CurrentOrganization.Id {
 		result.SetErrorResult(`Организация не соответствует`)
 		tx.Rollback()
 		return
 	}
 	if oldAdmission.IdDirection == admData.IdDirection {
-		oldAdmission.IdAuthor = result.User.Id
+		oldAdmission.IdAuthor = &result.User.Id
 		oldAdmission.BudgetO = admData.BudgetO
 		oldAdmission.BudgetOz = admData.BudgetOz
 		oldAdmission.BudgetZ = admData.BudgetZ
@@ -731,6 +756,12 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 		tx.Rollback()
 		return
 	}
+	err := CheckEditAdmission(admission.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var old digest.DistributedAdmissionVolume
 	db = conn.Find(&old, data.IdLevelBudget)
 	if old.Id == 0 || db.Error != nil {
@@ -748,7 +779,7 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 	t := time.Now()
 	new = old
 	new.Changed = &t
-	new.IdAuthor = result.User.Id
+	new.IdAuthor = &result.User.Id
 	new.BudgetO = data.BudgetO
 	new.BudgetOz = data.BudgetOz
 	new.BudgetZ = data.BudgetZ
@@ -804,6 +835,12 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 	idGroups := oldAdmission.Direction.IdParent
 	if oldAdmission.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Кцп не найдены`)
+		tx.Rollback()
+		return
+	}
+	err := CheckEditAdmission(oldAdmission.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
@@ -889,6 +926,12 @@ func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint)
 		tx.Rollback()
 		return
 	}
+	err := CheckEditAdmission(oldAdmission.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	var distributed digest.DistributedAdmissionVolume
 	db = conn.Where(`id_admission_volume=? AND id=?`, IdAdmission, IdBudget).Find(&distributed)
 	if distributed.Id > 0 {
@@ -927,22 +970,4 @@ func (result *ResultInfo) GetLevelBudgetAdmission(ID uint) {
 		return
 	}
 
-}
-
-func CheckAdmissionVolumeByUser(idAdmissionVolume uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`cmp.admission_volume`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idAdmissionVolume).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данным кцп `)
-	}
 }

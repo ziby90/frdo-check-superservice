@@ -30,7 +30,7 @@ type AdmissionVolume struct {
 	TargetOz           int64          `json:"target_oz,omitempty"`
 	TargetZ            int64          `json:"target_z,omitempty"`
 	Created            time.Time      `json:"created"`
-	IdAuthor           uint           `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
+	IdAuthor           *uint          `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
 	Actual             bool           `json:"actual"`
 	Organization       Organization   `gorm:"foreignkey:IdOrganization"`
 	IdOrganization     uint           // Идентификатор организации
@@ -64,7 +64,7 @@ type DistributedAdmissionVolume struct {
 	TargetZ           int64           `json:"target_z,omitempty"`
 	Created           time.Time       `json:"created"`
 	Changed           *time.Time      `json:"changed"`
-	IdAuthor          uint            `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
+	IdAuthor          *uint           `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
 	Actual            bool            `json:"actual"`
 	Organization      Organization    `gorm:"foreignkey:IdOrganization"`
 	IdOrganization    uint            // Идентификатор организации

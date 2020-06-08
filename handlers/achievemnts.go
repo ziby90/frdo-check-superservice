@@ -308,6 +308,12 @@ func (result *ResultInfo) AddAchievement(achData digest.IndividualAchievements, 
 		tx.Rollback()
 		return
 	}
+	err := CheckAddAchievements(campaign.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	achievement.IdCampaign = achData.IdCampaign
 
 	var category digest.AchievementCategory
@@ -350,9 +356,14 @@ func (result *ResultInfo) EditAchievement(data AchievementMain) {
 		tx.Rollback()
 		return
 	}
-
+	err := CheckEditAchievements(achievement.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	achievement.Name = data.Name
-	if data.UID != nil && data.UID != achievement.Uid {
+	if data.UID != nil && data.UID != achievement.Uid && *data.UID != `` {
 		var exist digest.IndividualAchievements
 		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, achievement.Id).Find(&exist)
 		if exist.Id > 0 {
@@ -397,6 +408,13 @@ func (result *ResultInfo) RemoveAchievement(idAchievement uint) {
 		tx.Rollback()
 	}()
 	conn.LogMode(config.Conf.Dblog)
+
+	err := CheckEditAchievements(idAchievement)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 
 	var old digest.IndividualAchievements
 	db := tx.Find(&old, idAchievement)

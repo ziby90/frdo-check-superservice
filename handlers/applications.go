@@ -1567,20 +1567,3 @@ func GetApplicationStatusByCode(code string) (*digest.ApplicationStatuses, error
 	}
 	return &item, nil
 }
-func CheckApplicationByUser(idApplication uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`app.applications`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idApplication).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данному заявлению `)
-	}
-}

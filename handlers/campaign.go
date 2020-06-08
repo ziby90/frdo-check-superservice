@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"persons/config"
 	"persons/digest"
@@ -380,6 +379,12 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 		result.SetErrorResult(`Недопустимые значения`)
 		return
 	}
+	err := CheckEditEndDate(data.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+
 	if endDate.IdEndApplication == nil {
 		new.Created = t
 		new.IdCampaign = data.IdCampaign
@@ -395,6 +400,12 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 	}
 	new.Actual = true
 	new.EndDate = data.EndDate
+	year := data.EndDate.Year()
+	if year > int(campaign.YearEnd) || year < int(campaign.YearStart) {
+		result.SetErrorResult(`Контрольная дата должна назодиться в диапозоне проведения приемной компании `)
+		return
+	}
+
 	db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
 	if db.Error != nil {
 		m := db.Error.Error()
@@ -415,7 +426,12 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 	conn.LogMode(config.Conf.Dblog)
 
 	var campaign digest.Campaign
-
+	err := CheckEditCampaign(data.Id)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 	db := tx.Where(`id=? AND actual`, data.Id).Find(&campaign)
 	if campaign.Id <= 0 {
 		result.SetErrorResult(`Приемная компания не найдена`)
@@ -430,7 +446,7 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 	}
 
 	campaign.Name = strings.TrimSpace(data.Name)
-	if data.UID != nil && data.UID != campaign.Uid {
+	if data.UID != nil && data.UID != campaign.Uid && *data.UID != `` {
 		var exist digest.Campaign
 		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, campaign.Id).Find(&exist)
 		if exist.Id > 0 {
@@ -598,6 +614,14 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		return
 	}
 
+	var exist []digest.Campaign
+	tx.Where(`id_campaign_type=? AND year_start=? AND id_organization=?`, campaignData.IdCampaignType, campaignData.YearStart, user.CurrentOrganization.Id).Find(&exist)
+	if len(exist) > 0 {
+		result.SetErrorResult(`У данной организации уже есть приемная компания с заданным типом и годом начала`)
+		tx.Rollback()
+		return
+	}
+
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&campaign)
 	if db.Error != nil {
 		tx.Rollback()
@@ -649,22 +673,4 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	result.Items = campaign.Id
 	result.Done = true
 	tx.Commit()
-}
-
-func CheckCampaignByUser(idCampaign uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`cmp.campaigns`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idCampaign).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данной компании `)
-	}
 }

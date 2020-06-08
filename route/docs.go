@@ -1,8 +1,10 @@
 package route
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
+	"io/ioutil"
 	"net/http"
 	"persons/digest"
 	"persons/handlers"
@@ -359,6 +361,181 @@ func AddDocsHandler(r *mux.Router) {
 			}
 		} else {
 			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// изменение одного документа в профиле энтранта
+	r.HandleFunc("/docs/{table_name}/{id_document:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		tableName := vars[`table_name`]
+		idDocument, err := strconv.ParseInt(vars[`id_document`], 10, 32)
+		if err == nil {
+			switch tableName {
+			case `compatriot`:
+				cmp := digest.Compatriot{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditCompatriot(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `composition`:
+				cmp := digest.Composition{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditComposition(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `disability`:
+				cmp := digest.Disability{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditDisability(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `ege`:
+				cmp := digest.Ege{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditEge(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `educations`:
+				cmp := digest.Educations{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditEducations(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `identification`:
+				cmp := digest.Identifications{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditIdentifications(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `militaries`:
+				cmp := digest.Militaries{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditMilitaries(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `olympics`:
+				cmp := digest.OlympicsDocs{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditOlympicsDocs(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `orphans`:
+				cmp := digest.Orphans{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditOrphans(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `other`:
+				cmp := digest.Other{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditOther(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `parents_lost`:
+				cmp := digest.ParentsLost{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditParentsLost(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `radiation_work`:
+				cmp := digest.RadiationWork{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditRadiationWork(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			case `veteran`:
+				cmp := digest.Veteran{}
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				cmp.Id = uint(idDocument)
+				if err == nil {
+					res.EditVeteran(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+				break
+			default:
+				message := `Неверный параметр table_name.`
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id_document.`
 			res.Message = &message
 		}
 		service.ReturnJSON(w, res)

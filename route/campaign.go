@@ -176,6 +176,7 @@ func AddCampaignHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// это что? какой то спсиок предметов по вузам . ааа, выбор предметов для егэ по годам приемной компании! Женя, КОля - привет!
+	// Аня сказала "это список предметов ЕГЭ с их минимальными баллами в зависимости от года, каждый год разный минимальный балл"
 	r.HandleFunc("/campaign/{id:[0-9]+}/subjects", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
@@ -217,7 +218,6 @@ func AddCampaignHandler(r *mux.Router) {
 	}).Methods("GET")
 	// удаление приемной компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
-
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		_, err := strconv.ParseInt(vars[`id`], 10, 32)

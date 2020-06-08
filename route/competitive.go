@@ -327,4 +327,5 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+
 }

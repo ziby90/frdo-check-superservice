@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"persons/config"
 	"persons/digest"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,11 @@ func getIdentName(id uint) string {
 	db := conn.Preload(`DocumentType`).Where(`id=?`, id).Find(&identification)
 	if db.Error == nil && identification.Id > 0 {
 		issueDate := identification.IssueDate.Format(`2006-01-02`)
-		name := identification.DocumentType.Name + ` ` + identification.DocSeries + ` ` + identification.DocNumber + ` от ` + issueDate
+		series := ``
+		if identification.DocSeries != nil {
+			series = *identification.DocSeries
+		}
+		name := identification.DocumentType.Name + ` ` + series + ` ` + identification.DocNumber + ` от ` + issueDate
 		return name
 	} else {
 		return ``
@@ -47,7 +52,7 @@ func getIdentName(id uint) string {
 
 }
 
-func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f *digest.File) {
+func (result *ResultInfo) AddCompatriot(idEntrant uint, data digest.Compatriot, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -72,9 +77,11 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 	}
 	var doc digest.Compatriot
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.UidEpgu = nil
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.IdEntrant = idEntrant
 	doc.Id = 0
 	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
@@ -98,7 +105,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Compatriot
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -106,7 +113,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -154,7 +161,7 @@ func (result *ResultInfo) AddCompatriot(idEntrant uint, cmp digest.Compatriot, f
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition, f *digest.File) {
+func (result *ResultInfo) AddComposition(idEntrant uint, data digest.Composition, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -179,9 +186,10 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 	}
 	var doc digest.Composition
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.IdEntrant = idEntrant
 	doc.Id = 0
 	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
@@ -212,7 +220,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Composition
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -220,7 +228,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -268,7 +276,7 @@ func (result *ResultInfo) AddComposition(idEntrant uint, cmp digest.Composition,
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f *digest.File) {
+func (result *ResultInfo) AddDisability(idEntrant uint, data digest.Disability, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -293,9 +301,10 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 	}
 	var doc digest.Disability
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.IdEntrant = idEntrant
 	doc.Id = 0
 	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
@@ -319,7 +328,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Disability
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -327,7 +336,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -375,7 +384,7 @@ func (result *ResultInfo) AddDisability(idEntrant uint, cmp digest.Disability, f
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File) {
+func (result *ResultInfo) AddEge(idEntrant uint, data digest.Ege, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -400,9 +409,10 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 	}
 	var doc digest.Ege
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.IdEntrant = idEntrant
 	doc.Id = 0
 	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
@@ -432,7 +442,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Ege
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -440,7 +450,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -489,7 +499,7 @@ func (result *ResultInfo) AddEge(idEntrant uint, cmp digest.Ege, f *digest.File)
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f *digest.File) {
+func (result *ResultInfo) AddEducations(idEntrant uint, data digest.Educations, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -514,9 +524,10 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 	}
 	var doc digest.Educations
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.IdEntrant = idEntrant
 	doc.Id = 0
 	db = tx.Where(`id_entrant=?`, idEntrant).Find(&doc.DocumentIdentification, doc.IdIdentDocument)
@@ -548,7 +559,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Educations
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -556,7 +567,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -605,7 +616,7 @@ func (result *ResultInfo) AddEducations(idEntrant uint, cmp digest.Educations, f
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifications, f *digest.File) {
+func (result *ResultInfo) AddIdentifications(idEntrant uint, data digest.Identifications, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -630,9 +641,10 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 	}
 	var doc digest.Identifications
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -649,8 +661,18 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 		tx.Rollback()
 		return
 	}
+	var existIdent digest.Identifications
+	if doc.DocSeries != nil {
+		db = tx.Where(`doc_series is null AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(doc.DocNumber), doc.IssueDate, doc.IdDocumentType).Find(&existIdent)
+	} else {
+		db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(*doc.DocSeries), strings.ToUpper(doc.DocNumber), doc.IssueDate, doc.IdDocumentType).Find(&existIdent)
+	}
+	if existIdent.Id > 0 {
+		result.SetErrorResult(`Удостоверяющий документ с указанными серией, номером, типом и датой выдачи уже существует`)
+		return
+	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Identifications
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -658,7 +680,7 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -707,7 +729,7 @@ func (result *ResultInfo) AddIdentifications(idEntrant uint, cmp digest.Identifi
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f *digest.File) {
+func (result *ResultInfo) AddMilitaries(idEntrant uint, data digest.Militaries, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -732,9 +754,10 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 	}
 	var doc digest.Militaries
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -758,7 +781,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Militaries
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -766,7 +789,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -815,7 +838,7 @@ func (result *ResultInfo) AddMilitaries(idEntrant uint, cmp digest.Militaries, f
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDocs, f *digest.File) {
+func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, data digest.OlympicsDocs, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -840,9 +863,10 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 	}
 	var doc digest.OlympicsDocs
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -866,7 +890,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.OlympicsDocs
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -874,7 +898,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -923,7 +947,7 @@ func (result *ResultInfo) AddOlympicsDocs(idEntrant uint, cmp digest.OlympicsDoc
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *digest.File) {
+func (result *ResultInfo) AddOrphans(idEntrant uint, data digest.Orphans, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -948,9 +972,10 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 	}
 	var doc digest.Orphans
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -974,7 +999,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Orphans
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -982,7 +1007,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -1031,7 +1056,7 @@ func (result *ResultInfo) AddOrphans(idEntrant uint, cmp digest.Orphans, f *dige
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.File) {
+func (result *ResultInfo) AddOther(idEntrant uint, data digest.Other, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -1056,9 +1081,10 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 	}
 	var doc digest.Other
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -1076,7 +1102,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.Other
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -1084,7 +1110,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -1133,7 +1159,7 @@ func (result *ResultInfo) AddOther(idEntrant uint, cmp digest.Other, f *digest.F
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost, f *digest.File) {
+func (result *ResultInfo) AddParentsLost(idEntrant uint, data digest.ParentsLost, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -1158,9 +1184,10 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 	}
 	var doc digest.ParentsLost
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -1184,7 +1211,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.ParentsLost
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -1192,7 +1219,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -1241,7 +1268,7 @@ func (result *ResultInfo) AddParentsLost(idEntrant uint, cmp digest.ParentsLost,
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationWork, f *digest.File) {
+func (result *ResultInfo) AddRadiationWork(idEntrant uint, data digest.RadiationWork, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -1266,9 +1293,10 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 	}
 	var doc digest.RadiationWork
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -1292,7 +1320,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.RadiationWork
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -1300,7 +1328,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -1349,7 +1377,7 @@ func (result *ResultInfo) AddRadiationWork(idEntrant uint, cmp digest.RadiationW
 	result.Done = true
 	tx.Commit()
 }
-func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *digest.File) {
+func (result *ResultInfo) AddVeteran(idEntrant uint, data digest.Veteran, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -1374,9 +1402,10 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 	}
 	var doc digest.Veteran
 	path := getPath(idEntrant, doc.TableName(), time.Now())
-	doc = cmp
-	doc.IdOrganization = result.User.CurrentOrganization.Id
+	doc = data
+	doc.IdOrganization = &result.User.CurrentOrganization.Id
 	doc.Created = time.Now()
+	doc.Changed = nil
 	doc.EntrantsId = idEntrant
 	doc.Id = 0
 
@@ -1400,7 +1429,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 		return
 	}
 
-	if cmp.Uid != nil {
+	if data.Uid != nil {
 		var exist digest.RadiationWork
 		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *doc.Uid).Find(&exist)
 		if exist.Id > 0 {
@@ -1408,7 +1437,7 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 			tx.Rollback()
 			return
 		}
-		doc.Uid = cmp.Uid
+		doc.Uid = data.Uid
 	}
 	if f != nil {
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
@@ -1453,6 +1482,1433 @@ func (result *ResultInfo) AddVeteran(idEntrant uint, cmp digest.Veteran, f *dige
 	result.Items = map[string]interface{}{
 		`id_entrant`:  idEntrant,
 		`id_document`: doc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+
+func (result *ResultInfo) EditCompatriot(data digest.Compatriot) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `compatriot`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Compatriot
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDocDoc digest.Compatriot
+	newDocDoc = old
+
+	if newDocDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDocDoc.IdOrganization == nil || *newDocDoc.IdOrganization != result.User.CurrentOrganization.Id || newDocDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDocDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.IdEntrant).Find(&newDocDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDocDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDocDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCompatriotCategory != newDocDoc.IdCompatriotCategory {
+		db = tx.Find(&newDocDoc.CompatriotCategory, data.IdCompatriotCategory)
+		if db.Error != nil || newDocDoc.CompatriotCategory.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDocDoc.IdCompatriotCategory = data.IdCompatriotCategory
+	}
+
+	if data.Uid != newDocDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Compatriot
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDocDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDocDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDocDoc.DocOrg = &s
+	} else {
+		newDocDoc.DocOrg = nil
+	}
+
+	newDocDoc.Checked = data.Checked
+	t := time.Now()
+	newDocDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDocDoc)
+	if db.Error != nil || newDocDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDocDoc.IdEntrant,
+		`id_document`: newDocDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditComposition(data digest.Composition) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `composition`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Composition
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Composition
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.IdEntrant).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdAppealStatus != newDoc.IdAppealStatus {
+		db = tx.Find(&newDoc.AppealStatuses, data.IdAppealStatus)
+		if db.Error != nil || newDoc.AppealStatuses.Id <= 0 {
+			result.SetErrorResult(`Не найден статус`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdAppealStatus = data.IdAppealStatus
+	}
+
+	if data.IdCompositionTheme != newDoc.IdCompositionTheme {
+		db = tx.Find(&newDoc.CompositionThemes, data.IdCompositionTheme)
+		if db.Error != nil || newDoc.CompositionThemes.Id <= 0 {
+			result.SetErrorResult(`Не найдена тема сочинения`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCompositionTheme = data.IdCompositionTheme
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Composition
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Result = data.Result
+	newDoc.DocYear = data.DocYear
+	newDoc.HasAppealed = data.HasAppealed
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.IdEntrant,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditDisability(data digest.Disability) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `disability`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Disability
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Disability
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.IdEntrant).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdDisabilityType != newDoc.IdDisabilityType {
+		db = tx.Find(&newDoc.DisabilityType, data.IdDisabilityType)
+		if db.Error != nil || newDoc.DisabilityType.Id <= 0 {
+			result.SetErrorResult(`Не найден тип инвалидности`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdDisabilityType = data.IdDisabilityType
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Disability
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.IdEntrant,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditEducations(data digest.Educations) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `educations`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Educations
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Educations
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.IdEntrant).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdEducationLevel != newDoc.IdEducationLevel {
+		db = tx.Find(&newDoc.EducationLevel, data.IdEducationLevel)
+		if db.Error != nil || newDoc.EducationLevel.Id <= 0 {
+			result.SetErrorResult(`Не найден уровень образования`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdEducationLevel = data.IdEducationLevel
+	}
+	if data.IdDirection != newDoc.IdDirection {
+		db = tx.Where(`id_education_level=?`, newDoc.IdEducationLevel).Find(&newDoc.Direction, data.IdDirection)
+		if db.Error != nil || newDoc.Direction.Id <= 0 {
+			result.SetErrorResult(`Не найдено направление`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdDirection = data.IdDirection
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Educations
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if strings.TrimSpace(data.DocNumber) != `` {
+		newDoc.DocNumber = strings.TrimSpace(data.DocNumber)
+	}
+	if strings.TrimSpace(data.DocSeries) != `` {
+		newDoc.DocSeries = strings.TrimSpace(data.DocSeries)
+	}
+	if data.RegisterNumber != nil && strings.TrimSpace(*data.RegisterNumber) != `` {
+		s := strings.TrimSpace(*data.RegisterNumber)
+		newDoc.RegisterNumber = &s
+	} else {
+		newDoc.RegisterNumber = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+
+	if data.Checked != newDoc.Checked {
+		result.SetErrorResult(`Нельзя менять статус проверки у документов об образовании`)
+		tx.Rollback()
+		return
+	}
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.IdEntrant,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditEge(data digest.Ege) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `ege`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Ege
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Ege
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.IdEntrant).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdRegion != newDoc.IdRegion {
+		db = tx.Find(&newDoc.Region, data.IdRegion)
+		if db.Error != nil || newDoc.Region.Id <= 0 {
+			result.SetErrorResult(`Не найден регион`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdRegion = data.IdRegion
+	}
+	if data.IdSubject != newDoc.IdSubject {
+		db = tx.Find(&newDoc.Subject, data.IdSubject)
+		if db.Error != nil || newDoc.Subject.Id <= 0 {
+			result.SetErrorResult(`Не найден предмет`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdSubject = data.IdSubject
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Educations
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	if data.RegisterNumber != nil && strings.TrimSpace(*data.RegisterNumber) != `` {
+		s := strings.TrimSpace(*data.RegisterNumber)
+		newDoc.RegisterNumber = &s
+	} else {
+		newDoc.RegisterNumber = nil
+	}
+	newDoc.Mark = data.Mark
+	newDoc.IssueDate = data.IssueDate
+	newDoc.ResultDate = data.ResultDate
+
+	if data.Checked != newDoc.Checked {
+		result.SetErrorResult(`Нельзя менять статус проверки у документов об образовании`)
+		tx.Rollback()
+		return
+	}
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.IdEntrant,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditIdentifications(data digest.Identifications) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `identification`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Identifications
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Identifications
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdOkcm != newDoc.IdOkcm {
+		db = tx.Find(&newDoc.Okcm, data.IdOkcm)
+		if db.Error != nil || newDoc.Okcm.Id <= 0 {
+			result.SetErrorResult(`Не найден оксм`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdOkcm = data.IdOkcm
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Identifications
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.Name) != `` {
+		newDoc.Name = strings.TrimSpace(data.Name)
+	}
+	if strings.TrimSpace(data.Surname) != `` {
+		newDoc.Surname = strings.TrimSpace(data.Surname)
+	}
+	if strings.TrimSpace(data.DocNumber) != `` {
+		newDoc.DocNumber = strings.TrimSpace(data.DocNumber)
+	}
+	if strings.TrimSpace(data.DocOrganization) != `` {
+		newDoc.DocOrganization = strings.TrimSpace(data.DocOrganization)
+	}
+	if data.Patronymic != nil && strings.TrimSpace(*data.Patronymic) != `` {
+		s := strings.TrimSpace(*data.Patronymic)
+		newDoc.Patronymic = &s
+	} else {
+		newDoc.Patronymic = nil
+	}
+	if data.SubdivisionCode != nil && strings.TrimSpace(*data.SubdivisionCode) != `` {
+		s := strings.TrimSpace(*data.SubdivisionCode)
+		newDoc.SubdivisionCode = &s
+	} else {
+		newDoc.SubdivisionCode = nil
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	} else {
+		newDoc.DocSeries = nil
+	}
+
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	var existIdent digest.Identifications
+	if newDoc.DocSeries != nil {
+		db = tx.Where(`doc_series is null AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(newDoc.DocNumber), newDoc.IssueDate, newDoc.IdDocumentType).Find(&existIdent)
+	} else {
+		db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(*newDoc.DocSeries), strings.ToUpper(newDoc.DocNumber), newDoc.IssueDate, newDoc.IdDocumentType).Find(&existIdent)
+	}
+	if existIdent.Id > 0 {
+		result.SetErrorResult(`Удостоверяющий документ с указанными серией, номером, типом и датой выдачи уже существует`)
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditMilitaries(data digest.Militaries) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `disability`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Militaries
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Militaries
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCategory != newDoc.IdCategory {
+		db = tx.Find(&newDoc.MilitaryCategories, data.IdCategory)
+		if db.Error != nil || newDoc.MilitaryCategories.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCategory = data.IdCategory
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Militaries
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	} else {
+		newDoc.DocSeries = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditOlympicsDocs(data digest.OlympicsDocs) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `olympics`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.OlympicsDocs
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.OlympicsDocs
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdOlympic != newDoc.IdOlympic {
+		db = tx.Find(&newDoc.Olympics, data.IdOlympic)
+		if db.Error != nil || newDoc.Olympics.Id <= 0 {
+			result.SetErrorResult(`Не найдена олимпиада`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdOlympic = data.IdOlympic
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.OlympicsDocs
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	} else {
+		newDoc.DocSeries = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditOrphans(data digest.Orphans) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `orphans`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Orphans
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Orphans
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCategory != newDoc.IdCategory {
+		db = tx.Find(&newDoc.OrphanCategories, data.IdCategory)
+		if db.Error != nil || newDoc.OrphanCategories.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCategory = data.IdCategory
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Orphans
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	} else {
+		newDoc.DocSeries = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditOther(data digest.Other) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `other`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Other
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Other
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Other
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	} else {
+		newDoc.DocOrg = nil
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	} else {
+		newDoc.DocNumber = nil
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	} else {
+		newDoc.DocSeries = nil
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditParentsLost(data digest.ParentsLost) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `parents_lost`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.ParentsLost
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.ParentsLost
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCategory != newDoc.IdCategory {
+		db = tx.Find(&newDoc.ParentsLostCategory, data.IdCategory)
+		if db.Error != nil || newDoc.ParentsLostCategory.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCategory = data.IdCategory
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.ParentsLost
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditRadiationWork(data digest.RadiationWork) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `radiation_work`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.RadiationWork
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.RadiationWork
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCategory != newDoc.IdCategory {
+		db = tx.Find(&newDoc.RadiationWorkCategory, data.IdCategory)
+		if db.Error != nil || newDoc.RadiationWorkCategory.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCategory = data.IdCategory
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.RadiationWork
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditVeteran(data digest.Veteran) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var category digest.DocumentSysCategories
+	_ = conn.Where(`name_table=?`, `veteran`).Find(&category)
+	if !category.Actual {
+		result.SetErrorResult(`Ошибка категории`)
+		tx.Rollback()
+		return
+	}
+
+	var old digest.Veteran
+	db := conn.Where(`id=?`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Документ не найден`)
+		tx.Rollback()
+		return
+	}
+	var newDoc digest.Veteran
+	newDoc = old
+
+	if newDoc.IdDocumentType != data.IdDocumentType {
+		result.SetErrorResult(`Тип документа нельзя изменять`)
+		tx.Rollback()
+		return
+	}
+
+	if newDoc.IdOrganization == nil || *newDoc.IdOrganization != result.User.CurrentOrganization.Id || newDoc.UidEpgu != nil {
+		result.SetErrorResult(`Документ не подлежит редактированию`)
+		tx.Rollback()
+		return
+	}
+
+	if data.IdIdentDocument != newDoc.IdIdentDocument {
+		db = tx.Where(`id_entrant=?`, data.EntrantsId).Find(&newDoc.DocumentIdentification, data.IdIdentDocument)
+		if db.Error != nil || newDoc.DocumentIdentification.Id <= 0 {
+			result.SetErrorResult(`Не найден удостоверяющий документ`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdIdentDocument = data.IdIdentDocument
+	}
+
+	if data.IdCategory != newDoc.IdCategory {
+		db = tx.Find(&newDoc.VeteranCategory, data.IdCategory)
+		if db.Error != nil || newDoc.VeteranCategory.Id <= 0 {
+			result.SetErrorResult(`Не найдена категория`)
+			tx.Rollback()
+			return
+		}
+		newDoc.IdCategory = data.IdCategory
+	}
+
+	if data.Uid != newDoc.Uid {
+		if data.Uid != nil && *data.Uid != `` {
+			var exist digest.Veteran
+			tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`Документ с данным uid уже существует у выбранной организации`)
+				tx.Rollback()
+				return
+			}
+		}
+		newDoc.Uid = data.Uid
+	}
+	if strings.TrimSpace(data.DocName) != `` {
+		newDoc.DocName = strings.TrimSpace(data.DocName)
+	}
+	if data.DocOrg != nil && strings.TrimSpace(*data.DocOrg) != `` {
+		s := strings.TrimSpace(*data.DocOrg)
+		newDoc.DocOrg = &s
+	}
+	if data.DocNumber != nil && strings.TrimSpace(*data.DocNumber) != `` {
+		s := strings.TrimSpace(*data.DocNumber)
+		newDoc.DocNumber = &s
+	}
+	if data.DocSeries != nil && strings.TrimSpace(*data.DocSeries) != `` {
+		s := strings.TrimSpace(*data.DocSeries)
+		newDoc.DocSeries = &s
+	}
+	newDoc.IssueDate = data.IssueDate
+	newDoc.Checked = data.Checked
+	t := time.Now()
+	newDoc.Changed = &t
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&newDoc)
+	if db.Error != nil || newDoc.Id == 0 {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrant`:  newDoc.EntrantsId,
+		`id_document`: newDoc.Id,
 	}
 	result.Done = true
 	tx.Commit()
@@ -1481,6 +2937,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"id_ident_document":        r.IdIdentDocument,
 				"id_entrant":               r.IdEntrant,
 				"id_document_type":         r.DocumentType.Id,
+				"checked":                  r.Checked,
 				"name_document_type":       r.DocumentType.Name,
 				"doc_name":                 r.DocName,
 				"doc_org":                  r.DocOrg,
@@ -1513,6 +2970,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"id_entrant":             r.IdEntrant,
 				"id_document_type":       r.DocumentType.Id,
 				"name_document_type":     r.DocumentType.Name,
+				"checked":                r.Checked,
 				"doc_name":               r.DocName,
 				"doc_org":                r.DocOrg,
 				"doc_year":               r.DocYear,
@@ -1551,6 +3009,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"id_entrant":          r.IdEntrant,
 				"id_document_type":    r.DocumentType.Id,
 				"name_document_type":  r.DocumentType.Name,
+				"checked":             r.Checked,
 				"doc_name":            r.DocName,
 				"doc_org":             r.DocOrg,
 				"register_number":     r.RegisterNumber,
@@ -1562,7 +3021,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_region":         r.Region.Name,
 				"id_subject":          r.Subject.Id,
 				"name_subject":        r.Subject.Name,
-				"checked":             r.Checked,
 				"created":             r.Created,
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
@@ -1584,23 +3042,23 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			if r.PathFile != nil {
 				file = true
 			}
-			result.Items = map[string]interface{}{
+			res := map[string]interface{}{
 				"id":                   r.Id,
 				"id_ident_document":    r.IdIdentDocument,
 				"id_entrant":           r.IdEntrant,
 				"id_document_type":     r.DocumentType.Id,
 				"name_document_type":   r.DocumentType.Name,
+				"checked":              r.Checked,
 				"doc_name":             r.DocName,
 				"doc_org":              r.DocOrg,
 				"register_number":      r.RegisterNumber,
 				"doc_number":           r.DocNumber,
 				"doc_series":           r.DocSeries,
 				"issue_date":           issueDate,
-				"id_direction":         r.Direction.Id,
+				"id_direction":         r.IdDirection,
 				"name_direction":       r.Direction.Name,
 				"id_education_level":   r.EducationLevel.Id,
 				"name_education_level": r.EducationLevel.Name,
-				"checked":              r.Checked,
 				"created":              r.Created,
 				"name_sys_category":    sysCategory.Name,
 				"uid":                  r.Uid,
@@ -1608,6 +3066,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_ident_document":  getIdentName(r.IdIdentDocument),
 				"code_sys_category":    sysCategory.NameTable,
 			}
+			result.Items = res
 		}
 		break
 	case "disability":
@@ -1935,7 +3394,6 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 
 	return
 }
-
 func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -1982,7 +3440,6 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = true
 	return
 }
-
 func (result *ResultInfo) RemoveFileDoc(ID uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -2026,7 +3483,6 @@ func (result *ResultInfo) RemoveFileDoc(ID uint) {
 	result.Done = true
 	return
 }
-
 func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
 	result.Done = false
 	conn := &config.Db.ConnGORM

@@ -389,7 +389,11 @@ func (result *ResultInfo) GetListDocsIdentsEntrant(ID uint) {
 		for index := range identifications {
 			db = conn.Model(&identifications[index]).Related(&identifications[index].DocumentType, `IdDocumentType`)
 			issueDate := identifications[index].IssueDate.Format(`2006-01-02`)
-			name := identifications[index].DocumentType.Name + ` ` + identifications[index].DocSeries + ` ` + identifications[index].DocNumber + ` от ` + issueDate
+			series := ``
+			if identifications[index].DocSeries != nil {
+				series = *identifications[index].DocSeries
+			}
+			name := identifications[index].DocumentType.Name + ` ` + series + ` ` + identifications[index].DocNumber + ` от ` + issueDate
 			items = append(items, map[string]interface{}{
 				"id":   identifications[index].Id,
 				"name": name,
@@ -711,17 +715,25 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 
 	var identification digest.Identifications
 	identification = entrantData.Identification
-	identification.IdOrganization = result.User.CurrentOrganization.Id
+	identification.IdOrganization = &result.User.CurrentOrganization.Id
 	identification.EntrantsId = entrant.Id
 	identification.Created = time.Now()
 	identification.Name = strings.TrimSpace(identification.Name)
 	identification.Surname = strings.TrimSpace(identification.Surname)
-	identification.Patronymic = strings.TrimSpace(identification.Patronymic)
+	if identification.Patronymic != nil {
+		s := strings.TrimSpace(*identification.Patronymic)
+		identification.Patronymic = &s
+	}
 
 	var existIdent digest.Identifications
-	db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date`, strings.ToUpper(identification.DocSeries), strings.ToUpper(identification.DocNumber), identification.IssueDate).Find(&existIdent)
+	if identification.DocSeries != nil {
+		db = tx.Where(`doc_series is null AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(identification.DocNumber), identification.IssueDate, identification.IdDocumentType).Find(&existIdent)
+	} else {
+		db = tx.Where(`UPPER(doc_series)=? AND UPPER(doc_number)=? AND issue_date::date=?::date AND id_document_type=?`, strings.ToUpper(*identification.DocSeries), strings.ToUpper(identification.DocNumber), identification.IssueDate, identification.IdDocumentType).Find(&existIdent)
+	}
+
 	if existIdent.Id > 0 {
-		result.SetErrorResult(`Удостоверяющий документ с указанными серией, номером и датой выдачи уже существует`)
+		result.SetErrorResult(`Удостоверяющий документ с указанными серией, номером, типом и датой выдачи уже существует`)
 		return
 	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&identification)

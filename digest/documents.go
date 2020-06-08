@@ -29,13 +29,15 @@ type Compatriot struct {
 	IdIdentDocument        uint               `json:"id_ident_document" schema:"id_ident_document"`
 	Uid                    *string            `json:"uid" schema:"uid"`
 	DocName                string             `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string             `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string            `json:"doc_org" schema:"doc_org"`
 	Entrant                Entrants           `json:"entrant" gorm:"foreignkey:id_entrant"`
 	IdEntrant              uint               `json:"id_entrant"`
 	Created                time.Time          `json:"created"` // Дата создания
 	PathFile               *string            `json:"path_file" schema:"file" schema:"file"`
 	Checked                bool               `json:"checked"`
-	IdOrganization         uint               `json:"id_organization"`
+	IdOrganization         *uint              `json:"id_organization"`
+	UidEpgu                *string            `json:"uid_epgu"`
+	Changed                *time.Time         `json:"changed"` // Дата создания
 }
 type Composition struct {
 	Id                     uint              `json:"id"` // Идентификатор
@@ -47,7 +49,7 @@ type Composition struct {
 	IdDocumentType         uint              `json:"id_document_type" schema:"id_document_type"`
 	Uid                    *string           `json:"uid" schema:"uid"`
 	DocName                string            `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string            `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string           `json:"doc_org" schema:"doc_org"`
 	DocYear                int64             `json:"doc_year" schema:"doc_year"`
 	CompositionThemes      CompositionThemes `json:"composition_theme" gorm:"foreignkey:id_composition_theme"`
 	IdCompositionTheme     uint              `json:"id_composition_theme" schema:"id_composition_theme"`
@@ -59,7 +61,9 @@ type Composition struct {
 	IssueDate              time.Time         `json:"issue_date" schema:"issue_date"`
 	PathFile               *string           `json:"path_file" schema:"file"`
 	Created                time.Time         `json:"created"` // Дата создания
-	IdOrganization         uint              `json:"id_organization"`
+	IdOrganization         *uint             `json:"id_organization"`
+	UidEpgu                *string           `json:"uid_epgu"`
+	Changed                *time.Time        `json:"changed"` // Дата создания
 }
 
 type Disability struct {
@@ -71,16 +75,18 @@ type Disability struct {
 	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
 	DocName                string          `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string         `json:"doc_org" schema:"doc_org"`
 	Uid                    *string         `json:"uid" schema:"uid"`
-	DocNumber              string          `json:"doc_number" schema:"doc_number"`
+	DocNumber              *string         `json:"doc_number" schema:"doc_number"`
 	Checked                bool            `json:"checked"`
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	DisabilityType         DisabilityTypes `json:"disability_type" gorm:"foreignkey:id_disability_type"`
 	IdDisabilityType       uint            `json:"id_disability_type" schema:"id_disability_type"`
 	PathFile               *string         `json:"path_file" schema:"file"`
 	Created                time.Time       `json:"created"` // Дата создания
-	IdOrganization         uint            `json:"id_organization"`
+	IdOrganization         *uint           `json:"id_organization"`
+	UidEpgu                *string         `json:"uid_epgu"`
+	Changed                *time.Time      `json:"changed"` // Дата создания
 }
 
 type Ege struct {
@@ -92,10 +98,10 @@ type Ege struct {
 	DocumentType           DocumentTypes   `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType         uint            `json:"id_document_type" schema:"id_document_type"`
 	DocName                string          `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string         `json:"doc_org" schema:"doc_org"`
 	Uid                    *string         `json:"uid" schema:"uid"`
-	RegisterNumber         string          `json:"register_number" schema:"register_number"`
-	DocNumber              string          `json:"doc_number" schema:"doc_number"`
+	RegisterNumber         *string         `json:"register_number" schema:"register_number"`
+	DocNumber              *string         `json:"doc_number" schema:"doc_number"`
 	Region                 Region          `json:"region" gorm:"foreignkey:id_region"`
 	IdRegion               uint            `json:"id_region" schema:"id_region"`
 	Subject                Subject         `json:"subject" gorm:"foreignkey:id_subject"`
@@ -106,7 +112,9 @@ type Ege struct {
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Created                time.Time       `json:"created"` // Дата создания
 	PathFile               *string         `json:"path_file" schema:"file"`
-	IdOrganization         uint            `json:"id_organization"`
+	IdOrganization         *uint           `json:"id_organization"`
+	UidEpgu                *string         `json:"uid_epgu"`
+	Changed                *time.Time      `json:"changed"` // Дата создания
 }
 type Educations struct {
 	Id                     uint                   `json:"id" schema:"id"` // Идентификатор
@@ -117,11 +125,11 @@ type Educations struct {
 	DocumentType           DocumentTypes          `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType         uint                   `json:"id_document_type" schema:"id_document_type"`
 	DocName                string                 `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string                 `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string                `json:"doc_org" schema:"doc_org"`
 	Uid                    *string                `json:"uid" schema:"uid"`
 	DocSeries              string                 `json:"doc_series" schema:"doc_series"`
 	DocNumber              string                 `json:"doc_number" schema:"doc_number"`
-	RegisterNumber         string                 `json:"register_number" schema:"register_number"`
+	RegisterNumber         *string                `json:"register_number" schema:"register_number"`
 	Direction              Direction              `json:"direction" gorm:"foreignkey:id_direction"`
 	IdDirection            *uint                  `json:"id_direction" schema:"id_direction"`
 	EducationLevel         DocumentEducationLevel `json:"education_level" gorm:"foreignkey:id_education_level"`
@@ -130,7 +138,9 @@ type Educations struct {
 	Created                time.Time              `json:"created"` // Дата создания
 	Checked                bool                   `json:"checked"`
 	PathFile               *string                `json:"path_file" schema:"file"`
-	IdOrganization         uint                   `json:"id_organization"`
+	IdOrganization         *uint                  `json:"id_organization"`
+	UidEpgu                *string                `json:"uid_epgu"`
+	Changed                *time.Time             `json:"changed"` // Дата создания
 }
 type General struct {
 	Id                     uint            `json:"id" schema:"id"` // Идентификатор
@@ -155,18 +165,20 @@ type Identifications struct {
 	Surname         string        `json:"surname" schema:"surname"`
 	Name            string        `json:"name" schema:"name"`
 	Uid             *string       `json:"uid" schema:"uid"`
-	Patronymic      string        `json:"patronymic" schema:"patronymic"`
-	DocSeries       string        `json:"doc_series" schema:"doc_series"`
+	Patronymic      *string       `json:"patronymic" schema:"patronymic"`
+	DocSeries       *string       `json:"doc_series" schema:"doc_series"`
 	DocNumber       string        `json:"doc_number" schema:"doc_number"`
 	DocOrganization string        `json:"doc_organization" schema:"doc_organization"`
 	IssueDate       time.Time     `gorm:"type:time" json:"issue_date" schema:"issue_date"`
-	SubdivisionCode string        `json:"subdivision_code" schema:"subdivision_code"`
+	SubdivisionCode *string       `json:"subdivision_code" schema:"subdivision_code"`
 	Okcm            Okcm          `json:"okcm" gorm:"foreignkey:id_okcm"`
 	IdOkcm          uint          `json:"id_okcm" schema:"id_okcm"`
 	Checked         bool          `json:"checked"`
 	Created         time.Time     `json:"created"` // Дата создания
 	PathFile        *string       `json:"path_file" schema:"file"`
-	IdOrganization  uint          `json:"id_organization"`
+	IdOrganization  *uint         `json:"id_organization"`
+	UidEpgu         *string       `json:"uid_epgu"`
+	Changed         *time.Time    `json:"changed"` // Дата создания
 }
 type Militaries struct {
 	Id                     uint               `json:"id" schema:"id"` // Идентификатор
@@ -177,17 +189,19 @@ type Militaries struct {
 	DocumentIdentification Identifications    `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint               `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string             `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string             `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string            `json:"doc_org" schema:"doc_org"`
 	Uid                    *string            `json:"uid" schema:"uid"`
-	DocNumber              string             `json:"doc_number" schema:"doc_number"`
-	DocSeries              string             `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string            `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string            `json:"doc_series" schema:"doc_series"`
 	Checked                bool               `json:"checked"`
 	IssueDate              time.Time          `json:"issue_date" schema:"issue_date"`
 	MilitaryCategories     MilitaryCategories `json:"military_categories" gorm:"foreignkey:id_category"`
 	IdCategory             uint               `json:"id_category" schema:"id_category"`
 	Created                time.Time          `json:"created"` // Дата создания
 	PathFile               *string            `json:"path_file" schema:"file"`
-	IdOrganization         uint               `json:"id_organization"`
+	IdOrganization         *uint              `json:"id_organization"`
+	UidEpgu                *string            `json:"uid_epgu"`
+	Changed                *time.Time         `json:"changed"` // Дата создания
 }
 type OlympicsDocs struct {
 	Id                     uint            `json:"id" schema:"id"` // Идентификатор
@@ -198,17 +212,19 @@ type OlympicsDocs struct {
 	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string          `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string         `json:"doc_org" schema:"doc_org"`
 	Uid                    *string         `json:"uid" schema:"uid"`
-	DocNumber              string          `json:"doc_number" schema:"doc_number"`
-	DocSeries              string          `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string         `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string         `json:"doc_series" schema:"doc_series"`
 	Checked                bool            `json:"checked"`
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Olympics               Olympics        `json:"olympics" gorm:"foreignkey:id_olympic"`
 	IdOlympic              uint            `json:"id_olympic" schema:"id_olympic"`
 	Created                time.Time       `json:"created"` // Дата создания
 	PathFile               *string         `json:"path_file" schema:"file"`
-	IdOrganization         uint            `json:"id_organization"`
+	IdOrganization         *uint           `json:"id_organization"`
+	UidEpgu                *string         `json:"uid_epgu"`
+	Changed                *time.Time      `json:"changed"` // Дата создания
 }
 type Orphans struct {
 	Id                     uint             `json:"id" schema:"id"` // Идентификатор
@@ -219,17 +235,19 @@ type Orphans struct {
 	DocumentIdentification Identifications  `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint             `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string           `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string           `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string          `json:"doc_org" schema:"doc_org"`
 	Uid                    *string          `json:"uid" schema:"uid"`
-	DocNumber              string           `json:"doc_number" schema:"doc_number"`
-	DocSeries              string           `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string          `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string          `json:"doc_series" schema:"doc_series"`
 	Checked                bool             `json:"checked"`
 	IssueDate              time.Time        `json:"issue_date" schema:"issue_date"`
 	OrphanCategories       OrphanCategories `json:"olympics" gorm:"foreignkey:id_category"`
 	IdCategory             uint             `json:"id_category" schema:"id_category"`
 	Created                time.Time        `json:"created"` // Дата создания
 	PathFile               *string          `json:"path_file" schema:"file"`
-	IdOrganization         uint             `json:"id_organization"`
+	IdOrganization         *uint            `json:"id_organization"`
+	UidEpgu                *string          `json:"uid_epgu"`
+	Changed                *time.Time       `json:"changed"` // Дата создания
 }
 type Other struct {
 	Id                     uint            `json:"id" schema:"id"` // Идентификатор
@@ -240,15 +258,17 @@ type Other struct {
 	DocumentIdentification Identifications `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint            `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string          `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string          `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string         `json:"doc_org" schema:"doc_org"`
 	Uid                    *string         `json:"uid" schema:"uid"`
-	DocNumber              string          `json:"doc_number" schema:"doc_number"`
-	DocSeries              string          `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string         `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string         `json:"doc_series" schema:"doc_series"`
 	Checked                bool            `json:"checked"`
 	IssueDate              time.Time       `json:"issue_date" schema:"issue_date"`
 	Created                time.Time       `json:"created"` // Дата создания
 	PathFile               *string         `json:"path_file" schema:"file"`
-	IdOrganization         uint            `json:"id_organization"`
+	IdOrganization         *uint           `json:"id_organization"`
+	UidEpgu                *string         `json:"uid_epgu"`
+	Changed                *time.Time      `json:"changed"` // Дата создания
 }
 type ParentsLost struct {
 	Id                     uint                  `json:"id" schema:"id"` // Идентификатор
@@ -259,17 +279,19 @@ type ParentsLost struct {
 	DocumentIdentification Identifications       `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint                  `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string                `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string                `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string               `json:"doc_org" schema:"doc_org"`
 	Uid                    *string               `json:"uid" schema:"uid"`
-	DocNumber              string                `json:"doc_number" schema:"doc_number"`
-	DocSeries              string                `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string               `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string               `json:"doc_series" schema:"doc_series"`
 	Checked                bool                  `json:"checked"`
 	IssueDate              time.Time             `json:"issue_date" schema:"issue_date"`
 	ParentsLostCategory    ParentsLostCategories `json:"parents_lost_category" gorm:"foreignkey:id_category"`
 	IdCategory             uint                  `json:"id_category" schema:"id_category"`
 	Created                time.Time             `json:"created"` // Дата создания
 	PathFile               *string               `json:"path_file" schema:"file"`
-	IdOrganization         uint                  `json:"id_organization"`
+	IdOrganization         *uint                 `json:"id_organization"`
+	UidEpgu                *string               `json:"uid_epgu"`
+	Changed                *time.Time            `json:"changed"` // Дата создания
 }
 type RadiationWork struct {
 	Id                     uint                    `json:"id" schema:"id"` // Идентификатор
@@ -280,17 +302,19 @@ type RadiationWork struct {
 	DocumentIdentification Identifications         `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint                    `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string                  `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string                  `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string                 `json:"doc_org" schema:"doc_org"`
 	Uid                    *string                 `json:"uid" schema:"uid"`
-	DocNumber              string                  `json:"doc_number" schema:"doc_number"`
-	DocSeries              string                  `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string                 `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string                 `json:"doc_series" schema:"doc_series"`
 	Checked                bool                    `json:"checked"`
 	IssueDate              time.Time               `json:"issue_date" schema:"issue_date"`
 	RadiationWorkCategory  RadiationWorkCategories `json:"radiation_work_category" gorm:"foreignkey:id_category"`
 	IdCategory             uint                    `json:"id_category" schema:"id_category"`
 	Created                time.Time               `json:"created"` // Дата создания
 	PathFile               *string                 `json:"path_file" schema:"file"`
-	IdOrganization         uint                    `json:"id_organization"`
+	IdOrganization         *uint                   `json:"id_organization"`
+	UidEpgu                *string                 `json:"uid_epgu"`
+	Changed                *time.Time              `json:"changed"` // Дата создания
 }
 type Veteran struct {
 	Id                     uint              `json:"id" schema:"id"` // Идентификатор
@@ -301,17 +325,19 @@ type Veteran struct {
 	DocumentIdentification Identifications   `json:"document_identification" gorm:"foreignkey:id_ident_document"`
 	IdIdentDocument        uint              `json:"id_ident_document" schema:"id_ident_document"`
 	DocName                string            `json:"doc_name" schema:"doc_name"`
-	DocOrg                 string            `json:"doc_org" schema:"doc_org"`
+	DocOrg                 *string           `json:"doc_org" schema:"doc_org"`
 	Uid                    *string           `json:"uid" schema:"uid"`
-	DocNumber              string            `json:"doc_number" schema:"doc_number"`
-	DocSeries              string            `json:"doc_series" schema:"doc_series"`
+	DocNumber              *string           `json:"doc_number" schema:"doc_number"`
+	DocSeries              *string           `json:"doc_series" schema:"doc_series"`
 	Checked                bool              `json:"checked"`
 	IssueDate              time.Time         `json:"issue_date" schema:"issue_date"`
 	VeteranCategory        VeteranCategories `json:"veteran_category" gorm:"foreignkey:id_category"`
 	IdCategory             uint              `json:"id_category" schema:"id_category"`
 	Created                time.Time         `json:"created"` // Дата создания
 	PathFile               *string           `json:"path_file" schema:"file"`
-	IdOrganization         uint              `json:"id_organization"`
+	IdOrganization         *uint             `json:"id_organization"`
+	UidEpgu                *string           `json:"uid_epgu"`
+	Changed                *time.Time        `json:"changed"` // Дата создания
 }
 
 type VDocuments struct {
@@ -333,6 +359,7 @@ type VDocuments struct {
 	DocumentType      DocumentTypes `json:"document_type" gorm:"foreignkey:id_document_type"`
 	IdDocumentType    uint          `json:"id_document_type"`
 	IdOrganization    *uint         `json:"id_organization"`
+	Changed           *time.Time    `json:"changed"`                    // Дата создания
 	Created           time.Time     `json:"created"`                    // Дата создания
 	PathFile          *string       `json:"path_file" schema:"file"`    // Дата создания
 	DocName           *string       `json:"doc_name" schema:"doc_name"` // Дата создания

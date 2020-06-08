@@ -154,7 +154,6 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
 	// удаление кцп с уровнями бюджета
@@ -259,5 +258,4 @@ func AddAdmissionHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-
 }
