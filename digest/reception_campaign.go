@@ -1,6 +1,8 @@
 package digest
 
 import (
+	"errors"
+	"persons/config"
 	"time"
 )
 
@@ -74,6 +76,23 @@ type CampaignEducLevel struct {
 	IdCampaign       uint
 	IdEducationLevel uint
 	IdOrganization   uint
+}
+
+func GetCampaign(id uint) (*Campaign, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var item Campaign
+	db := conn.Find(&item, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Приемная компания не найдена. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if item.Id <= 0 {
+		return nil, errors.New(`Приемная компания не найдена. `)
+	}
+	return &item, nil
 }
 
 // TableNames

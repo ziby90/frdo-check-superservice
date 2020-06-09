@@ -229,4 +229,33 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// меняем статус приемной компании POST
+	r.HandleFunc("/campaign/{id:[0-9]+}/status/set", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.User = *handlers.CheckAuthCookie(r)
+		var cmp handlers.ChangeStatusCampaign
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err == nil {
+				cmp.IdCampaign = uint(id)
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					res.SetStatusCampaign(cmp)
+				} else {
+					message := err.Error()
+					res.Message = &message
+				}
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 }

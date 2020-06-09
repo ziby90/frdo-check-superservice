@@ -356,7 +356,7 @@ func (result *ResultInfo) EditAchievement(data AchievementMain) {
 		tx.Rollback()
 		return
 	}
-	err := CheckEditAchievements(achievement.Id)
+	err := CheckEditAchievements(achievement.IdCampaign)
 	if err != nil {
 		result.SetErrorResult(err.Error())
 		tx.Rollback()
@@ -409,17 +409,16 @@ func (result *ResultInfo) RemoveAchievement(idAchievement uint) {
 	}()
 	conn.LogMode(config.Conf.Dblog)
 
-	err := CheckEditAchievements(idAchievement)
-	if err != nil {
-		result.SetErrorResult(err.Error())
-		tx.Rollback()
-		return
-	}
-
 	var old digest.IndividualAchievements
 	db := tx.Find(&old, idAchievement)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Индивидуальное достижение не найдено`)
+		tx.Rollback()
+		return
+	}
+	err := CheckEditAchievements(old.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}

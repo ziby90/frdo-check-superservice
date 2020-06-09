@@ -32,6 +32,7 @@ type CompetitiveGroup struct {
 	TargetZ           int64        `json:"target_z,omitempty"`
 	Created           time.Time    `json:"created"`
 	Changed           *time.Time   `json:"changed"`
+	Comment           *string      `json:"comment"`
 	IdAuthor          uint         `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
 	Actual            bool         `json:"actual"`
 	Organization      Organization `gorm:"foreignkey:IdOrganization"`

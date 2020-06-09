@@ -39,8 +39,9 @@ type AdmissionVolume struct {
 	IdGroups           uint           `json:"id_groups" gorm:"-"`
 	CodeGroups         string         `json:"code_groups" gorm:"-"`
 	NameGroups         string         `json:"name_groups" gorm:"-"`
-	Distributed        bool           `json:"distributed" gorm:"-"`
+	HasDistributed     bool           `json:"has_distributed" gorm:"-"`
 	SumDistributed     int64          `json:"sum_distributed" gorm:"-"`
+	SumCompetitive     int64          `json:"sum_competitive" gorm:"-"`
 }
 
 type DistributedAdmissionVolume struct {

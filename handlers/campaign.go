@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -14,9 +16,9 @@ type CampaignMain struct {
 	UID                 *string   `json:"uid"`  // Идентификатор от организации
 	Name                string    `json:"name"` // Наименование
 	IdCampaignType      uint      `json:"id_campaign_type"`
-	NameCampaignType    string    `json:"campaign_type_name"`
+	NameCampaignType    string    `json:"name_campaign_type"`
 	IdCampaignStatus    uint      `json:"id_campaign_status"`
-	NameCampaignStatus  string    `json:"campaign_status_name"`
+	NameCampaignStatus  string    `json:"name_campaign_status"`
 	EducationForms      []uint    `json:"education_forms"`
 	EducationFormsName  []string  `json:"education_forms_names"`
 	EducationLevels     []uint    `json:"education_levels"`
@@ -43,6 +45,13 @@ type AddEndData struct {
 	IdEducationLevel uint      `json:"id_education_level"`
 	IdEducationForm  uint      `json:"id_education_form"`
 	EndDate          time.Time `json:"end_date"`
+}
+type ChangeStatusCampaign struct {
+	Campaign         digest.Campaign       `gorm:"foreignkey:IdCampaign"`
+	IdCampaign       uint                  `json:"id_campaign"`
+	CampaignStatus   digest.CampaignStatus `gorm:"foreignkey:IdCampaignStatus"`
+	IdCampaignStatus *uint                 `json:"id_campaign_status"`
+	CodeStatus       string                `json:"code"`
 }
 
 var CampaignSearchArray = []string{
@@ -273,29 +282,43 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		var campEducLevels []digest.CampaignEducLevel
 		db = conn.Where(`id_campaign=?`, campaign.Id).Find(&campEducLevels)
 
-		c := CampaignMain{
-			Id:                 campaign.Id,
-			UID:                campaign.Uid,
-			Name:               campaign.Name,
-			IdCampaignType:     campaign.CampaignType.Id,
-			NameCampaignType:   campaign.CampaignType.Name,
-			IdCampaignStatus:   campaign.CampaignStatus.Id,
-			NameCampaignStatus: campaign.CampaignStatus.Name,
-			YearStart:          campaign.YearStart,
-			YearEnd:            campaign.YearEnd,
-			Created:            campaign.Created,
+		c := map[string]interface{}{
+			`id`:                   campaign.Id,
+			`uid`:                  campaign.Uid,
+			`name`:                 campaign.Name,
+			`id_campaign_type`:     campaign.CampaignType.Id,
+			`name_campaign_type`:   campaign.CampaignType.Name,
+			`id_campaign_status`:   campaign.CampaignStatus.Id,
+			`name_campaign_status`: campaign.CampaignStatus.Name,
+			`code_campaign_status`: campaign.CampaignStatus.Code,
+			`year_start`:           campaign.YearStart,
+			`year_end`:             campaign.YearEnd,
+			`created`:              campaign.Created,
 		}
+		var educationForms []uint
+		var educationFormsName []string
 		for _, campEducForm := range campEducForms {
 			var educForm digest.EducationForm
 			db = conn.Find(&educForm, campEducForm.IdEducationForm)
-			c.EducationForms = append(c.EducationForms, educForm.Id)
-			c.EducationFormsName = append(c.EducationFormsName, educForm.Name)
+			educationForms = append(educationForms, educForm.Id)
+			educationFormsName = append(educationFormsName, educForm.Name)
 		}
+		if len(educationForms) > 0 {
+			c[`education_forms`] = educationForms
+			c[`education_forms_names`] = educationFormsName
+		}
+
+		var educationLevels []uint
+		var educationLevelsName []string
 		for _, campEducLevel := range campEducLevels {
 			var educLevel digest.EducationLevel
 			db = conn.Find(&educLevel, campEducLevel.IdEducationLevel)
-			c.EducationLevels = append(c.EducationLevels, educLevel.Id)
-			c.EducationLevelsName = append(c.EducationLevelsName, educLevel.Name)
+			educationLevels = append(educationLevels, educLevel.Id)
+			educationLevelsName = append(educationLevelsName, educLevel.Name)
+		}
+		if len(educationLevels) > 0 {
+			c[`education_levels`] = educationLevels
+			c[`education_levels_names`] = educationLevelsName
 		}
 		result.Done = true
 		result.Items = c
@@ -549,7 +572,102 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 	return
 
 }
+func (result *ResultInfo) SetStatusCampaign(data ChangeStatusCampaign) {
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	if data.CodeStatus == `` {
+		result.SetErrorResult(`Пустой статус`)
+		tx.Rollback()
+		return
+	}
+	status, err := GetCampaignStatusByCode(data.CodeStatus)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	campaign, err := digest.GetCampaign(data.IdCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 
+	if campaign.IdCampaignStatus == status.Id {
+		result.SetErrorResult(`Приемная компания уже в этом статусе`)
+		tx.Rollback()
+		return
+	}
+	campaign.IdCampaignStatus = status.Id
+	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&campaign)
+	if db.Error != nil {
+		result.SetErrorResult(`Ошибка при изменении статуса применой компании ` + db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	//if campaign.campaign != nil {
+	//	sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
+	//	err = sendToEpgu.PrepareSendStatementResponse(*campaign.UidEpgu, sendToEpgu.NewApplication)
+	//	fmt.Println(err)
+	//}
+	result.Items = map[string]interface{}{
+		`id_campaign`: campaign.Id,
+		`new_status`:  campaign.IdCampaignStatus,
+	}
+	result.Done = true
+	tx.Commit()
+	return
+}
+func (result *ResultInfo) GetCampaignStatuses(keys map[string][]string) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var db *gorm.DB
+	var statuses []digest.CampaignStatus
+	//db = conn.Select(`id, name`).Table(`cls.v_direction_specialty`)
+	db = conn.Where(`actual`)
+	if len(keys[`search`]) > 0 {
+		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(keys[`search`][0])+`%`)
+	}
+
+	db = db.Find(&statuses)
+	if db.Error != nil {
+		message := db.Error.Error()
+		result.Message = &message
+		return
+	}
+	var response []interface{}
+	for index, _ := range statuses {
+		response = append(response, map[string]interface{}{
+			"id":   statuses[index].Id,
+			"name": statuses[index].Name,
+			"code": statuses[index].Code,
+		})
+	}
+	result.Done = true
+	result.Items = response
+	return
+}
+func GetCampaignStatusByCode(code string) (*digest.CampaignStatus, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var item digest.CampaignStatus
+	db := conn.Where(`code=?`, code).Find(&item)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Статус не найден. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if item.Id <= 0 {
+		return nil, errors.New(`Статус не найден. `)
+	}
+	return &item, nil
+}
 func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()

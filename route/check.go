@@ -1,6 +1,7 @@
 package route
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"persons/handlers"
@@ -68,6 +69,7 @@ func AddChecksHandler(r *mux.Router) {
 			res.Items = map[string]interface{}{
 				`can`: can,
 			}
+			res.Done = true
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
@@ -111,6 +113,7 @@ func AddChecksHandler(r *mux.Router) {
 			res.Items = map[string]interface{}{
 				`can`: can,
 			}
+			res.Done = true
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
@@ -206,7 +209,7 @@ func AddChecksHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// можно ли редактировать достижение
-	r.HandleFunc("/achievements/{id:[0-9]+}/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/campaign/{id:[0-9]+}/achievements/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		vars := mux.Vars(r)
 		res.User = *handlers.CheckAuthCookie(r)
@@ -221,6 +224,38 @@ func AddChecksHandler(r *mux.Router) {
 				`can`: can,
 			}
 			res.Done = true
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// цифра в кг
+	r.HandleFunc("/competitive/{id:[0-9]+}/number/{number:[0-9]+}/check", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			number, err := strconv.ParseInt(vars[`number`], 10, 32)
+			if err == nil {
+				can := false
+				err = handlers.CheckNumberCompetitiveById(uint(id), number)
+				if err == nil {
+					can = true
+				}
+				res.Items = map[string]interface{}{
+					`can`:   can,
+					`error`: err,
+				}
+				res.Done = true
+				fmt.Println(fmt.Sprintf(`can : %v`, can))
+				fmt.Println(fmt.Sprintf(`done : %v`, res.Done))
+			} else {
+				message := `Неверный параметр number.`
+				res.Message = &message
+			}
+
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message

@@ -302,7 +302,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 				`id_campaign`:          admission.IdCampaign,
 				`id_education_level`:   admission.IdEducationLevel,
 				`name_education_level`: admission.NameEducationLevel,
-				`distributed`:          admission.Distributed,
+				`has_distributed`:      admission.HasDistributed,
 				`id_specialty`:         admission.IdDirection,
 				`code_specialty`:       admission.CodeSpecialty,
 				`name_specialty`:       admission.NameSpecialty,
@@ -322,6 +322,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 				`target_oz`:            admission.TargetOz,
 				`target_z`:             admission.TargetZ,
 				`sum_distributed`:      admission.SumDistributed,
+				`sum_competitive`:      admission.SumCompetitive,
 			}
 
 			groupSpecialty.Count++
@@ -414,7 +415,9 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 			`id_campaign`:          admission.IdCampaign,
 			`id_education_level`:   admission.IdEducationLevel,
 			`name_education_level`: admission.NameEducationLevel,
-			`distributed`:          admission.Distributed,
+			`has_distributed`:      admission.HasDistributed,
+			`sum_distributed`:      admission.SumDistributed,
+			`sum_competitive`:      admission.SumCompetitive,
 			`id_specialty`:         admission.IdDirection,
 			`code_specialty`:       admission.CodeSpecialty,
 			`name_specialty`:       admission.NameSpecialty,
@@ -441,6 +444,13 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 		if len(distributed) > 0 {
 			for index, _ := range distributed {
 				distr := distributed[index]
+				type SumCompetitive struct {
+					Sum int64 `json:"sum"`
+				}
+				var sumCompetitive SumCompetitive
+				conn.Raw(`SELECT (sum(cg.budget_o) + sum(cg.budget_oz) + sum(cg.budget_z) + sum(cg.target_o) + sum(cg.target_oz) + sum(cg.target_z) + sum(cg.quota_o) + sum(cg.quota_oz) + sum(cg.quota_z)) as sum
+           FROM cmp.competitive_groups cg
+          WHERE cg.id_campaign = ? AND cg.id_direction = ? AND cg.id_level_budget=?`, admission.IdCampaign, admission.IdDirection, distr.IdLevelBudget).Scan(&sumCompetitive)
 				distrs = append(distrs, map[string]interface{}{
 					`id`:                   distr.Id,
 					`id_admission_volume`:  distr.AdmissionVolumeId,
@@ -460,9 +470,10 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 					//`paid_o`:               distr.PaidO,
 					//`paid_oz`:              distr.PaidOz,
 					//`paid_z`:               distr.PaidZ,
-					`target_o`:  distr.TargetO,
-					`target_oz`: distr.TargetOz,
-					`target_z`:  distr.TargetZ,
+					`target_o`:        distr.TargetO,
+					`target_oz`:       distr.TargetOz,
+					`target_z`:        distr.TargetZ,
+					`sum_competitive`: sumCompetitive.Sum,
 				})
 			}
 			response[`distributed`] = distrs
@@ -572,7 +583,7 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 		tx.Rollback()
 		return
 	}
-	err := CheckAddAdmission(admission.IdCampaign)
+	err := CheckEditAdmission(admission.IdCampaign)
 	if err != nil {
 		result.SetErrorResult(err.Error())
 		tx.Rollback()
@@ -807,9 +818,11 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
 	if db.Error == nil {
 		tx.Commit()
+		conn.Find(&admission, data.IdAdmissionVolume)
 		result.Done = true
 		result.Items = map[string]interface{}{
 			`id_edit_level_budget`: new.Id,
+			`sum_distributed`:      admission.SumDistributed,
 		}
 		return
 	} else {
@@ -963,6 +976,7 @@ func (result *ResultInfo) GetLevelBudgetAdmission(ID uint) {
 	var idsLevelsBudget []uint
 	db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=?`, ID).Pluck("id_level_budget", &idsLevelsBudget)
 	if db.Error == nil {
+
 		result.Done = true
 		result.Items = idsLevelsBudget
 	} else {

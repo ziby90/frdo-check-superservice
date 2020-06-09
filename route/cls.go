@@ -39,6 +39,13 @@ func AddClsHandler(r *mux.Router) {
 		res.GetApplicationStatuses(keys)
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// и отдельно список статусов заявлений с кодами
+	r.HandleFunc("/cls/cmpstatuses/short", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		keys := r.URL.Query()
+		res.GetCampaignStatuses(keys)
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 
 	//r.HandleFunc("/cls/score/{id_subject:[0-9]+}/{year:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 	//	var res handlers.ResultCls

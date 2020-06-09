@@ -27,6 +27,7 @@ type CompetitiveGroup struct {
 	Campaign          digest.Campaign        `gorm:"foreignkey:IdCampaign" json:"-"`
 	IdCampaign        uint                   `json:"id_campaign"`
 	Number            *int64                 `json:"number"`
+	Comment           *string                `json:"comment"`
 }
 
 type DirectionCompetitiveGroups struct {
@@ -114,6 +115,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 				`uid`:                   competitveGroup.UID,
 				`id_organization`:       competitveGroup.IdOrganization,
 				`created`:               competitveGroup.Created,
+				`comment`:               competitveGroup.Comment,
 			}
 			responses = append(responses, c)
 		}
@@ -458,6 +460,12 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 		tx.Rollback()
 		return
 	}
+	err = CheckNumberCompetitive(data.CompetitiveGroup, *number)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
 
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&competitive)
 	var idsPrograms []uint
@@ -728,8 +736,19 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 			tx.Rollback()
 			return
 		}
+		err = CheckNumberCompetitive(data, *number)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
 	}
 
+	if data.Comment != nil && strings.TrimSpace(*data.Comment) != `` {
+		competitive.Comment = data.Comment
+	} else {
+		competitive.Comment = nil
+	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
@@ -989,6 +1008,7 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 			"id_level_budget":       competitive.LevelBudget.Id,
 			"name_level_budget":     competitive.LevelBudget.Name,
 			"number":                number,
+			`comment`:               competitive.Comment,
 		}
 		//for _, campEducLevel := range campEducLevels {
 		//	var educLevel digest.EducationLevel

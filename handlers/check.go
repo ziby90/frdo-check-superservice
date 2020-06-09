@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"persons/config"
 	"persons/digest"
 )
@@ -74,17 +75,11 @@ func CheckApplicationByUser(idApplication uint, user digest.User) error {
 		return errors.New(`У пользователя нет доступа к данному заявлению `)
 	}
 }
-
-func CheckEditAchievements(idAchievement uint) error {
+func CheckEditAchievements(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	var achievement digest.IndividualAchievements
-	conn.Where(`id=? AND actual`, idAchievement).Find(&achievement)
-	if achievement.Id <= 0 {
-		return errors.New(`Достижение не найдено `)
-	}
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, achievement.IdCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -195,7 +190,7 @@ func CheckEditCompetitiveGroup(idCompetitive uint) error {
 	}
 
 	var applications []digest.Application
-	conn.Where(`id_competitive_groups=? `, idCompetitive).Find(&applications)
+	conn.Where(`id_competitive_group=? `, idCompetitive).Find(&applications)
 	if len(applications) > 0 {
 		return errors.New(`Найдены заявления с данной конкурсной группой. Редактирование невозможно `)
 	}
@@ -249,6 +244,272 @@ func CheckAddRemoveCompetitive(idCampaign uint) error {
 	}
 	if campaign.IdCampaignStatus != 1 { // 1 - Статус набор не начался
 		return errors.New(`Редактирование возможно только в статусе набор не начался. `)
+	}
+	return nil
+}
+func CheckNumberCompetitive(competitive CompetitiveGroup, number int64) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var admission digest.AdmissionVolume
+	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=?`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
+	if admission.Id <= 0 {
+		if number == 0 {
+			return nil
+		} else {
+			return errors.New(`Пока не создано КЦП максимальное количество мест - 0 `)
+		}
+	}
+	var distributed digest.DistributedAdmissionVolume
+	conn.Where(`id_admission_volume=? AND id_level_budget=?`, admission.Id, competitive.IdLevelBudget).Find(&distributed)
+	if distributed.Id <= 0 && competitive.IdEducationSource != 3 { // 3 - платка
+		if number == 0 {
+			return nil
+		} else {
+			return errors.New(`Пока не создано КЦП максимальное количество мест - 0 `)
+		}
+	}
+	numField := ``
+	var admNumber int64
+	switch competitive.IdEducationSource {
+	case 1: // Бюджетные места
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `budget_o`
+			admNumber = distributed.BudgetO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `budget_oz`
+			admNumber = distributed.BudgetOz
+			break
+		case 3: // Заочная
+			numField = `budget_z`
+			admNumber = distributed.BudgetZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 2: // Квота приема лиц, имеющих особое право
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `quota_o`
+			admNumber = distributed.QuotaO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `quota_oz`
+			admNumber = distributed.QuotaOz
+			break
+		case 3: // Заочная
+			numField = `quota_z`
+			admNumber = distributed.QuotaZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 3: // С оплатой обучения
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `paid_o`
+			admNumber = admission.PaidO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `paid_oz`
+			admNumber = admission.PaidOz
+			break
+		case 3: // Заочная
+			numField = `paid_z`
+			admNumber = admission.PaidZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 4: // Целевой прием
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `target_o`
+			admNumber = distributed.TargetO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `target_oz`
+			admNumber = distributed.TargetOz
+			break
+		case 3: // Заочная
+			numField = `target_z`
+			admNumber = distributed.TargetZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	default:
+		return errors.New(`Ошибка `)
+	}
+	var sumNumber struct {
+		Sum int64
+	}
+	db := conn.Raw(`SELECT sum(`+numField+`) 
+					FROM cmp.competitive_groups 
+					WHERE id!=? AND id_education_level=? 
+					AND id_education_form=? AND id_education_source=? AND id_level_budget=?
+					AND id_campaign=?`, competitive.Id, competitive.IdEducationLevel, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign).Scan(&sumNumber)
+	if db.Error != nil {
+		return db.Error
+	}
+	fmt.Println(`***********************************`)
+	fmt.Println(numField)
+	fmt.Println(`admNumber`, admNumber)
+	fmt.Println(`sumNumber`, sumNumber.Sum)
+	fmt.Println(`number`, number)
+
+	if sumNumber.Sum+number > admNumber {
+		m := ``
+		if competitive.IdEducationSource != 3 {
+			m = fmt.Sprintf(`Максимальное количество мест в данном уровне бюджета: %v. Из них распределено по конкурсам: %v. Осталось мест: %v`, admNumber, sumNumber.Sum, admNumber-sumNumber.Sum)
+		} else {
+			m = fmt.Sprintf(`Максимальное количество мест КЦП: %v. Из них распределено по конкурсам: %v. Осталось мест: %v`, admNumber, sumNumber.Sum, admNumber-sumNumber.Sum)
+		}
+
+		fmt.Println(m)
+		return errors.New(m)
+	}
+	return nil
+}
+func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitive digest.CompetitiveGroup
+	conn.Where(`id=? AND actual`, idCompetitive).Find(&competitive)
+	if competitive.Id <= 0 {
+		return errors.New(`КГ не найдены`)
+	}
+	//if competitive.IdEducationSource == 3 { // 3 - платка
+	//
+	//	return nil
+	//}
+	var admission digest.AdmissionVolume
+	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=?`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
+	if admission.Id <= 0 {
+		if number == 0 {
+			return nil
+		} else {
+			return errors.New(`Пока не создано КЦП максимальное количество мест - 0 `)
+		}
+	}
+	var distributed digest.DistributedAdmissionVolume
+	conn.Where(`id_admission_volume=? AND id_level_budget=?`, admission.Id, competitive.IdLevelBudget).Find(&distributed)
+	if distributed.Id <= 0 && competitive.IdEducationSource != 3 { // 3 - платка
+		if number == 0 {
+			return nil
+		} else {
+			return errors.New(`Пока не создано КЦП максимальное количество мест - 0 `)
+		}
+	}
+	numField := ``
+	var admNumber int64
+	switch competitive.IdEducationSource {
+	case 1: // Бюджетные места
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `budget_o`
+			admNumber = distributed.BudgetO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `budget_oz`
+			admNumber = distributed.BudgetOz
+			break
+		case 3: // Заочная
+			numField = `budget_z`
+			admNumber = distributed.BudgetZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 2: // Квота приема лиц, имеющих особое право
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `quota_o`
+			admNumber = distributed.QuotaO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `quota_oz`
+			admNumber = distributed.QuotaOz
+			break
+		case 3: // Заочная
+			numField = `quota_z`
+			admNumber = distributed.QuotaZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 3: // С оплатой обучения
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `paid_o`
+			admNumber = admission.PaidO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `paid_oz`
+			admNumber = admission.PaidOz
+			break
+		case 3: // Заочная
+			numField = `paid_z`
+			admNumber = admission.PaidZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	case 4: // Целевой прием
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			numField = `target_o`
+			admNumber = distributed.TargetO
+			break
+		case 2: // Очно-заочная(вечерняя)
+			numField = `target_oz`
+			admNumber = distributed.TargetOz
+			break
+		case 3: // Заочная
+			numField = `target_z`
+			admNumber = distributed.TargetZ
+			break
+		default:
+			return errors.New(`Ошибка `)
+		}
+		break
+	default:
+		return errors.New(`Ошибка `)
+	}
+	var sumNumber struct {
+		Sum int64
+	}
+	db := conn.Raw(`SELECT sum(`+numField+`) 
+					FROM cmp.competitive_groups 
+					WHERE id!=? AND id_education_level=? 
+					AND id_education_form=? AND id_education_source=? AND id_level_budget=?
+					AND id_campaign=?`, competitive.Id, competitive.IdEducationLevel, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign).Scan(&sumNumber)
+	if db.Error != nil {
+		return db.Error
+	}
+	fmt.Println(numField)
+	fmt.Println(`admNumber`, admNumber)
+	fmt.Println(`sumNumber`, sumNumber.Sum)
+	fmt.Println(`number`, number)
+
+	if sumNumber.Sum+number > admNumber {
+		m := ``
+		if competitive.IdEducationSource != 3 {
+			m = fmt.Sprintf(`Максимальное количество мест в данном уровне бюджета: %v. Из них распределено по конкурсам: %v. Осталось мест: %v`, admNumber, sumNumber.Sum, admNumber-sumNumber.Sum)
+		} else {
+			m = fmt.Sprintf(`Максимальное количество мест КЦП: %v. Из них распределено по конкурсам: %v. Осталось мест: %v`, admNumber, sumNumber.Sum, admNumber-sumNumber.Sum)
+		}
+
+		fmt.Println(m)
+		return errors.New(m)
 	}
 	return nil
 }
