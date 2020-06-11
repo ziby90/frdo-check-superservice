@@ -1357,17 +1357,17 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 		tx.Rollback()
 		return
 	}
-	if application.UidEpgu != nil {
-		sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
-		err = sendToEpgu.PrepareSendStatementResponse(*application.UidEpgu, sendToEpgu.NewApplication)
-		fmt.Println(err)
-	}
 	result.Items = map[string]interface{}{
 		`id_application`: application.Id,
 		`new_status`:     application.IdStatus,
 	}
 	result.Done = true
 	tx.Commit()
+	if application.UidEpgu != nil {
+		sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
+		err = sendToEpgu.PrepareSendStatementResponse(*application.UidEpgu, sendToEpgu.NewApplication)
+		fmt.Println(err)
+	}
 	return
 }
 func (result *ResultInfo) GetApplicationStatuses(keys map[string][]string) {

@@ -73,9 +73,6 @@ func CheckAuthCookie(r *http.Request) *digest.User {
 			}
 			return &user
 		}
-
 	}
-
 	return nil
-
 }

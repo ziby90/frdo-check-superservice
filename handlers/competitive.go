@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+var CompetitiveSearchArray = []string{
+	`name`,
+}
+
 type CompetitiveGroup struct {
 	Id                uint                   `gorm:"primary_key" json:"id"` // Идентификатор
 	UID               *string                `xml:"UID" json:"uid" `        // Идентификатор от организации
@@ -68,6 +72,11 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	} else {
 		db = conn.Order(`created asc `)
 	}
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
+			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
+	}
 	db = db.Where(`id_campaign=?`, campaignId)
 	//if result.Search != `` {
 	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
@@ -83,7 +92,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
-			message := `Достижения не найдены.`
+			message := `Конкурсы не найдены.`
 			result.Message = &message
 			return
 		}
@@ -124,7 +133,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 		return
 	} else {
 		result.Done = true
-		message := `Достижения не найдены.`
+		message := `Конкурсы не найдены.`
 		result.Message = &message
 		result.Items = []digest.CompetitiveGroup{}
 		return

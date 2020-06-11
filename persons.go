@@ -57,7 +57,6 @@ func main() {
 	// общие маршруты
 	routeAll := mux.NewRouter()
 	route.GetApiHandlerNoAuth(routeAll)
-
 	// маршруты с организацией выбранной и авторизацией
 	routeWithAuth := routeAll.PathPrefix(`/api`).Subrouter()
 	route.GetApiHandlerAuth(routeWithAuth)

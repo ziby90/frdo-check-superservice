@@ -30,10 +30,18 @@ func AddCampaignHandler(r *mux.Router) {
 		res := handlers.NewResult()
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.CompetitiveSearchArray)
+		res.User = *handlers.CheckAuthCookie(r)
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
-			res.GetListCompetitiveGroupsByCompanyId(uint(id))
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.GetListCompetitiveGroupsByCompanyId(uint(id))
+			}
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message

@@ -27,36 +27,7 @@ func AddDocsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-	// получаем файл у документа. кстати, рабоатет только на таблицу general
-	r.HandleFunc("/docs/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
-			res.GetFileDoc(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-		service.ReturnJSON(w, res)
-	}).Methods("GET")
-	// удаляем файл у документа. кстати, рабоатет только на таблицу general
-	r.HandleFunc("/docs/{id:[0-9]+}/file/remove", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
-			res.RemoveFileDoc(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-		service.ReturnJSON(w, res)
-	}).Methods("POST")
+
 	// добавление одного документа в профиль энтранта
 	r.HandleFunc("/entrants/{id_entrant:[0-9]+}/docs/{table_name}/add", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -540,6 +511,21 @@ func AddDocsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// получаем файл у документа. кстати, рабоатет только на таблицу general
+	r.HandleFunc("/docs/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
+			res.GetFileDoc(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 	// добавляем файл у документа. кстати, рабоатет только на таблицу general
 	r.HandleFunc("/docs/{id:[0-9]+}/file/add", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -565,6 +551,21 @@ func AddDocsHandler(r *mux.Router) {
 				f = nil
 			}
 			res.AddFileDoc(uint(id), f)
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// удаляем файл у документа. кстати, рабоатет только на таблицу general
+	r.HandleFunc("/docs/{id:[0-9]+}/file/remove", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
+			res.RemoveFileDoc(uint(id))
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message

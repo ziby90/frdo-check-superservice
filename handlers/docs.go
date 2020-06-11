@@ -3414,7 +3414,7 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 	}
 	if doc.PathFile != nil {
 		filename := *doc.PathFile
-		path := getPath(doc.EntrantsId, `documents.`+doc.NameTable, doc.Created) + `/` + filename
+		path := `./` + getPath(doc.EntrantsId, `documents.`+doc.NameTable, doc.Created) + filename
 		f, err := os.Open(path)
 		if err != nil {
 			result.SetErrorResult(err.Error())
