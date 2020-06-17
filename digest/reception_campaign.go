@@ -82,7 +82,7 @@ func GetCampaign(id uint) (*Campaign, error) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var item Campaign
-	db := conn.Find(&item, id)
+	db := conn.Where(`actual IS TRUE`).Find(&item, id)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			return nil, errors.New(`Приемная компания не найдена. `)

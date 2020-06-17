@@ -32,8 +32,8 @@ func AddChecksHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-	// можно ли редактировать контролльные даты
-	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/check/edit", func(w http.ResponseWriter, r *http.Request) {
+	// можно ли редактировать и обнулять контролльные даты
+	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		vars := mux.Vars(r)
 		res.User = *handlers.CheckAuthCookie(r)
@@ -99,14 +99,14 @@ func AddChecksHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// можно ли добавлять кцп
-	r.HandleFunc("/campaign/{id:[0-9]+}/competitive/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/campaign/{id:[0-9]+}/competitive/check/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		vars := mux.Vars(r)
 		res.User = *handlers.CheckAuthCookie(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
 			can := false
-			err = handlers.CheckAddAdmission(uint(id))
+			err = handlers.CheckAddCompetitive(uint(id))
 			if err == nil {
 				can = true
 			}
@@ -120,6 +120,28 @@ func AddChecksHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// можно ли удалять кцп
+	//r.HandleFunc("/competitive/{id:[0-9]+}/check/remove", func(w http.ResponseWriter, r *http.Request) {
+	//	var res handlers.ResultInfo
+	//	vars := mux.Vars(r)
+	//	res.User = *handlers.CheckAuthCookie(r)
+	//	id, err := strconv.ParseInt(vars[`id`], 10, 32)
+	//	if err == nil {
+	//		can := false
+	//		err = handlers.CheckRemoveCompetitive(uint(id))
+	//		if err == nil {
+	//			can = true
+	//		}
+	//		res.Items = map[string]interface{}{
+	//			`can`: can,
+	//		}
+	//		res.Done = true
+	//	} else {
+	//		message := `Неверный параметр id.`
+	//		res.Message = &message
+	//	}
+	//	service.ReturnJSON(w, res)
+	//}).Methods("GET")
 	// можно ли редактировать кг
 	r.HandleFunc("/competitive/{id:[0-9]+}/check/edit", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

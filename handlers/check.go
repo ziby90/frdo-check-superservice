@@ -14,7 +14,7 @@ func CheckCampaignByUser(idCampaign uint, user digest.User) error {
 	if user.Role.Code == `administrator` {
 		return nil
 	}
-	db := conn.Table(`cmp.campaigns`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idCampaign).Count(&count)
+	db := conn.Table(`cmp.campaigns`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idCampaign).Count(&count)
 	if db.Error != nil {
 		return db.Error
 	}
@@ -31,7 +31,7 @@ func CheckCompetitiveGroupByUser(idCompetitiveGroup uint, user digest.User) erro
 	if user.Role.Code == `administrator` {
 		return nil
 	}
-	db := conn.Table(`cmp.competitive_groups`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idCompetitiveGroup).Count(&count)
+	db := conn.Table(`cmp.competitive_groups`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idCompetitiveGroup).Count(&count)
 	if db.Error != nil {
 		return db.Error
 	}
@@ -48,7 +48,7 @@ func CheckAdmissionVolumeByUser(idAdmissionVolume uint, user digest.User) error 
 	if user.Role.Code == `administrator` {
 		return nil
 	}
-	db := conn.Table(`cmp.admission_volume`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idAdmissionVolume).Count(&count)
+	db := conn.Table(`cmp.admission_volume`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idAdmissionVolume).Count(&count)
 	if db.Error != nil {
 		return db.Error
 	}
@@ -65,7 +65,7 @@ func CheckApplicationByUser(idApplication uint, user digest.User) error {
 	if user.Role.Code == `administrator` {
 		return nil
 	}
-	db := conn.Table(`app.applications`).Select(`id`).Where(`id_organization=? AND id=?`, user.CurrentOrganization.Id, idApplication).Count(&count)
+	db := conn.Table(`app.applications`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idApplication).Count(&count)
 	if db.Error != nil {
 		return db.Error
 	}
@@ -79,7 +79,7 @@ func CheckEditAchievements(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true `, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -92,7 +92,7 @@ func CheckAddAchievements(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -105,7 +105,7 @@ func CheckEditAdmission(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -121,7 +121,7 @@ func CheckAddAdmission(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -134,7 +134,7 @@ func CheckEditCampaign(idCampaign uint) error {
 	var campaign digest.Campaign
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -142,17 +142,18 @@ func CheckEditCampaign(idCampaign uint) error {
 		return errors.New(`Редактирование возможно только в статусе набор не начался. `)
 	}
 	var endDate []digest.VEndApplication
-	conn.Where(`id=? AND id_app_accept_phase IS NULL AND end_date IS NOT NULL`, campaign.Id).Find(&endDate)
+	// дата подачи заявления
+	conn.Where(`id=? AND id_app_accept_phase IS NULL AND end_date IS NOT NULL `, campaign.Id).Find(&endDate)
 	if len(endDate) > 0 {
 		return errors.New(`Редактирование приемных компаний невозможно, когда проставлена дата окончания приема заявлений `)
 	}
 	var existAdmission []digest.AdmissionVolume
-	conn.Where(`id_campaign=?`, campaign.Id).Find(&existAdmission)
+	conn.Where(`id_campaign=? AND actual is true`, campaign.Id).Find(&existAdmission)
 	if len(existAdmission) > 0 {
 		return errors.New(`Редактирование приемных компаний невозможно, когда добавлены КЦП `)
 	}
 	var existCompetitive []digest.CompetitiveGroup
-	conn.Where(`id_campaign=?`, campaign.Id).Find(&existCompetitive)
+	conn.Where(`id_campaign=? AND actual is true`, campaign.Id).Find(&existCompetitive)
 	if len(existCompetitive) > 0 {
 		return errors.New(`Редактирование приемных компаний невозможно, когда добавлены конкусрные группы `)
 	}
@@ -162,7 +163,7 @@ func CheckEditEndDate(idCampaign uint) error {
 	var campaign digest.Campaign
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -176,12 +177,12 @@ func CheckEditCompetitiveGroup(idCompetitive uint) error {
 	conn.LogMode(config.Conf.Dblog)
 
 	var competitive digest.CompetitiveGroup
-	conn.Where(`id=? AND actual`, idCompetitive).Find(&competitive)
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
 	if competitive.Id <= 0 {
 		return errors.New(`Конкурсная группа не найдена `)
 	}
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, competitive.IdCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Компания конкурсной группы не найдена `)
 	}
@@ -190,7 +191,7 @@ func CheckEditCompetitiveGroup(idCompetitive uint) error {
 	}
 
 	var applications []digest.Application
-	conn.Where(`id_competitive_group=? `, idCompetitive).Find(&applications)
+	conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&applications)
 	if len(applications) > 0 {
 		return errors.New(`Найдены заявления с данной конкурсной группой. Редактирование невозможно `)
 	}
@@ -201,12 +202,12 @@ func CheckEditProgramsCompetitiveGroup(idCompetitive uint) error {
 	conn.LogMode(config.Conf.Dblog)
 
 	var competitive digest.CompetitiveGroup
-	conn.Where(`id=? AND actual`, idCompetitive).Find(&competitive)
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
 	if competitive.Id <= 0 {
 		return errors.New(`Конкурсная группа не найдена `)
 	}
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, competitive.IdCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Компания конкурсной группы не найдена `)
 	}
@@ -220,12 +221,12 @@ func CheckEditEntranceCompetitiveGroup(idCompetitive uint) error {
 	conn.LogMode(config.Conf.Dblog)
 
 	var competitive digest.CompetitiveGroup
-	conn.Where(`id=? AND actual`, idCompetitive).Find(&competitive)
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
 	if competitive.Id <= 0 {
 		return errors.New(`Конкурсная группа не найдена `)
 	}
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, competitive.IdCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Компания конкурсной группы не найдена `)
 	}
@@ -234,11 +235,11 @@ func CheckEditEntranceCompetitiveGroup(idCompetitive uint) error {
 	}
 	return nil
 }
-func CheckAddRemoveCompetitive(idCampaign uint) error {
+func CheckAddCompetitive(idCampaign uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	conn.Where(`id=? AND actual`, idCampaign).Find(&campaign)
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
 	if campaign.Id <= 0 {
 		return errors.New(`Приемная компания не найдена `)
 	}
@@ -247,11 +248,35 @@ func CheckAddRemoveCompetitive(idCampaign uint) error {
 	}
 	return nil
 }
+func CheckRemoveCompetitive(idCompetitive uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitive digest.CompetitiveGroup
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
+	if competitive.Id <= 0 {
+		return errors.New(`Конкурсная группа не найдена `)
+	}
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Компания конкурсной группы не найдена `)
+	}
+	if campaign.IdCampaignStatus != 1 { // 1 - Статус набор не начался
+		return errors.New(`Редактирование возможно только в статусе набор не начался. `)
+	}
+
+	var applications []digest.Application
+	conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&applications)
+	if len(applications) > 0 {
+		return errors.New(`Найдены заявления с данной конкурсной группой. Редактирование невозможно `)
+	}
+	return nil
+}
 func CheckNumberCompetitive(competitive CompetitiveGroup, number int64) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admission digest.AdmissionVolume
-	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=?`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
+	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=? AND actual is true`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
 	if admission.Id <= 0 {
 		if number == 0 {
 			return nil
@@ -260,7 +285,7 @@ func CheckNumberCompetitive(competitive CompetitiveGroup, number int64) error {
 		}
 	}
 	var distributed digest.DistributedAdmissionVolume
-	conn.Where(`id_admission_volume=? AND id_level_budget=?`, admission.Id, competitive.IdLevelBudget).Find(&distributed)
+	conn.Where(`id_admission_volume=? AND id_level_budget=? AND actual is true`, admission.Id, competitive.IdLevelBudget).Find(&distributed)
 	if distributed.Id <= 0 && competitive.IdEducationSource != 3 { // 3 - платка
 		if number == 0 {
 			return nil
@@ -351,9 +376,9 @@ func CheckNumberCompetitive(competitive CompetitiveGroup, number int64) error {
 	}
 	db := conn.Raw(`SELECT sum(`+numField+`) 
 					FROM cmp.competitive_groups 
-					WHERE id!=? AND id_education_level=? 
+					WHERE id!=? AND actual is true
 					AND id_education_form=? AND id_education_source=? AND id_level_budget=?
-					AND id_campaign=?`, competitive.Id, competitive.IdEducationLevel, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign).Scan(&sumNumber)
+					AND id_campaign=? AND id_direction=?`, competitive.Id, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign, competitive.IdDirection).Scan(&sumNumber)
 	if db.Error != nil {
 		return db.Error
 	}
@@ -380,7 +405,7 @@ func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	conn.Where(`id=? AND actual`, idCompetitive).Find(&competitive)
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
 	if competitive.Id <= 0 {
 		return errors.New(`КГ не найдены`)
 	}
@@ -389,7 +414,7 @@ func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
 	//	return nil
 	//}
 	var admission digest.AdmissionVolume
-	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=?`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
+	conn.Table(`cmp.admission_volume`).Where(`id_campaign=? AND id_direction=? AND actual is true`, competitive.IdCampaign, competitive.IdDirection).Find(&admission)
 	if admission.Id <= 0 {
 		if number == 0 {
 			return nil
@@ -489,7 +514,7 @@ func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
 	}
 	db := conn.Raw(`SELECT sum(`+numField+`) 
 					FROM cmp.competitive_groups 
-					WHERE id!=? AND id_education_level=? 
+					WHERE id!=? AND id_education_level=?  AND actual is true
 					AND id_education_form=? AND id_education_source=? AND id_level_budget=?
 					AND id_campaign=?`, competitive.Id, competitive.IdEducationLevel, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign).Scan(&sumNumber)
 	if db.Error != nil {

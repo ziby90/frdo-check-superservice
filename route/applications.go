@@ -108,6 +108,36 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// меняем статус заявления POST
+	r.HandleFunc("/applications/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.User = *handlers.CheckAuthCookie(r)
+		var cmp struct {
+			StatusComment string `json:"status_comment"`
+		}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckApplicationByUser(uint(id), res.User)
+			if err == nil {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					res.RemoveApplication(uint(id), cmp.StatusComment)
+				} else {
+					message := err.Error()
+					res.Message = &message
+				}
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 	// основная информация по заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

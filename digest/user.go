@@ -20,6 +20,7 @@ type CurrentOrganization struct {
 	Ogrn       string `json:"ogrn"`
 	Kpp        string `json:"kpp"`
 	IdEiis     string `json:"id_eiis"`
+	IsOOVO     bool   `json:"is_oovo"`
 }
 
 type Role struct {

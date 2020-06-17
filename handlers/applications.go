@@ -22,6 +22,7 @@ type ChangeStatusApplication struct {
 	ApplicationStatus   digest.ApplicationStatuses `gorm:"foreignkey:IdApplicationStatus"`
 	IdApplicationStatus *uint                      `json:"id_application_status"`
 	CodeStatus          string                     `json:"code"`
+	StatusComment       *string                    `json:"status_comment"`
 }
 type AddApplication struct {
 	IdCompetitiveGroup uint      `json:"id_competitive_group"`
@@ -129,7 +130,7 @@ func (result *Result) GetApplications(keys map[string][]string) {
 	}
 
 	fmt.Print(result.Sort.Field, sortField)
-	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	db := conn.Where(`id_organization=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id)
 	if len(keys[`search_number`]) > 0 {
 		db = db.Where(`UPPER(app_number) LIKE ?`, `%`+strings.ToUpper(keys[`search_number`][0])+`%`)
 	}
@@ -162,6 +163,7 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"original":               applications[index].Original,
 				"rating":                 applications[index].Rating,
 				"created":                applications[index].Created,
+				"uid_epgu":               applications[index].UidEpgu,
 			})
 		}
 		result.Done = true
@@ -182,7 +184,7 @@ func (result *ResultInfo) GetApplicationsByEntrant(idEntrant uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var applications []digest.Application
 
-	db := conn.Where(`id_organization=? AND id_entrant=?`, result.User.CurrentOrganization.Id, idEntrant).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Find(&applications)
+	db := conn.Where(`id_organization=? AND id_entrant=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idEntrant).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Find(&applications)
 
 	var response []interface{}
 	if db.RowsAffected > 0 {
@@ -219,7 +221,7 @@ func (result *ResultInfo) GetApplicationById(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 
-	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var response interface{}
@@ -244,6 +246,8 @@ func (result *ResultInfo) GetApplicationById(idApplication uint) {
 			"name_status":       application.Status.Name,
 			"code_status":       application.Status.Code,
 			"registration_date": application.RegistrationDate,
+			"status_comment":    application.StatusComment,
+			"uid_epgu":          application.UidEpgu,
 		}
 		response = map[string]interface{}{
 			"application": info,
@@ -267,7 +271,7 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 
-	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Preload(`Status`).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Preload(`Status`).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var info interface{}
@@ -290,6 +294,7 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 			"id_return_type":         application.IdReturnType,
 			"priority":               application.Priority,
 			"uid":                    application.Uid,
+			"uid_epgu":               application.UidEpgu,
 		}
 		result.Done = true
 		result.Items = info
@@ -312,7 +317,7 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 	idOrganization := result.User.CurrentOrganization.Id
 	conn.LogMode(config.Conf.Dblog)
 	var old digest.Application
-	db := conn.Where(`id_organization=? AND id=? `, result.User.CurrentOrganization.Id, data.IdApplication).Preload(`Status`).Find(&old)
+	db := conn.Where(`id_organization=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.IdApplication).Preload(`Status`).Find(&old)
 
 	if db.RowsAffected > 0 {
 		if old.Status.Code != nil && *old.Status.Code != `app_edit` {
@@ -477,7 +482,7 @@ func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 
-	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var tests []interface{}
@@ -538,7 +543,7 @@ func (result *ResultInfo) GetApplicationDocsById(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 
-	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var response interface{}
@@ -656,7 +661,7 @@ func (result *ResultInfo) GetApplicationDocsByIdShort(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 	responseDoсs := make(map[string][]interface{})
-	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var allDocuments []digest.AllDocuments
@@ -748,7 +753,7 @@ func (result *ResultInfo) GetApplicationsById() {
 	var response []interface{}
 
 	var applications []digest.Application
-	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Preload(`ViolationTypes`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Where(``).Find(&applications)
+	db := conn.Where(`id_organization=? AND actual IS TRUE`, result.User.CurrentOrganization.Id).Preload(`ViolationTypes`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Where(``).Find(&applications)
 	fmt.Print(len(applications))
 
 	if db.RowsAffected > 0 {
@@ -819,7 +824,7 @@ func (result *ResultInfo) AddApplication(data AddApplication) {
 
 	//
 	var existApplication []digest.Application
-	_ = conn.Where(`id_entrant=? AND id_competitive_group=?`, data.IdEntrant, data.IdCompetitiveGroup).Find(&existApplication)
+	_ = conn.Where(`id_entrant=? AND id_competitive_group=? AND actual IS TRUE`, data.IdEntrant, data.IdCompetitiveGroup).Find(&existApplication)
 	if len(existApplication) > 0 {
 		result.SetErrorResult(`Данный абитуриент уже подавал заявление на указанную конкусрную группу`)
 		tx.Rollback()
@@ -886,7 +891,7 @@ func (result *ResultInfo) AddApplication(data AddApplication) {
 
 	if data.Uid != nil {
 		var exist digest.Application
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
+		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`Заявление с данным uid уже существует у выбранной организации`)
 			tx.Rollback()
@@ -1351,6 +1356,7 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 		return
 	}
 	application.IdStatus = status.Id
+	application.StatusComment = data.StatusComment
 	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&application)
 	if db.Error != nil {
 		result.SetErrorResult(`Ошибка при изменении статуса заявления ` + db.Error.Error())
@@ -1416,7 +1422,7 @@ func (result *ResultInfo) RemoveApplicationAchievement(idAchievement uint) {
 		return
 	}
 	var application digest.Application
-	db = tx.Find(&application, old.IdApplication)
+	db = tx.Where(`actual is true`).Find(&application, old.IdApplication)
 	if application.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Заявление не найдено`)
 		tx.Rollback()
@@ -1457,7 +1463,7 @@ func (result *ResultInfo) RemoveApplicationTest(idTest uint) {
 		return
 	}
 	var application digest.Application
-	db = tx.Find(&application, old.IdApplication)
+	db = tx.Where(`actual is true`).Find(&application, old.IdApplication)
 	if application.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Заявление не найдено`)
 		tx.Rollback()
@@ -1482,6 +1488,42 @@ func (result *ResultInfo) RemoveApplicationTest(idTest uint) {
 		return
 	}
 }
+func (result *ResultInfo) RemoveApplication(idApplication uint, statusComment string) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var old digest.Application
+	db := tx.Where(`actual is true`).Find(&old, idApplication)
+	if old.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Заявление не найдено`)
+		tx.Rollback()
+		return
+	}
+	if old.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Организация заявления не совпадает с выбранной вами`)
+		tx.Rollback()
+		return
+	}
+	old.Actual = false
+	old.StatusComment = &statusComment
+	t := time.Now()
+	old.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&old)
+	if db.Error != nil {
+		result.SetErrorResult(`Ошибка при удалении заявления ` + db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_application`: idApplication,
+	}
+	result.Done = true
+	tx.Commit()
+}
 func (result *ResultInfo) RemoveApplicationDocuments(idApplication uint, idDocument uint, codeCategory string) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -1499,8 +1541,6 @@ func (result *ResultInfo) RemoveApplicationDocuments(idApplication uint, idDocum
 	}
 
 	var old digest.Documents
-	fmt.Println(`*****************************`)
-	fmt.Println(idDocument, idApplication, category.Id)
 	db = tx.Where(`id_document=? AND id_application=? AND id_document_sys_category=?`, idDocument, idApplication, category.Id).Find(&old)
 	if old.Id == 0 || db.Error != nil {
 		fmt.Println(db.Error)
@@ -1509,7 +1549,7 @@ func (result *ResultInfo) RemoveApplicationDocuments(idApplication uint, idDocum
 		return
 	}
 	var application digest.Application
-	db = tx.Find(&application, old.IdApplication)
+	db = tx.Where(`actual is true`).Find(&application, old.IdApplication)
 	if application.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Заявление не найдено`)
 		tx.Rollback()

@@ -108,7 +108,7 @@ func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admissions []digest.AdmissionVolume
-	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id, id_direction, id_education_level`)
+	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id, id_direction, id_education_level`)
 	for _, search := range result.Search {
 		db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 	}
@@ -248,13 +248,12 @@ func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 		return
 	}
 }
-
 func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admissions []digest.AdmissionVolume
-	db := conn.Where(`id_organization=? AND id_campaign=?`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_direction`)
+	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_direction`)
 	for _, search := range result.Search {
 		if search[0] == `code_name` {
 			db = db.Where(`UPPER( code_specialty || ' ' || name_specialty) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
@@ -356,7 +355,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 					   FROM cmp.admission_volume av  
 					   JOIN cls.directions d ON d.id = av.id_direction
 					   JOIN cls.v_okso_enlarged_group eg ON d.id_parent = eg.id
-						Where av.id_campaign=? and av.id_education_level=? AND eg.code=?
+						Where av.id_campaign=? and av.id_education_level=? AND eg.code=? AND av.actual IS TRUE
 						 GROUP BY
 						eg.code,
 						av.id_campaign,
@@ -389,13 +388,12 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 		return
 	}
 }
-
 func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admission digest.AdmissionVolume
-	db := conn.Find(&admission, IdAdmission)
+	db := conn.Where(`actual IS TRUE`).Find(&admission, IdAdmission)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -407,7 +405,6 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 		result.Message = &message
 		return
 	}
-
 	var response map[string]interface{}
 	if admission.Id > 0 {
 		response = map[string]interface{}{
@@ -440,7 +437,7 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 		}
 		var distrs []interface{}
 		var distributed []digest.DistributedAdmissionVolume
-		db = conn.Preload(`LevelBudget`).Where(`id_admission_volume=?`, admission.Id).Order(`id_level_budget`).Find(&distributed)
+		db = conn.Preload(`LevelBudget`).Where(`id_admission_volume=? AND actual IS TRUE`, admission.Id).Order(`id_level_budget`).Find(&distributed)
 		if len(distributed) > 0 {
 			for index, _ := range distributed {
 				distr := distributed[index]
@@ -490,7 +487,6 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) AddAdmission(admsData AddAdmission) {
 	conn := config.Db.ConnGORM
 	var addIdsAdmission []uint
@@ -498,10 +494,10 @@ func (result *ResultInfo) AddAdmission(admsData AddAdmission) {
 	defer func() {
 		tx.Rollback()
 	}()
-	fmt.Println(admsData)
+
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	db := tx.Preload(`CampaignType`).Find(&campaign, admsData.IdCampaign)
+	db := tx.Where(`actual IS TRUE`).Preload(`CampaignType`).Find(&campaign, admsData.IdCampaign)
 	if campaign.Id < 1 {
 		result.SetErrorResult(`Компания не найдена`)
 		tx.Rollback()
@@ -521,6 +517,7 @@ func (result *ResultInfo) AddAdmission(admsData AddAdmission) {
 			admission.IdAuthor = &result.User.Id
 			admission.Created = time.Now()
 			admission.IdEducationLevel = admData.IdEducationLevel
+			admission.Actual = true
 
 			row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, admData.IdEducationLevel).Select(`id`).Row()
 			var idEducLevelCampaignType uint
@@ -569,7 +566,6 @@ func (result *ResultInfo) AddAdmission(admsData AddAdmission) {
 	}
 
 }
-
 func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -577,7 +573,7 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 		tx.Rollback()
 	}()
 	var admission digest.AdmissionVolume
-	conn.Where(`id=?`, idAdmission).Find(&admission)
+	conn.Where(`id=? AND actual IS TRUE`, idAdmission).Find(&admission)
 	if admission.Id <= 0 {
 		result.SetErrorResult(`КЦП не найдены`)
 		tx.Rollback()
@@ -595,7 +591,7 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 	for _, budget := range data.LevelsBudget {
 		var count int
 		var distributed digest.DistributedAdmissionVolume
-		db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=? AND id_level_budget=?`, idAdmission, budget).Count(&count)
+		db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=? AND id_level_budget=?  AND actual IS TRUE`, idAdmission, budget).Count(&count)
 		if db.Error != nil {
 			result.SetErrorResult(`Ошибка добавления1`)
 			tx.Rollback()
@@ -612,6 +608,7 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 		distributed.IdOrganization = result.User.CurrentOrganization.Id
 		distributed.IdAuthor = &result.User.Id
 		distributed.Created = time.Now()
+		distributed.Actual = true
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&distributed)
 		if db.Error == nil {
 			addIdsBudget = append(addIdsBudget, distributed.Id)
@@ -633,7 +630,6 @@ func (result *ResultInfo) AddAdmissionBudget(idAdmission uint, data AddBudget) {
 	}
 
 }
-
 func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.AdmissionVolume) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -643,7 +639,7 @@ func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.Admissi
 	conn.LogMode(config.Conf.Dblog)
 
 	var oldAdmission digest.AdmissionVolume
-	db := tx.Preload(`Direction`).Find(&oldAdmission, IdAdmission)
+	db := tx.Where(`actual IS TRUE`).Preload(`Direction`).Find(&oldAdmission, IdAdmission)
 	if oldAdmission.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Кцп не найдены`)
 		tx.Rollback()
@@ -752,7 +748,6 @@ func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.Admissi
 		return
 	}
 }
-
 func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmissionVolume) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -761,7 +756,7 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 	}()
 	conn.LogMode(config.Conf.Dblog)
 	var admission digest.AdmissionVolume
-	db := conn.Find(&admission, data.IdAdmissionVolume)
+	db := conn.Where(`actual IS TRUE`).Find(&admission, data.IdAdmissionVolume)
 	if admission.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`КЦП не найден`)
 		tx.Rollback()
@@ -774,7 +769,7 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 		return
 	}
 	var old digest.DistributedAdmissionVolume
-	db = conn.Find(&old, data.IdLevelBudget)
+	db = conn.Where(`actual IS TRUE`).Find(&old, data.IdLevelBudget)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Уровень бюджета не найден`)
 		tx.Rollback()
@@ -805,7 +800,7 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 	new.TargetZ = data.TargetZ
 	if data.Uid != nil {
 		var exist digest.DistributedAdmissionVolume
-		db = tx.Where(`upper(uid)=upper(?) AND id_organization=?`, data.Uid, result.User.CurrentOrganization.Id).Find(&exist)
+		db = tx.Where(`upper(uid)=upper(?) AND id_organization=?  AND actual IS TRUE`, data.Uid, result.User.CurrentOrganization.Id).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`Уровень бюджета с данным uid уже существуют`)
 			tx.Rollback()
@@ -832,7 +827,6 @@ func (result *ResultInfo) EditAdmissionLevelBudget(data EditDistributedAdmission
 	}
 
 }
-
 func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -842,7 +836,7 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 	conn.LogMode(config.Conf.Dblog)
 
 	var oldAdmission digest.AdmissionVolume
-	db := tx.Preload(`Direction`).Find(&oldAdmission, IdAdmission)
+	db := tx.Where(`actual IS TRUE`).Preload(`Direction`).Find(&oldAdmission, IdAdmission)
 	idEducLevel := oldAdmission.IdEducationLevel
 	idCampaign := oldAdmission.IdCampaign
 	idGroups := oldAdmission.Direction.IdParent
@@ -857,12 +851,20 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 		tx.Rollback()
 		return
 	}
+	t := time.Now()
 	var distributed []digest.DistributedAdmissionVolume
-	db = conn.Where(`id_admission_volume=?`, IdAdmission).Find(&distributed)
+	db = conn.Where(`id_admission_volume=? AND actual IS TRUE`, IdAdmission).Find(&distributed)
 	if len(distributed) > 0 {
-		db = tx.Where(`id_admission_volume=?`, IdAdmission).Delete(&distributed)
+		for _, distrib := range distributed {
+			distrib.Actual = false
+			distrib.Changed = &t
+			db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&distrib)
+		}
 	}
-	db = tx.Table(`cmp.admission_volume`).Where(`id=?`, IdAdmission).Delete(&oldAdmission)
+	oldAdmission.Actual = false
+
+	oldAdmission.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Table(`cmp.admission_volume`).Save(&oldAdmission)
 	if db.Error == nil {
 		tx.Commit()
 		var sum SumAdmVolume
@@ -887,7 +889,7 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 					   JOIN cls.directions d ON d.id = av.id_direction
 					   JOIN cls.v_okso_enlarged_group eg ON d.id_parent = eg.id
 						LEFT JOIN cmp.v_admission_volume_specialty_groups vavsg ON vavsg.id = av.id
-						Where av.id_campaign=? and av.id_education_level=? AND eg.id=?						
+						Where av.id_campaign=? and av.id_education_level=? AND eg.id=? av.actual IS TRUE ABD vavsg.actual IS TRUE						
 						 GROUP BY
 						eg.code,
 						av.id_campaign,
@@ -923,7 +925,6 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -933,7 +934,7 @@ func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint)
 	conn.LogMode(config.Conf.Dblog)
 
 	var oldAdmission digest.AdmissionVolume
-	db := tx.Find(&oldAdmission, IdAdmission)
+	db := tx.Where(`actual IS TRUE`).Find(&oldAdmission, IdAdmission)
 	if oldAdmission.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Кцп не найдены`)
 		tx.Rollback()
@@ -946,9 +947,12 @@ func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint)
 		return
 	}
 	var distributed digest.DistributedAdmissionVolume
-	db = conn.Where(`id_admission_volume=? AND id=?`, IdAdmission, IdBudget).Find(&distributed)
+	db = conn.Where(`id_admission_volume=? AND id=? AND actual IS TRUE`, IdAdmission, IdBudget).Find(&distributed)
 	if distributed.Id > 0 {
-		db = tx.Where(`id_admission_volume=? AND id=?`, IdAdmission, IdBudget).Delete(&distributed)
+		distributed.Actual = false
+		t := time.Now()
+		distributed.Changed = &t
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&distributed)
 		if db.Error == nil {
 			result.Done = true
 			tx.Commit()
@@ -968,13 +972,12 @@ func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint)
 		return
 	}
 }
-
 func (result *ResultInfo) GetLevelBudgetAdmission(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var idsLevelsBudget []uint
-	db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=?`, ID).Pluck("id_level_budget", &idsLevelsBudget)
+	db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=? AND actual IS TRUE`, ID).Pluck("id_level_budget", &idsLevelsBudget)
 	if db.Error == nil {
 
 		result.Done = true

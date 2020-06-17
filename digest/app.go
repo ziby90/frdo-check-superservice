@@ -45,7 +45,9 @@ type Application struct {
 	Uid                      *string             `json:"uid" schema:"uid"`
 	UidEpgu                  *int64              `json:"uid_epgu" schema:"uid_epgu"`
 	Created                  time.Time           `json:"created"` // Дата создания
+	Changed                  *time.Time          `json:"changed"` // Дата создания
 	StatusComment            *string             `json:"status_comment" schema:"status_comment"`
+	Actual                   bool                `xml:"actual" json:"actual"`
 }
 
 type ApplicationsAgreedHistory struct {
@@ -111,7 +113,9 @@ type VApplications struct {
 	Agreed               *bool     `json:"agreed" schema:"agreed"`
 	Original             bool      `json:"original" schema:"original"`
 	Uid                  *string   `json:"uid" schema:"uid"`
+	UidEpgu              *string   `json:"uid_epgu" schema:"uid_epgu"`
 	Created              time.Time `json:"created"` // Дата создания
+	Actual               bool      `xml:"actual" json:"actual"`
 }
 type AppAchievements struct {
 	Id                  uint                   `json:"id" schema:"id"` // Идентификатор
@@ -138,7 +142,7 @@ func GetApplication(id uint) (*Application, error) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var item Application
-	db := conn.Preload(`CompetitiveGroup`).Find(&item, id)
+	db := conn.Where(`actual IS TRUE`).Preload(`CompetitiveGroup`).Find(&item, id)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			return nil, errors.New(`Заявление не найдено. `)

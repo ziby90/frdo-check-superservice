@@ -77,7 +77,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
-	db = db.Where(`id_campaign=?`, campaignId)
+	db = db.Where(`id_campaign=? AND actual IS TRUE`, campaignId)
 	//if result.Search != `` {
 	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	//}
@@ -153,7 +153,7 @@ func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
 			_ = conn.Raw(`select  cg.id_direction 
 						from app.applications a 
 						join cmp.competitive_groups cg on cg.id=a.id_competitive_group 
-						where id_entrant = ? 
+						where id_entrant = ?  AND cg.actual IS TRUE AND a.actual IS TRUE
 						group by cg.id_direction `, v).Scan(&idDirection)
 			if len(idDirection) >= 3 {
 				var existDirection []uint
@@ -174,7 +174,7 @@ func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
 		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(keys[`search`][0])+`%`)
 	}
 
-	db = db.Find(&directions)
+	db = db.Where(`actual IS TRUE`).Find(&directions)
 	if db.Error != nil {
 		message := db.Error.Error()
 		result.Message = &message
@@ -192,14 +192,14 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 	var competitiveGroups []digest.CompetitiveGroup
 	var db *gorm.DB
 
-	db = conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	db = conn.Where(`id_organization=? AND actual IS TRUE`, result.User.CurrentOrganization.Id)
 	if len(keys[`id_entrant`]) > 0 {
 		if v, ok := strconv.Atoi(keys[`id_entrant`][0]); ok == nil {
 			var idDirection []DirectionCompetitiveGroups
 			_ = conn.Raw(`select  cg.id_direction 
 						from app.applications a 
 						join cmp.competitive_groups cg on cg.id=a.id_competitive_group 
-						where id_entrant = ? AND a.id_organization = ?
+						where id_entrant = ? AND a.id_organization = ? AND cd.actual IS TRUE AND a.actual IS TRUE
 						group by cg.id_direction `, v, result.User.CurrentOrganization.Id).Scan(&idDirection)
 			if len(idDirection) >= 3 {
 				var existDirection []uint
@@ -211,7 +211,7 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 				}
 			}
 			var existApplication []digest.Application
-			_ = conn.Where(`id_entrant=? AND id_organization=?`, v, result.User.CurrentOrganization.Id).Find(&existApplication)
+			_ = conn.Where(`id_entrant=? AND id_organization=? AND actual IS TRUE`, v, result.User.CurrentOrganization.Id).Find(&existApplication)
 
 			if len(existApplication) >= 0 {
 				var existCompetitiveIds []uint
@@ -324,20 +324,20 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	competitive.Created = time.Now()
 	competitive.IdEducationLevel = data.CompetitiveGroup.IdEducationLevel
 	competitive.Name = strings.TrimSpace(data.CompetitiveGroup.Name)
-	err := CheckAddRemoveCompetitive(data.CompetitiveGroup.IdCampaign)
+	err := CheckAddCompetitive(data.CompetitiveGroup.IdCampaign)
 	if err != nil {
 		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
 	var campaign digest.Campaign
-	db := tx.Preload(`CampaignType`).Find(&campaign, data.CompetitiveGroup.IdCampaign)
+	db := tx.Where(`actual IS TRUE`).Preload(`CampaignType`).Find(&campaign, data.CompetitiveGroup.IdCampaign)
 	if campaign.Id < 1 {
 		result.SetErrorResult(`Компания не найдена`)
 		tx.Rollback()
 		return
 	}
-	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.CampaignType.Id, data.CompetitiveGroup.IdEducationLevel).Select(`id`).Row()
+	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=? `, campaign.CampaignType.Id, data.CompetitiveGroup.IdEducationLevel).Select(`id`).Row()
 	var idEducLevelCampaignType uint
 	err = row.Scan(&idEducLevelCampaignType)
 	if err != nil || idEducLevelCampaignType <= 0 {
@@ -386,7 +386,7 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 
 	if data.CompetitiveGroup.UID != nil {
 		var exist digest.CompetitiveGroup
-		tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *data.CompetitiveGroup.UID).Find(&exist)
+		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *data.CompetitiveGroup.UID).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`Конкурсная группа с данным uid уже существует у выбранной организации`)
 			tx.Rollback()
@@ -475,7 +475,11 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 		tx.Rollback()
 		return
 	}
-
+	if data.CompetitiveGroup.Comment != nil && strings.TrimSpace(*data.CompetitiveGroup.Comment) != `` {
+		competitive.Comment = data.CompetitiveGroup.Comment
+	} else {
+		competitive.Comment = nil
+	}
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&competitive)
 	var idsPrograms []uint
 	var idsEntrance []uint
@@ -491,7 +495,7 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 				program.Created = time.Now()
 				if value.Uid != nil {
 					var exist digest.CompetitiveGroupProgram
-					tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
+					tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
 					if exist.Id > 0 {
 						result.SetErrorResult(`Образовательная программа с данным uid уже существует у выбранной организации`)
 						tx.Rollback()
@@ -519,7 +523,7 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 				entrance.Created = time.Now()
 				if value.Uid != nil {
 					var exist digest.EntranceTest
-					tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
+					tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
 					if exist.Id > 0 {
 						result.SetErrorResult(`Вступительный тест с данным uid уже существует у выбранной организации`)
 						tx.Rollback()
@@ -572,12 +576,13 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 
 	var competitive digest.CompetitiveGroup
 
-	db := tx.Where(`id=? AND actual`, data.Id).Find(&competitive)
+	db := tx.Where(`id=?  AND actual IS TRUE`, data.Id).Find(&competitive)
 	if competitive.Id <= 0 {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
 		return
 	}
+	data.IdCampaign = competitive.IdCampaign
 	err := CheckEditCompetitiveGroup(data.Id)
 	if err != nil {
 		result.SetErrorResult(err.Error())
@@ -593,7 +598,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	competitive.Name = strings.TrimSpace(data.Name)
 	if data.UID != nil && data.UID != competitive.UID && *data.UID != `` {
 		var exist digest.CompetitiveGroup
-		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, competitive.Id).Find(&exist)
+		db = tx.Where(`uid=? AND id_organization=? AND id!=?  AND actual IS TRUE`, data.UID, result.User.CurrentOrganization.Id, competitive.Id).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`Конкурсная группа с данным uid уже существует у данной организации.`)
 			tx.Rollback()
@@ -646,7 +651,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	competitive.Changed = &t
 
 	var campaign digest.Campaign
-	db = tx.Preload(`CampaignType`).Find(&campaign, competitive.IdCampaign)
+	db = tx.Where(`actual IS TRUE`).Preload(`CampaignType`).Find(&campaign, competitive.IdCampaign)
 	if campaign.Id < 1 {
 		result.SetErrorResult(`Компания не найдена`)
 		tx.Rollback()
@@ -781,7 +786,7 @@ func (result *ResultInfo) AddProgram(idCompetitive uint, data AddCompetitiveGrou
 	}()
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	db := conn.Find(&competitive, idCompetitive)
+	db := conn.Where(`actual IS TRUE`).Find(&competitive, idCompetitive)
 	if competitive.Id == 0 {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
@@ -806,7 +811,7 @@ func (result *ResultInfo) AddProgram(idCompetitive uint, data AddCompetitiveGrou
 			program.Created = time.Now()
 			if value.Uid != nil {
 				var exist digest.CompetitiveGroupProgram
-				tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
+				tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
 				if exist.Id > 0 {
 					result.SetErrorResult(`Образовательная программа с данным uid уже существует у выбранной организации`)
 					tx.Rollback()
@@ -845,7 +850,7 @@ func (result *ResultInfo) AddEntrance(idCompetitive uint, data AddEntrance) {
 	}()
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	db := conn.Find(&competitive, idCompetitive)
+	db := conn.Where(`actual IS TRUE`).Find(&competitive, idCompetitive)
 	if competitive.Id == 0 {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
@@ -869,7 +874,7 @@ func (result *ResultInfo) AddEntrance(idCompetitive uint, data AddEntrance) {
 			entrance.Created = time.Now()
 			if value.Uid != nil {
 				var exist digest.EntranceTest
-				tx.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
+				tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
 				if exist.Id > 0 {
 					result.SetErrorResult(`Вступительный тест с данным uid уже существует у выбранной организации`)
 					tx.Rollback()
@@ -912,7 +917,7 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	db := conn.Preload(`Campaign`).Preload(`EducationForm`).Preload(`EducationLevel`).Preload(`EducationSource`).Preload(`LevelBudget`).Preload(`Direction`).Find(&competitive, ID)
+	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Preload(`EducationForm`).Preload(`EducationLevel`).Preload(`EducationSource`).Preload(`LevelBudget`).Preload(`Direction`).Find(&competitive, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -1041,7 +1046,7 @@ func (result *ResultInfo) GetEducationProgramsCompetitiveGroup(ID uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	db := conn.Preload(`Campaign`).Find(&competitive, ID)
+	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Find(&competitive, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -1055,7 +1060,7 @@ func (result *ResultInfo) GetEducationProgramsCompetitiveGroup(ID uint) {
 	}
 	if db.RowsAffected > 0 {
 		var idsPrograms []uint
-		db = conn.Where(`id_competitive_group=?`, ID).Table(`cmp.competitive_group_programs`).Pluck(`id`, &idsPrograms)
+		db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, ID).Table(`cmp.competitive_group_programs`).Pluck(`id`, &idsPrograms)
 		var programs []interface{}
 		for _, id := range idsPrograms {
 			var program digest.CompetitiveGroupProgram
@@ -1088,7 +1093,7 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var competitive digest.CompetitiveGroup
-	db := conn.Preload(`Campaign`).Find(&competitive, ID)
+	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Find(&competitive, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -1102,7 +1107,7 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 	}
 	if db.RowsAffected > 0 {
 		var idsEntrance []uint
-		db = conn.Where(`id_competitive_group=?`, ID).Table(`cmp.entrance_test`).Pluck(`id`, &idsEntrance)
+		db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, ID).Table(`cmp.entrance_test`).Pluck(`id`, &idsEntrance)
 		var entranceTests []interface{}
 		for _, id := range idsEntrance {
 			var entrance digest.EntranceTest
@@ -1149,7 +1154,7 @@ func (result *ResultInfo) RemoveEntranceCompetitive(idCompetitive uint, idEntran
 	conn.LogMode(config.Conf.Dblog)
 
 	var old digest.CompetitiveGroup
-	db := tx.Find(&old, idCompetitive)
+	db := tx.Where(`acutla IS TRUE`).Find(&old, idCompetitive)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
@@ -1162,10 +1167,10 @@ func (result *ResultInfo) RemoveEntranceCompetitive(idCompetitive uint, idEntran
 		return
 	}
 	var entrance digest.EntranceTest
-	db = conn.Where(`id_competitive_group=? AND id=?`, idCompetitive, idEntrance).Find(&entrance)
+	db = conn.Where(`id_competitive_group=? AND id=? AND actual IS TRUE`, idCompetitive, idEntrance).Find(&entrance)
 	if entrance.Id > 0 {
-		db = tx.Exec(`DELETE FROM app.entrance_test WHERE id_entrance_test=?`, idEntrance)
-		db = tx.Where(`id_competitive_group=? AND id=?`, idCompetitive, idEntrance).Delete(&entrance)
+		db = tx.Exec(`UPDATE app.entrance_test SET actual=false AND changed=? WHERE id_entrance_test=?`, time.Now(), idEntrance)
+		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false AND changed=? WHERE id_competitive_group=? AND id=? `, time.Now(), idCompetitive, idEntrance)
 		if db.Error == nil {
 			result.Done = true
 			tx.Commit()
@@ -1195,7 +1200,7 @@ func (result *ResultInfo) RemoveProgramCompetitive(idCompetitive uint, idProgram
 	conn.LogMode(config.Conf.Dblog)
 
 	var old digest.CompetitiveGroup
-	db := tx.Find(&old, idCompetitive)
+	db := tx.Where(`actual IS TRUE`).Find(&old, idCompetitive)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
@@ -1208,9 +1213,9 @@ func (result *ResultInfo) RemoveProgramCompetitive(idCompetitive uint, idProgram
 		return
 	}
 	var program digest.CompetitiveGroupProgram
-	db = conn.Where(`id_competitive_group=? AND id=?`, idCompetitive, idProgram).Find(&program)
+	db = conn.Where(`id_competitive_group=? AND id=? AND actual IS TRUE`, idCompetitive, idProgram).Find(&program)
 	if program.Id > 0 {
-		db = tx.Where(`id_competitive_group=? AND id=?`, idCompetitive, idProgram).Delete(&program)
+		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false AND changed=? WHERE id_competitive_group=? AND id=?`, time.Now(), idCompetitive, idProgram)
 		if db.Error == nil {
 			result.Done = true
 			tx.Commit()
@@ -1240,30 +1245,31 @@ func (result *ResultInfo) RemoveCompetitive(idCompetitive uint) {
 	conn.LogMode(config.Conf.Dblog)
 
 	var old digest.CompetitiveGroup
-	db := tx.Find(&old, idCompetitive)
+	db := tx.Where(`actual IS TRUE`).Find(&old, idCompetitive)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
 		return
 	}
-	err := CheckAddRemoveCompetitive(old.IdCampaign)
+	err := CheckAddCompetitive(old.IdCampaign)
 	if err != nil {
 		result.SetErrorResult(err.Error())
 		tx.Rollback()
 		return
 	}
 	var programs []digest.CompetitiveGroupProgram
-	db = conn.Where(`id_competitive_group=?`, idCompetitive).Find(&programs)
+	db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&programs)
 	if len(programs) > 0 {
-		db = tx.Where(`id_competitive_group=?`, idCompetitive).Delete(&programs)
+		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false AND changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
 	}
 	var entrance []digest.EntranceTest
-	db = conn.Where(`id_competitive_group=?`, idCompetitive).Find(&entrance)
+	db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&entrance)
 	if len(entrance) > 0 {
-		db = tx.Where(`id_competitive_group=?`, idCompetitive).Delete(&entrance)
+		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false AND changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
 	}
 
-	db = tx.Where(`id=?`, idCompetitive).Delete(&old)
+	db = tx.Exec(`UPDATE app.applications SET actual=false AND changed=? WHERE id_competitive_groups=?`, time.Now(), idCompetitive)
+	db = tx.Exec(`UPDATE cmp.competitive_groups SET actual=false AND changed=? WHERE id=?`, time.Now(), idCompetitive)
 	if db.Error == nil {
 		result.Done = true
 		tx.Commit()

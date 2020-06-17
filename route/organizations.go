@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"persons/handlers"
 	"persons/service"
-	"strconv"
 )
 
 func AddOrgsHandler(r *mux.Router) {
@@ -20,20 +19,15 @@ func AddOrgsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// инфа по организации
-	r.HandleFunc("/organizations/{id:[0-9]+}/info", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/organizations/info", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{
 			Done:    false,
 			Message: nil,
 			Items:   nil,
 		}
-		vars := mux.Vars(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			res.GetInfoCampaign(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
+		res.User = *handlers.CheckAuthCookie(r)
+		res.GetInfoOrganization()
+
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// добавление направления обучения организации
@@ -45,6 +39,24 @@ func AddOrgsHandler(r *mux.Router) {
 		res.User = *handlers.CheckAuthCookie(r)
 		if err == nil {
 			res.AddOrganizationDirection(cmp)
+		} else {
+			message := err.Error()
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// изменение параметров отправки в ИС ООВО
+	r.HandleFunc("/organizations/isoovo/change", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp struct {
+			IsOOVO bool `json:"is_oovo"`
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		err := json.Unmarshal(b, &cmp)
+		res.User = *handlers.CheckAuthCookie(r)
+		if err == nil {
+			//res.Items = cmp
+			res.SetIsOOVOOrganization(cmp.IsOOVO)
 		} else {
 			message := err.Error()
 			res.Message = &message

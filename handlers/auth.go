@@ -68,6 +68,7 @@ func CheckAuthCookie(r *http.Request) *digest.User {
 					Ogrn:       org.Ogrn,
 					Kpp:        org.Kpp,
 					IdEiis:     org.IdEiis,
+					IsOOVO:     org.IsOOVO,
 				}
 				user.CurrentOrganization = &organization
 			}

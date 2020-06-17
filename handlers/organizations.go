@@ -55,6 +55,7 @@ func (result *Result) GetListOrganization() {
 				`id`:          organization.Id,
 				`short_title`: organization.ShortTitle,
 				`created`:     organization.Created,
+				`is_oovo`:     organization.IsOOVO,
 			}
 			orgs = append(orgs, c)
 		}
@@ -70,12 +71,13 @@ func (result *Result) GetListOrganization() {
 	}
 }
 
-func (result *ResultInfo) GetInfoOrganization(ID uint) {
+func (result *ResultInfo) GetInfoOrganization() {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var organization digest.Organization
-	db := conn.Find(&organization, ID)
+	idOrganization := result.User.CurrentOrganization.Id
+	db := conn.Find(&organization, idOrganization)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -101,6 +103,11 @@ func (result *ResultInfo) GetInfoOrganization(ID uint) {
 			`id`:          organization.Id,
 			`short_title`: organization.ShortTitle,
 			`created`:     organization.Created,
+			`is_oovo`:     organization.IsOOVO,
+			`ogrn`:        organization.Ogrn,
+			`kpp`:         organization.Kpp,
+			`address`:     organization.Address,
+			`phone`:       organization.Phone,
 		}
 		result.Done = true
 		result.Items = c
@@ -450,4 +457,42 @@ func CheckOrgCookie(user digest.User, r *http.Request) uint {
 	}
 	return 0
 
+}
+
+func (result *ResultInfo) SetIsOOVOOrganization(isOOVO bool) {
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var organization digest.Organization
+	db := conn.Where(`id=?`, result.User.CurrentOrganization.Id).Find(&organization)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Организация не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	organization.IsOOVO = isOOVO
+	t := time.Now()
+	organization.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&organization)
+	if db.Error != nil {
+		result.SetErrorResult(`Ошибка при изменении параметров отправки у организации ` + db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_organization`: organization.Id,
+		`is_oovo`:         organization.IsOOVO,
+	}
+	result.Done = true
+	tx.Commit()
+	return
 }

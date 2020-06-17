@@ -72,7 +72,7 @@ func (result *Result) GetListCampaign() {
 	}
 
 	fmt.Print(result.Sort.Field, sortField)
-	db := conn.Preload(`CampaignType`).Preload(`CampaignStatus`).Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	db := conn.Preload(`CampaignType`).Preload(`CampaignStatus`).Where(`id_organization=? AND actual is true`, result.User.CurrentOrganization.Id)
 	for _, search := range result.Search {
 		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
@@ -125,7 +125,6 @@ func (result *Result) GetListCampaign() {
 		return
 	}
 }
-
 func (result *ResultList) GetShortListCampaign() {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -134,7 +133,7 @@ func (result *ResultList) GetShortListCampaign() {
 	sortField := `created`
 	sortOrder := `asc`
 
-	db := conn.Where(`id_organization=?`, result.User.CurrentOrganization.Id).Order(sortField + ` ` + sortOrder)
+	db := conn.Where(`id_organization=? AND actual is true`, result.User.CurrentOrganization.Id).Order(sortField + ` ` + sortOrder)
 
 	if result.Search != `` {
 		db = db.Where(`UPPER(name) like ?`, `%`+strings.ToUpper(result.Search)+`%`)
@@ -171,14 +170,13 @@ func (result *ResultList) GetShortListCampaign() {
 		return
 	}
 }
-
 func (result *ResultInfo) GetEducationLevelCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
 
-	db := conn.Find(&campaign, ID)
+	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -213,14 +211,13 @@ func (result *ResultInfo) GetEducationLevelCampaign(ID uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) GetEducationFormCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
 
-	db := conn.Find(&campaign, ID)
+	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -255,13 +252,12 @@ func (result *ResultInfo) GetEducationFormCampaign(ID uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) GetInfoCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	db := conn.Find(&campaign, ID)
+	db := conn.Where(`actual is true`).Find(&campaign, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -331,13 +327,12 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) GetEndDateCampaign(ID uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	db := conn.Find(&campaign, ID)
+	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -381,7 +376,7 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var campaign digest.Campaign
-	db := conn.Find(&campaign, data.IdCampaign)
+	db := conn.Where(`actual IS TRUE`).Find(&campaign, data.IdCampaign)
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
@@ -440,6 +435,26 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 		`id_end_application`: new.Id,
 	}
 }
+func (result *ResultInfo) RemoveEndDateCampaign(idCampaign uint, idEndDate uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	err := CheckEditEndDate(idCampaign)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	db := conn.Exec(`DELETE from cmp.end_application WHERE id_end_application=?`, idEndDate)
+	if db.Error != nil {
+		m := db.Error.Error()
+		result.Message = &m
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_end_application`: idEndDate,
+	}
+}
 func (result *ResultInfo) EditCampaign(data CampaignMain) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -455,7 +470,7 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 		tx.Rollback()
 		return
 	}
-	db := tx.Where(`id=? AND actual`, data.Id).Find(&campaign)
+	db := tx.Where(`id=? AND actual IS TRUE`, data.Id).Find(&campaign)
 	if campaign.Id <= 0 {
 		result.SetErrorResult(`Приемная компания не найдена`)
 		tx.Rollback()
@@ -471,7 +486,7 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 	campaign.Name = strings.TrimSpace(data.Name)
 	if data.UID != nil && data.UID != campaign.Uid && *data.UID != `` {
 		var exist digest.Campaign
-		db = tx.Where(`uid=? AND id_organization=? AND id!=?`, data.UID, result.User.CurrentOrganization.Id, campaign.Id).Find(&exist)
+		db = tx.Where(`uid=? AND id_organization=? AND id!=? AND actual IS TRUE`, data.UID, result.User.CurrentOrganization.Id, campaign.Id).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`Приемная компания с данным uid уже существует у данной организации.`)
 			tx.Rollback()
@@ -603,6 +618,7 @@ func (result *ResultInfo) SetStatusCampaign(data ChangeStatusCampaign) {
 		return
 	}
 	campaign.IdCampaignStatus = status.Id
+	campaign.IdAuthor = result.User.Id
 	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&campaign)
 	if db.Error != nil {
 		result.SetErrorResult(`Ошибка при изменении статуса применой компании ` + db.Error.Error())
@@ -652,22 +668,6 @@ func (result *ResultInfo) GetCampaignStatuses(keys map[string][]string) {
 	result.Items = response
 	return
 }
-func GetCampaignStatusByCode(code string) (*digest.CampaignStatus, error) {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var item digest.CampaignStatus
-	db := conn.Where(`code=?`, code).Find(&item)
-	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
-			return nil, errors.New(`Статус не найден. `)
-		}
-		return nil, errors.New(`Ошибка подключения к БД. `)
-	}
-	if item.Id <= 0 {
-		return nil, errors.New(`Статус не найден. `)
-	}
-	return &item, nil
-}
 func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.User) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -684,7 +684,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	campaign.Name = campaignData.Name
 	if campaignData.UID != nil {
 		var exist digest.Campaign
-		tx.Where(`uid=? and id_organization=?`, campaignData.UID, user.CurrentOrganization.Id).Find(&exist)
+		tx.Where(`uid=? and id_organization=? AND actual IS TRUE`, campaignData.UID, user.CurrentOrganization.Id).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`У данной организации есть компания с данным UID`)
 			tx.Commit()
@@ -733,7 +733,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	}
 
 	var exist []digest.Campaign
-	tx.Where(`id_campaign_type=? AND year_start=? AND id_organization=?`, campaignData.IdCampaignType, campaignData.YearStart, user.CurrentOrganization.Id).Find(&exist)
+	tx.Where(`id_campaign_type=? AND year_start=? AND id_organization=? AND actual IS TRUE`, campaignData.IdCampaignType, campaignData.YearStart, user.CurrentOrganization.Id).Find(&exist)
 	if len(exist) > 0 {
 		result.SetErrorResult(`У данной организации уже есть приемная компания с заданным типом и годом начала`)
 		tx.Rollback()
@@ -791,4 +791,21 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	result.Items = campaign.Id
 	result.Done = true
 	tx.Commit()
+}
+
+func GetCampaignStatusByCode(code string) (*digest.CampaignStatus, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var item digest.CampaignStatus
+	db := conn.Where(`code=?`, code).Find(&item)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Статус не найден. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if item.Id <= 0 {
+		return nil, errors.New(`Статус не найден. `)
+	}
+	return &item, nil
 }

@@ -64,37 +64,6 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
-	// редактирование конкурсной группы
-	r.HandleFunc("/competitive/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		var cmp handlers.CompetitiveGroup
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			b, _ := ioutil.ReadAll(r.Body)
-			err := json.Unmarshal(b, &cmp)
-			res.User = *handlers.CheckAuthCookie(r)
-			if err == nil {
-				err = handlers.CheckCampaignByUser(uint(id), res.User)
-				if err != nil {
-					message := err.Error()
-					res.Message = &message
-				} else {
-					cmp.Id = uint(id)
-					//res.AddCompetitive(cmp)
-				}
-			} else {
-				message := err.Error()
-				res.Message = &message
-			}
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-
-		service.ReturnJSON(w, res)
-	}).Methods("Post")
 	// добавление вступительного испытания для конкурсной группы
 	r.HandleFunc("/competitive/{id:[0-9]+}/entrance/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

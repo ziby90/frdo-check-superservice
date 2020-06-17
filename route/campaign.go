@@ -91,6 +91,32 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// обнуление даты окончания
+	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/{id_end_date:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				idEndDate, err := strconv.ParseInt(vars[`id_end_date`], 10, 32)
+				if err == nil {
+					res.RemoveEndDateCampaign(uint(id), uint(idEndDate))
+				} else {
+					message := `Неверный параметр id_end_date.`
+					res.Message = &message
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 	// редактирование приемной компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
