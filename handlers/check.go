@@ -24,112 +24,6 @@ func CheckCampaignByUser(idCampaign uint, user digest.User) error {
 		return errors.New(`У пользователя нет доступа к данной компании `)
 	}
 }
-func CheckCompetitiveGroupByUser(idCompetitiveGroup uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`cmp.competitive_groups`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idCompetitiveGroup).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данной конкурсной группе `)
-	}
-}
-func CheckAdmissionVolumeByUser(idAdmissionVolume uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`cmp.admission_volume`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idAdmissionVolume).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данным кцп `)
-	}
-}
-func CheckApplicationByUser(idApplication uint, user digest.User) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var count int
-	if user.Role.Code == `administrator` {
-		return nil
-	}
-	db := conn.Table(`app.applications`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idApplication).Count(&count)
-	if db.Error != nil {
-		return db.Error
-	}
-	if count > 0 {
-		return nil
-	} else {
-		return errors.New(`У пользователя нет доступа к данному заявлению `)
-	}
-}
-func CheckEditAchievements(idCampaign uint) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var campaign digest.Campaign
-	conn.Where(`id=? AND actual is true `, idCampaign).Find(&campaign)
-	if campaign.Id <= 0 {
-		return errors.New(`Приемная компания не найдена `)
-	}
-	if campaign.IdCampaignStatus != 1 { // 1 - Статус набор не начался
-		return errors.New(`Редактирование возможно только в статусе набор не начался. `)
-	}
-	return nil
-}
-func CheckAddAchievements(idCampaign uint) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var campaign digest.Campaign
-	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
-	if campaign.Id <= 0 {
-		return errors.New(`Приемная компания не найдена `)
-	}
-	if campaign.IdCampaignStatus == 3 { // 3 - Статус завершена
-		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
-	}
-	return nil
-}
-func CheckEditAdmission(idCampaign uint) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var campaign digest.Campaign
-	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
-	if campaign.Id <= 0 {
-		return errors.New(`Приемная компания не найдена `)
-	}
-	if campaign.Id <= 0 {
-		return errors.New(`Приемная компания не найдена `)
-	}
-	if campaign.IdCampaignStatus == 3 { // Статус завершена
-		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
-	}
-	return nil
-}
-func CheckAddAdmission(idCampaign uint) error {
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var campaign digest.Campaign
-	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
-	if campaign.Id <= 0 {
-		return errors.New(`Приемная компания не найдена `)
-	}
-	if campaign.IdCampaignStatus == 3 { // Статус завершена
-		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
-	}
-	return nil
-}
 func CheckEditCampaign(idCampaign uint) error {
 	var campaign digest.Campaign
 	conn := config.Db.ConnGORM
@@ -159,6 +53,116 @@ func CheckEditCampaign(idCampaign uint) error {
 	}
 	return nil
 }
+
+func CheckApplicationByUser(idApplication uint, user digest.User) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var count int
+	if user.Role.Code == `administrator` {
+		return nil
+	}
+	db := conn.Table(`app.applications`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idApplication).Count(&count)
+	if db.Error != nil {
+		return db.Error
+	}
+	if count > 0 {
+		return nil
+	} else {
+		return errors.New(`У пользователя нет доступа к данному заявлению `)
+	}
+}
+
+func CheckAdmissionVolumeByUser(idAdmissionVolume uint, user digest.User) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var count int
+	if user.Role.Code == `administrator` {
+		return nil
+	}
+	db := conn.Table(`cmp.admission_volume`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idAdmissionVolume).Count(&count)
+	if db.Error != nil {
+		return db.Error
+	}
+	if count > 0 {
+		return nil
+	} else {
+		return errors.New(`У пользователя нет доступа к данным кцп `)
+	}
+}
+func CheckEditAdmission(idCampaign uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.IdCampaignStatus == 3 { // Статус завершена
+		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
+	}
+	return nil
+}
+func CheckRemoveAdmission(idCampaign uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.IdCampaignStatus == 3 { // Статус завершена
+		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
+	}
+
+	return nil
+}
+func CheckAddAdmission(idCampaign uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.IdCampaignStatus == 3 { // Статус завершена
+		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
+	}
+	return nil
+}
+
+func CheckEditAchievements(idCampaign uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true `, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.IdCampaignStatus != 1 { // 1 - Статус набор не начался
+		return errors.New(`Редактирование возможно только в статусе набор не начался. `)
+	}
+	return nil
+}
+func CheckAddAchievements(idCampaign uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Приемная компания не найдена `)
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - Статус завершена
+		return errors.New(`Редактирование невозможно. Приемная компания завершена. `)
+	}
+	return nil
+}
+
 func CheckEditEndDate(idCampaign uint) error {
 	var campaign digest.Campaign
 	conn := config.Db.ConnGORM
@@ -172,6 +176,7 @@ func CheckEditEndDate(idCampaign uint) error {
 	}
 	return nil
 }
+
 func CheckEditCompetitiveGroup(idCompetitive uint) error {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -196,6 +201,23 @@ func CheckEditCompetitiveGroup(idCompetitive uint) error {
 		return errors.New(`Найдены заявления с данной конкурсной группой. Редактирование невозможно `)
 	}
 	return nil
+}
+func CheckCompetitiveGroupByUser(idCompetitiveGroup uint, user digest.User) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var count int
+	if user.Role.Code == `administrator` {
+		return nil
+	}
+	db := conn.Table(`cmp.competitive_groups`).Select(`id`).Where(`id_organization=? AND id=? AND actual is true`, user.CurrentOrganization.Id, idCompetitiveGroup).Count(&count)
+	if db.Error != nil {
+		return db.Error
+	}
+	if count > 0 {
+		return nil
+	} else {
+		return errors.New(`У пользователя нет доступа к данной конкурсной группе `)
+	}
 }
 func CheckEditProgramsCompetitiveGroup(idCompetitive uint) error {
 	conn := config.Db.ConnGORM

@@ -24,6 +24,7 @@ type Campaign struct {
 	IdOrganization   uint         // Идентификатор организации
 	Created          time.Time    `json:"created"` // Дата создания
 	Changed          *time.Time   `json:"changed"` // Дата создания
+	Actual           bool         `json:"actual"`
 }
 
 type EndApplication struct {

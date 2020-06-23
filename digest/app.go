@@ -110,6 +110,7 @@ type VApplications struct {
 	Rating               float32   `json:"rating" schema:"rating"`
 	IdStatus             uint      `json:"id_status" schema:"id_status"`
 	NameStatus           string    `json:"name_status" schema:"name_status"`
+	CodeStatus           string    `json:"code_status" schema:"code_status"`
 	Agreed               *bool     `json:"agreed" schema:"agreed"`
 	Original             bool      `json:"original" schema:"original"`
 	Uid                  *string   `json:"uid" schema:"uid"`
@@ -131,8 +132,16 @@ type AppAchievements struct {
 	Mark                *int64                 `json:"mark"`
 	Uid                 *string                `json:"uid" schema:"uid"`
 	UidEpgu             *string                `json:"uid_epgu" schema:"uid_epgu"`
-	PathFile            *string                `json:"path_file" schema:"file" schema:"file"`
 	Created             time.Time              `json:"created"` // Дата создания
+}
+
+type AchievementFiles struct {
+	Id            uint                   `json:"id" schema:"id"` // Идентификатор
+	Application   Application            `gorm:"foreignkey:IdApplication"`
+	IdApplication *uint                  `json:"id_application"`
+	Achievement   IndividualAchievements `gorm:"foreignkey:IdAchievement"`
+	IdAchievement *uint                  `json:"id_achievement"`
+	PathFile      *string                `json:"path_file"`
 }
 
 type OrderAdmission struct {
@@ -157,6 +166,9 @@ func GetApplication(id uint) (*Application, error) {
 
 func (Application) TableName() string {
 	return "app.applications"
+}
+func (AchievementFiles) TableName() string {
+	return "app.achievment_files"
 }
 func (ApplicationsAgreedHistory) TableName() string {
 	return "app.applications_agreed_history"

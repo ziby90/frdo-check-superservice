@@ -46,9 +46,10 @@ func AddApplicationHandler(r *mux.Router) {
 		var res handlers.ResultInfo
 		res.User = *handlers.CheckAuthCookie(r)
 		vars := mux.Vars(r)
+		keys := r.URL.Query()
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
-			res.GetApplicationsByEntrant(uint(id))
+			res.GetApplicationsByEntrant(uint(id), keys)
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message

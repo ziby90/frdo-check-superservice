@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
+	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strconv"
@@ -54,6 +55,52 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 			if err == nil {
 				cmp.Id = uint(id)
 				res.EditCompetitive(cmp)
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
+	// изменение только количества мест конкурсной группы
+	r.HandleFunc("/competitive/{id:[0-9]+}/number/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.EditNumberCompetitive
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			b, _ := ioutil.ReadAll(r.Body)
+			err := json.Unmarshal(b, &cmp)
+			res.User = *handlers.CheckAuthCookie(r)
+			if err == nil {
+				cmp.IdCompetitive = uint(id)
+				res.EditNumberCompetitive(cmp)
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
+	// изменение uid конкурсной группы
+	r.HandleFunc("/competitive/{id:[0-9]+}/uid/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp digest.EditUid
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			b, _ := ioutil.ReadAll(r.Body)
+			err := json.Unmarshal(b, &cmp)
+			res.User = *handlers.CheckAuthCookie(r)
+			if err == nil {
+				cmp.Id = uint(id)
+				res.EditUidCompetitive(cmp)
 			} else {
 				message := err.Error()
 				res.Message = &message

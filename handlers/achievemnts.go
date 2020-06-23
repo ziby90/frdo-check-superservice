@@ -150,6 +150,9 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 					`name_type`:     document.DocumentType.Name,
 				}
 			}
+			var files []digest.AchievementFiles
+			db = conn.Where(`id_achievement=? AND id_application=?`, items[index].Id, idApplication).Find(&files)
+
 			c := map[string]interface{}{
 				`id`:             items[index].Id,
 				`uid`:            items[index].Uid,
@@ -159,7 +162,20 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 				`id_achievement`: items[index].Achievement.Id,
 				`mark`:           items[index].Mark,
 				`document`:       doc,
-				`file`:           items[index].PathFile != nil,
+			}
+			if len(files) > 0 {
+				c[`file`] = true
+				var epguDocuments []interface{}
+				for _, value := range files {
+					epguDocuments = append(epguDocuments, map[string]interface{}{
+						`id`:        value.Id,
+						`path_file`: value.PathFile,
+					})
+				}
+				c[`epgu_documents`] = epguDocuments
+			} else {
+				c[`file`] = false
+				c[`epgu_documents`] = []string{}
 			}
 			if items[index].UidEpgu != nil {
 				c[`name_achievement`] = items[index].Name
@@ -543,12 +559,12 @@ func (result *ResultInfo) GetFileAppAchievement(ID uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
-	var doc digest.AppAchievements
-	db := conn.Preload(`Application`).Where(`id=?`, ID).Find(&doc)
+	var doc digest.AchievementFiles
+	db := conn.Preload(`Application`).Preload(`Achievement`).Where(`id=?`, ID).Find(&doc)
 	if db.Error != nil {
 		if db.Error.Error() == "record not found" {
 			result.Done = false
-			message := "Достижение не найдено."
+			message := "Файл не найден."
 			result.Message = &message
 			result.Items = []interface{}{}
 			return
@@ -559,7 +575,7 @@ func (result *ResultInfo) GetFileAppAchievement(ID uint) {
 	}
 	if doc.PathFile != nil {
 		filename := *doc.PathFile
-		path := getPath(doc.Application.EntrantsId, doc.TableName(), doc.Created) + `/` + filename
+		path := getPath(doc.Application.EntrantsId, `app.achievements`, doc.Achievement.Created) + filename
 		f, err := os.Open(path)
 		if err != nil {
 			result.SetErrorResult(err.Error())

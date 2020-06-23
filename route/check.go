@@ -99,7 +99,7 @@ func AddChecksHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
 	// можно ли добавлять кцп
-	r.HandleFunc("/campaign/{id:[0-9]+}/competitive/check/add", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/campaign/{id:[0-9]+}/competitive/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		vars := mux.Vars(r)
 		res.User = *handlers.CheckAuthCookie(r)

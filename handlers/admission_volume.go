@@ -253,7 +253,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admissions []digest.AdmissionVolume
-	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_direction`)
+	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`code_specialty`)
 	for _, search := range result.Search {
 		if search[0] == `code_name` {
 			db = db.Where(`UPPER( code_specialty || ' ' || name_specialty) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
@@ -464,6 +464,7 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 					`quota_o`:              distr.QuotaO,
 					`quota_oz`:             distr.QuotaOz,
 					`quota_z`:              distr.QuotaZ,
+					`uid`:                  distr.Uid,
 					//`paid_o`:               distr.PaidO,
 					//`paid_oz`:              distr.PaidOz,
 					//`paid_z`:               distr.PaidZ,
@@ -851,6 +852,17 @@ func (result *ResultInfo) RemoveAdmission(IdAdmission uint) {
 		tx.Rollback()
 		return
 	}
+	var SumCompetitiveGroup struct {
+		Sum *int64
+	}
+	db = conn.Raw(`SELECT (sum(cg.budget_o) + sum(cg.budget_oz) + sum(cg.budget_z) + sum(cg.target_o) + sum(cg.target_oz) + sum(cg.target_z) + sum(cg.quota_o) + sum(cg.quota_oz) + sum(cg.quota_z) + sum(cg.paid_o) + sum(cg.paid_oz)+ sum(cg.paid_z)) as sum
+           FROM cmp.competitive_groups cg
+          WHERE cg.id_campaign =? AND cg.id_direction = ? AND cg.actual IS TRUE`, oldAdmission.IdCampaign, oldAdmission.IdDirection).Scan(&SumCompetitiveGroup)
+	if SumCompetitiveGroup.Sum != nil && *SumCompetitiveGroup.Sum > 0 {
+		result.SetErrorResult(`Невозможно удалить КЦП, если есть распределенные места в конкурсных группах`)
+		tx.Rollback()
+		return
+	}
 	t := time.Now()
 	var distributed []digest.DistributedAdmissionVolume
 	db = conn.Where(`id_admission_volume=? AND actual IS TRUE`, IdAdmission).Find(&distributed)
@@ -949,6 +961,17 @@ func (result *ResultInfo) RemoveBudgetAdmission(IdAdmission uint, IdBudget uint)
 	var distributed digest.DistributedAdmissionVolume
 	db = conn.Where(`id_admission_volume=? AND id=? AND actual IS TRUE`, IdAdmission, IdBudget).Find(&distributed)
 	if distributed.Id > 0 {
+		var SumCompetitiveGroup struct {
+			Sum *int64
+		}
+		db := conn.Raw(`SELECT (sum(cg.budget_o) + sum(cg.budget_oz) + sum(cg.budget_z) + sum(cg.target_o) + sum(cg.target_oz) + sum(cg.target_z) + sum(cg.quota_o) + sum(cg.quota_oz) + sum(cg.quota_z)) as sum
+           FROM cmp.competitive_groups cg
+          WHERE cg.id_campaign =? AND cg.id_direction = ? AND cg.id_level_budget =? AND cg.actual IS TRUE`, oldAdmission.IdCampaign, oldAdmission.IdDirection, distributed.IdLevelBudget).Scan(&SumCompetitiveGroup)
+		if SumCompetitiveGroup.Sum != nil && *SumCompetitiveGroup.Sum > 0 {
+			result.SetErrorResult(`Невозможно удалить уровень бюджета,  если есть распределенные места в конкурсных группах`)
+			tx.Rollback()
+			return
+		}
 		distributed.Actual = false
 		t := time.Now()
 		distributed.Changed = &t
@@ -979,7 +1002,6 @@ func (result *ResultInfo) GetLevelBudgetAdmission(ID uint) {
 	var idsLevelsBudget []uint
 	db := conn.Table(`cmp.distributed_admission_volume`).Where(`id_admission_volume=? AND actual IS TRUE`, ID).Pluck("id_level_budget", &idsLevelsBudget)
 	if db.Error == nil {
-
 		result.Done = true
 		result.Items = idsLevelsBudget
 	} else {

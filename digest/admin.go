@@ -2,6 +2,10 @@ package digest
 
 import "time"
 
+type EditUid struct {
+	Id  uint    `xml:"id"  json:"id"`
+	Uid *string `xml:"uid"  json:"uid"`
+}
 type Organization struct {
 	Id         uint       `xml:"id"  json:"id"`
 	Ogrn       string     `xml:"ogrn" json:"ogrn"`

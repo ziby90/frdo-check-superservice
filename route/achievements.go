@@ -51,7 +51,7 @@ func AddAchievementsHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
 	// получаем файл у достижения заявления
-	r.HandleFunc("/applications/achievements/{id:[0-9]+}/file", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/applications/achievements/file/{id:[0-9]+}/get", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)

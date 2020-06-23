@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
+	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strconv"
@@ -146,6 +147,35 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+	// изменение uid конкурсной группы
+	r.HandleFunc("/campaign/{id:[0-9]+}/uid/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp digest.EditUid
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					cmp.Id = uint(id)
+					res.EditUidCampaign(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 	// короткий список компаний для выпадаек
 	r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultList
@@ -209,6 +239,64 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
+	// добавить уровни образования у приемной компании
+	r.HandleFunc("/campaign/{id:[0-9]+}/education_levels/add", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				var cmp handlers.AddEducationLevels
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					cmp.IdCampaign = uint(id)
+					res.AddEducationLevelsCampaign(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// добавить формы обучения у приемной компании
+	r.HandleFunc("/campaign/{id:[0-9]+}/education_forms/add", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				var cmp handlers.AddEducationForms
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &cmp)
+				if err == nil {
+					cmp.IdCampaign = uint(id)
+					res.AddEducationFormsCampaign(cmp)
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
 	// это что? какой то спсиок предметов по вузам . ааа, выбор предметов для егэ по годам приемной компании! Женя, КОля - привет!
 	// Аня сказала "это список предметов ЕГЭ с их минимальными баллами в зависимости от года, каждый год разный минимальный балл"
 	r.HandleFunc("/campaign/{id:[0-9]+}/subjects", func(w http.ResponseWriter, r *http.Request) {
@@ -252,17 +340,24 @@ func AddCampaignHandler(r *mux.Router) {
 	}).Methods("GET")
 	// удаление приемной компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
+		var res handlers.ResultInfo
 		vars := mux.Vars(r)
-		_, err := strconv.ParseInt(vars[`id`], 10, 32)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
 		if err == nil {
-			//TODO сделать удаление
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				res.RemoveCampaign(uint(id))
+			}
 		} else {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
 		service.ReturnJSON(w, res)
-	}).Methods("GET")
+	}).Methods("POST")
 	// меняем статус приемной компании POST
 	r.HandleFunc("/campaign/{id:[0-9]+}/status/set", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

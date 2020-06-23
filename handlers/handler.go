@@ -85,7 +85,7 @@ func NewResult() Result {
 func (result *Result) MakeUrlParams(keys map[string][]string) {
 	if len(keys[`limit`]) > 0 {
 		if v, ok := strconv.Atoi(keys[`limit`][0]); ok == nil {
-			if v > 0 && v < 50 {
+			if v > 0 && v < 101 {
 				result.Paginator.Limit = v
 			}
 		}

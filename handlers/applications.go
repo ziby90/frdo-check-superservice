@@ -48,6 +48,8 @@ type AddApplication struct {
 	IdReturnType       *uint      `json:"id_return_type" schema:"id_return_type"`
 	ReturnDate         *time.Time `json:"return_date" schema:"return_date"`
 	Original           bool       `json:"original" schema:"original"`
+	OriginalDoc        *time.Time `json:"original_doc" schema:"original_doc"`
+
 	//IdBenefit                	uint                `json:"id_benefit" schema:"id_benefit"`
 	Uid           *string           `json:"uid" schema:"uid"`
 	StatusComment *string           `json:"status_comment" schema:"status_comment"`
@@ -121,16 +123,14 @@ func (result *Result) GetApplications(keys map[string][]string) {
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var applications []digest.VApplications
-	sortField := `created`
-	sortOrder := `desc`
-	if result.Sort.Field != `` {
-		sortField = result.Sort.Field
-	} else {
-		result.Sort.Field = sortField
+	if result.Sort.Field == `` {
+		result.Sort.Field = `created`
 	}
-
-	fmt.Print(result.Sort.Field, sortField)
-	db := conn.Where(`id_organization=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id)
+	if result.Sort.Order == `` {
+		result.Sort.Order = `asc`
+	}
+	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = db.Where(`id_organization=?  AND actual IS TRUE `, result.User.CurrentOrganization.Id)
 	if len(keys[`search_number`]) > 0 {
 		db = db.Where(`UPPER(app_number) LIKE ?`, `%`+strings.ToUpper(keys[`search_number`][0])+`%`)
 	}
@@ -140,13 +140,16 @@ func (result *Result) GetApplications(keys map[string][]string) {
 	if len(keys[`search_snils`]) > 0 {
 		db = db.Where(`UPPER(entrant_snils) LIKE ?`, `%`+strings.ToUpper(keys[`search_snils`][0])+`%`)
 	}
+	if len(keys[`search_uid_epgu`]) > 0 {
+		db = db.Where(`uid_epgu::character varying LIKE (?)`, `%`+strings.ToUpper(keys[`search_uid_epgu`][0])+`%`)
+	}
 
 	dbCount := db.Model(&applications).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
 	}
 	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&applications)
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&applications)
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range applications {
@@ -158,6 +161,7 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"entrant_snils":          applications[index].EntrantSnils,
 				"id_status":              applications[index].IdStatus,
 				"name_status":            applications[index].NameStatus,
+				"code_status":            applications[index].CodeStatus,
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
 				"original":               applications[index].Original,
@@ -178,29 +182,40 @@ func (result *Result) GetApplications(keys map[string][]string) {
 	}
 
 }
-func (result *ResultInfo) GetApplicationsByEntrant(idEntrant uint) {
+func (result *ResultInfo) GetApplicationsByEntrant(idEntrant uint, keys map[string][]string) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var applications []digest.Application
-
-	db := conn.Where(`id_organization=? AND id_entrant=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idEntrant).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`).Find(&applications)
-
+	db := conn.Where(`id_organization=? AND id_entrant=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idEntrant).Preload(`Status`).Preload(`Entrants`).Preload(`CompetitiveGroup`)
+	if len(keys[`search_uid_epgu`]) > 0 {
+		db = db.Where(`uid_epgu = ?`, strings.ToUpper(keys[`search_uid_epgu`][0]))
+	}
+	if len(keys[`order`]) > 0 && len(keys[`sortby`]) > 0 {
+		db = db.Order(keys[`sortby`][0] + ` ` + keys[`order`][0])
+	}
+	db = db.Find(&applications)
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range applications {
+			entrantsFullname := applications[index].Entrants.Surname + ` ` + applications[index].Entrants.Name
+			if applications[index].Entrants.Patronymic != nil {
+				entrantsFullname += ` ` + *applications[index].Entrants.Patronymic
+			}
 			response = append(response, map[string]interface{}{
 				"id":                     applications[index].Id,
 				"app_number":             applications[index].AppNumber,
 				"name_competitive_group": applications[index].CompetitiveGroup.Name,
-				"entrant_fullname":       applications[index].Entrants.Surname + ` ` + applications[index].Entrants.Name + ` ` + applications[index].Entrants.Patronymic,
+				"entrant_fullname":       entrantsFullname,
 				"entrant_snils":          applications[index].Entrants.Snils,
 				"id_status":              applications[index].Status.Id,
 				"name_status":            applications[index].Status.Name,
+				"code_status":            applications[index].Status.Code,
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
 				"original":               applications[index].Original,
 				"rating":                 applications[index].Rating,
+				"uid_epgu":               applications[index].UidEpgu,
 			})
 		}
 		result.Done = true
@@ -271,10 +286,16 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var application digest.Application
 
-	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Preload(`Status`).Find(&application)
+	db := conn.Where(`id_organization=? AND id=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Preload(`ReturnType`).Preload(`Status`).Find(&application)
 
 	if db.RowsAffected > 0 {
 		var info interface{}
+		var nameReturnType *string
+		if application.ReturnType != nil {
+			s := application.ReturnType.Name
+			nameReturnType = &s
+		}
+
 		info = map[string]interface{}{
 			"id":                     application.Id,
 			"id_status":              application.Status.Id,
@@ -292,6 +313,7 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 			"original_doc":           application.OriginalDoc,
 			"return_date":            application.ReturnDate,
 			"id_return_type":         application.IdReturnType,
+			"name_return_type":       nameReturnType,
 			"priority":               application.Priority,
 			"uid":                    application.Uid,
 			"uid_epgu":               application.UidEpgu,
@@ -322,6 +344,7 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 	if db.RowsAffected > 0 {
 		if old.Status.Code != nil && *old.Status.Code != `app_edit` {
 			result.SetErrorResult(`Заявление не находится в статусе редактирования`)
+			tx.Rollback()
 			return
 		}
 		var new digest.Application
@@ -332,6 +355,7 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 				db = conn.Where(`id_organization=? AND uid=?`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
 				if exist.Id > 0 {
 					result.SetErrorResult(`Заявление с данным uid уже существует у выбранной организации`)
+					tx.Rollback()
 					return
 				}
 			}
@@ -350,6 +374,12 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed`, new.Id).Count(&count)
 				if count >= 2 {
 					result.SetErrorResult(`Подать согласие можно не более двух раз`)
+					tx.Rollback()
+					return
+				}
+				if data.AgreedDate == nil {
+					result.SetErrorResult(`Не указана дата подачи согласия`)
+					tx.Rollback()
 					return
 				}
 				new.Agreed = data.Agreed
@@ -376,6 +406,12 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed IS FALSE`, new.Id).Count(&countDisagreed)
 				if countDisagreed >= 2 {
 					result.SetErrorResult(`Отозвать согласие можно не более двух раз`)
+					tx.Rollback()
+					return
+				}
+				if data.DisagreedDate == nil {
+					result.SetErrorResult(`Не указана дата отзыва согласия`)
+					tx.Rollback()
 					return
 				}
 				new.Disagreed = data.Disagreed
@@ -400,6 +436,7 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 				db = conn.Table(`app.applications_agreed_history`).Where(`id_application=? AND agreed`, new.Id).Count(&count)
 				if count >= 2 {
 					result.SetErrorResult(`Подать согласие можно не более двух раз`)
+					tx.Rollback()
 					return
 				}
 				// надо обновить дату подачи согласия
@@ -424,23 +461,33 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 
 		new.IdOrderAdmission = data.IdOrderAdmission
 		new.OrderAdmissionDate = data.OrderAdmissionDate
+		if old.Original == true && data.Original == true {
+			if data.OriginalDoc == nil {
+				result.SetErrorResult(`Не указана дата подачи оригиналов документов`)
+				tx.Rollback()
+				return
+			}
+			new.OriginalDoc = data.OriginalDoc
+		}
 
 		if old.Original == false && data.Original {
 			if data.OriginalDoc == nil {
 				result.SetErrorResult(`Не указана дата подачи оригиналов документов`)
+				tx.Rollback()
 				return
 			}
 			new.Original = data.Original
 			new.OriginalDoc = data.OriginalDoc
 		}
-
-		if old.Original == true && data.Original == false {
+		if old.Original == false && data.Original == false && old.ReturnDate != nil {
 			if data.ReturnDate == nil {
 				result.SetErrorResult(`Не указана дата возврата оригиналов документов`)
+				tx.Rollback()
 				return
 			}
 			if data.IdReturnType == nil {
 				result.SetErrorResult(`Не указан тип возврата оригиналов документов`)
+				tx.Rollback()
 				return
 			}
 			if data.IdReturnType != old.IdReturnType {
@@ -448,6 +495,31 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 				db = conn.Where(`id=?`, data.IdReturnType).Find(&returnType)
 				if returnType.Id <= 0 {
 					result.SetErrorResult(`Не найден тип вовзрата`)
+					tx.Rollback()
+					return
+				}
+			}
+			new.IdReturnType = data.IdReturnType
+			new.ReturnDate = data.ReturnDate
+		}
+
+		if old.Original == true && data.Original == false {
+			if data.ReturnDate == nil {
+				result.SetErrorResult(`Не указана дата возврата оригиналов документов`)
+				tx.Rollback()
+				return
+			}
+			if data.IdReturnType == nil {
+				result.SetErrorResult(`Не указан тип возврата оригиналов документов`)
+				tx.Rollback()
+				return
+			}
+			if data.IdReturnType != old.IdReturnType {
+				var returnType digest.ReturnTypes
+				db = conn.Where(`id=?`, data.IdReturnType).Find(&returnType)
+				if returnType.Id <= 0 {
+					result.SetErrorResult(`Не найден тип вовзрата`)
+					tx.Rollback()
 					return
 				}
 			}
@@ -884,11 +956,15 @@ func (result *ResultInfo) AddApplication(data AddApplication) {
 
 	application.Agreed = data.Agreed
 	application.AgreedDate = data.AgreedDate
-	application.Disagreed = data.Disagreed
-	application.DisagreedDate = data.DisagreedDate
-	application.Original = data.Original
-	application.StatusComment = data.StatusComment
+	//application.Disagreed = data.Disagreed
+	//application.DisagreedDate = data.DisagreedDate
 
+	application.Original = data.Original
+	if data.Original {
+		application.OriginalDoc = data.OriginalDoc
+	}
+	application.StatusComment = data.StatusComment
+	application.Actual = true
 	if data.Uid != nil {
 		var exist digest.Application
 		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *data.Uid).Find(&exist)
@@ -1512,7 +1588,7 @@ func (result *ResultInfo) RemoveApplication(idApplication uint, statusComment st
 	old.StatusComment = &statusComment
 	t := time.Now()
 	old.Changed = &t
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&old)
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&old)
 	if db.Error != nil {
 		result.SetErrorResult(`Ошибка при удалении заявления ` + db.Error.Error())
 		tx.Rollback()

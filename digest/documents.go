@@ -381,6 +381,7 @@ type AllDocuments struct {
 	NameSubject       *string    `json:"name_subject"`
 	Checked           bool       `json:"checked"`
 	UidEpgu           *string    `json:"uid_epgu"`
+	PathFile          *string    `json:"path_file" schema:"path_file"` // Дата создания
 }
 
 func (Compatriot) TableName() string {

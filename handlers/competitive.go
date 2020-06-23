@@ -43,7 +43,10 @@ type AddCompetitiveGroup struct {
 	CompetitiveGroupPrograms []digest.CompetitiveGroupProgram `json:"education_programs"`
 	EntranceTests            []digest.EntranceTest            `json:"entrance_tests"`
 }
-
+type EditNumberCompetitive struct {
+	IdCompetitive uint
+	Number        int64 `json:"number"`
+}
 type AddEntrance struct {
 	EntranceTests []digest.EntranceTest `json:"entrance_tests"`
 }
@@ -56,7 +59,6 @@ func (result *ResultCheck) CheckNumberAddCompetitive() {
 	result.Done = true
 	return
 }
-
 func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -139,7 +141,6 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 		return
 	}
 }
-
 func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -184,7 +185,6 @@ func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
 	result.Items = directions
 	return
 }
-
 func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -309,7 +309,6 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 		return
 	}
 }
-
 func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -565,7 +564,6 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 	return
 
 }
-
 func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -772,6 +770,185 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	result.Done = true
 	result.Items = map[string]interface{}{
 		`id_competitive_group`: competitive.Id,
+	}
+	tx.Commit()
+	return
+
+}
+func (result *ResultInfo) EditNumberCompetitive(data EditNumberCompetitive) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var competitive digest.CompetitiveGroup
+
+	db := tx.Where(`id=?  AND actual IS TRUE`, data.IdCompetitive).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		result.SetErrorResult(`Компания конкурсной группы не найдена `)
+		tx.Rollback()
+		return
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - статус завершена
+		result.SetErrorResult(`Редактирование невозможно. Приемная компания завершена. `)
+		tx.Rollback()
+		return
+	}
+	if competitive.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Конкурсная группа принадлежит другой организации.`)
+		tx.Rollback()
+		return
+	}
+
+	number := data.Number
+	switch competitive.IdEducationSource {
+	case 1: // Бюджетные места
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			competitive.BudgetO = number
+			break
+		case 2: // Очно-заочная(вечерняя)
+			competitive.BudgetOz = number
+			break
+		case 3: // Заочная
+			competitive.BudgetZ = number
+			break
+		default:
+			result.SetErrorResult(`Ошибка`)
+			tx.Rollback()
+			return
+		}
+		break
+	case 2: // Квота приема лиц, имеющих особое право
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			competitive.QuotaO = number
+			break
+		case 2: // Очно-заочная(вечерняя)
+			competitive.QuotaOz = number
+			break
+		case 3: // Заочная
+			competitive.QuotaZ = number
+			break
+		default:
+			result.SetErrorResult(`Ошибка`)
+			tx.Rollback()
+			return
+		}
+		break
+	case 3: // С оплатой обучения
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			competitive.PaidO = number
+			break
+		case 2: // Очно-заочная(вечерняя)
+			competitive.PaidOz = number
+			break
+		case 3: // Заочная
+			competitive.PaidZ = number
+			break
+		default:
+			result.SetErrorResult(`Ошибка`)
+			tx.Rollback()
+			return
+		}
+		break
+	case 4: // Целевой прием
+		switch competitive.IdEducationForm {
+		case 1: // Очная форма
+			competitive.TargetO = number
+			break
+		case 2: // Очно-заочная(вечерняя)
+			competitive.TargetOz = number
+			break
+		case 3: // Заочная
+			competitive.TargetZ = number
+			break
+		default:
+			result.SetErrorResult(`Ошибка`)
+			tx.Rollback()
+			return
+		}
+	default:
+		result.SetErrorResult(`Ошибка`)
+		tx.Rollback()
+		return
+	}
+	err := CheckNumberCompetitiveById(competitive.Id, number)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	t := time.Now()
+	competitive.Changed = &t
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_competitive_group`: competitive.Id,
+	}
+	tx.Commit()
+	return
+
+}
+func (result *ResultInfo) EditUidCompetitive(data digest.EditUid) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var old digest.CompetitiveGroup
+
+	db := tx.Where(`id=?  AND actual IS TRUE`, data.Id).Find(&old)
+	if old.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+	if old.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Конкурсная группа принадлежит другой организации.`)
+		tx.Rollback()
+		return
+	}
+	if data.Uid != nil {
+		var exist digest.CompetitiveGroup
+		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Конкурсная группа с данным uid уже существует у выбранной организации`)
+			tx.Rollback()
+			return
+		}
+	}
+	old.UID = data.Uid
+
+	t := time.Now()
+	old.Changed = &t
+	old.IdAuthor = result.User.Id
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&old)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_competitive_group`: old.Id,
 	}
 	tx.Commit()
 	return
@@ -1154,7 +1331,7 @@ func (result *ResultInfo) RemoveEntranceCompetitive(idCompetitive uint, idEntran
 	conn.LogMode(config.Conf.Dblog)
 
 	var old digest.CompetitiveGroup
-	db := tx.Where(`acutla IS TRUE`).Find(&old, idCompetitive)
+	db := tx.Where(`actual IS TRUE`).Find(&old, idCompetitive)
 	if old.Id == 0 || db.Error != nil {
 		result.SetErrorResult(`Конкурсная группа не найдена`)
 		tx.Rollback()
@@ -1169,8 +1346,8 @@ func (result *ResultInfo) RemoveEntranceCompetitive(idCompetitive uint, idEntran
 	var entrance digest.EntranceTest
 	db = conn.Where(`id_competitive_group=? AND id=? AND actual IS TRUE`, idCompetitive, idEntrance).Find(&entrance)
 	if entrance.Id > 0 {
-		db = tx.Exec(`UPDATE app.entrance_test SET actual=false AND changed=? WHERE id_entrance_test=?`, time.Now(), idEntrance)
-		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false AND changed=? WHERE id_competitive_group=? AND id=? `, time.Now(), idCompetitive, idEntrance)
+		db = tx.Exec(`DELETE FROM app.entrance_test WHERE id_entrance_test=?`, idEntrance)
+		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false, changed=? WHERE id_competitive_group=? AND id=? `, time.Now(), idCompetitive, idEntrance)
 		if db.Error == nil {
 			result.Done = true
 			tx.Commit()
@@ -1215,7 +1392,7 @@ func (result *ResultInfo) RemoveProgramCompetitive(idCompetitive uint, idProgram
 	var program digest.CompetitiveGroupProgram
 	db = conn.Where(`id_competitive_group=? AND id=? AND actual IS TRUE`, idCompetitive, idProgram).Find(&program)
 	if program.Id > 0 {
-		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false AND changed=? WHERE id_competitive_group=? AND id=?`, time.Now(), idCompetitive, idProgram)
+		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false, changed=? WHERE id_competitive_group=? AND id=?`, time.Now(), idCompetitive, idProgram)
 		if db.Error == nil {
 			result.Done = true
 			tx.Commit()
@@ -1260,16 +1437,16 @@ func (result *ResultInfo) RemoveCompetitive(idCompetitive uint) {
 	var programs []digest.CompetitiveGroupProgram
 	db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&programs)
 	if len(programs) > 0 {
-		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false AND changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
+		db = tx.Exec(`UPDATE cmp.competitive_group_programs SET actual=false, changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
 	}
 	var entrance []digest.EntranceTest
 	db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&entrance)
 	if len(entrance) > 0 {
-		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false AND changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
+		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false, changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
 	}
 
-	db = tx.Exec(`UPDATE app.applications SET actual=false AND changed=? WHERE id_competitive_groups=?`, time.Now(), idCompetitive)
-	db = tx.Exec(`UPDATE cmp.competitive_groups SET actual=false AND changed=? WHERE id=?`, time.Now(), idCompetitive)
+	db = tx.Exec(`UPDATE app.applications SET actual=false, changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
+	db = tx.Exec(`UPDATE cmp.competitive_groups SET actual=false, changed=? WHERE id=?`, time.Now(), idCompetitive)
 	if db.Error == nil {
 		result.Done = true
 		tx.Commit()
