@@ -253,7 +253,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var admissions []digest.AdmissionVolume
-	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`code_specialty`)
+	db := conn.Where(`id_organization=? AND id_campaign=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, IdCampaign).Order(`id_education_level`).Order(`code_specialty`)
 	for _, search := range result.Search {
 		if search[0] == `code_name` {
 			db = db.Where(`UPPER( code_specialty || ' ' || name_specialty) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)

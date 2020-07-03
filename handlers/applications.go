@@ -76,6 +76,13 @@ type EditApplicationInfo struct {
 	OriginalDoc        *time.Time `json:"original_doc" schema:"original_doc"`
 	Uid                *string    `json:"uid" schema:"uid"`
 }
+type EditApplicationTest struct {
+	IdApplication  uint    `json:"id_application"`
+	IdEntranceTest uint    `json:"id_entrance_test"`
+	IdDocument     *uint   `json:"id_document"`
+	ResultValue    int64   `json:"result_value"`
+	Uid            *string `json:"uid" schema:"uid"`
+}
 
 type AddApplicationDocs struct {
 	IdApplication uint
@@ -94,29 +101,6 @@ type AddApplicationEntranceTest struct {
 	IdDocument     uint    `json:"id_document"`
 	Uid            *string `json:"uid"`
 }
-
-//func CheckHandlerPost(w http.ResponseWriter, r *http.Request) {
-//	data := AddNewData{
-//		Params: map[string]interface{}{},
-//		Files:  []*multipart.FileHeader{},
-//	}
-//	err := r.ParseMultipartForm(200000)
-//	if err != nil {
-//		//fmt.Println(err)
-//	} else {
-//		for _, file := range r.MultipartForm.File["files"] {
-//			data.Files = append(data.Files, file)
-//		}
-//	}
-//	for key, value := range r.Form {
-//		data.Params[key] = value[0]
-//	}
-//	json.NewDecoder(r.Body).Decode(&data)
-//
-//	var check = CheckFiles(data)
-//	service.ReturnJSON(w, check)
-//
-//}
 
 func (result *Result) GetApplications(keys map[string][]string) {
 	result.Done = false
@@ -527,7 +511,6 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 			new.IdReturnType = data.IdReturnType
 			new.ReturnDate = data.ReturnDate
 		}
-
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
 		if db.Error != nil {
 			result.SetErrorResult(`Ошибка при обновлении данных заявления ` + db.Error.Error())
@@ -548,6 +531,77 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 	}
 
 }
+func (result *ResultInfo) EditApplicationTestById(data EditApplicationTest) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var application digest.Application
+	fmt.Println(result.User.CurrentOrganization.Id)
+	db := conn.Where(`id_organization=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.IdApplication).Preload(`Status`).Find(&application)
+
+	if db.RowsAffected > 0 {
+		if application.Status.Code != nil && *application.Status.Code != `app_edit` {
+			result.SetErrorResult(`Заявление не находится в статусе редактирования`)
+			tx.Rollback()
+			return
+		}
+		var old digest.AppEntranceTest
+		db = conn.Where(`id=?`, data.IdEntranceTest).Find(&old)
+		if old.Id <= 0 {
+			result.SetErrorResult(`Вступительное испытание не найдено`)
+			tx.Rollback()
+			return
+		}
+		var new digest.AppEntranceTest
+		new = old
+		if data.Uid != nil {
+			//if old.Uid != nil && *old.Uid != *data.Uid {
+			//	var exist digest.AppEntranceTest
+			//	db = conn.Where(`uid=?`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
+			//	if exist.Id > 0 {
+			//		result.SetErrorResult(`Заявление с данным uid уже существует у выбранной организации`)
+			//		tx.Rollback()
+			//		return
+			//	}
+			//}
+			new.Uid = data.Uid
+		}
+		new.ResultValue = data.ResultValue
+		if data.IdDocument != nil {
+			var doc digest.VDocuments
+			db = conn.Where(`id_document=?`, *data.IdDocument).Find(&doc)
+			if doc.IdDocument <= 0 {
+				result.SetErrorResult(`Документ не найден`)
+				tx.Rollback()
+				return
+			}
+			new.IdDocument = &doc.IdDocument
+		}
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
+		if db.Error != nil {
+			result.SetErrorResult(`Ошибка при обновлении вступительного испытания ` + db.Error.Error())
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		result.Done = true
+		result.Items = map[string]interface{}{
+			"id_application":   data.IdApplication,
+			"id_entrance_test": new.Id,
+		}
+		return
+	} else {
+		result.Done = false
+		message := `Заявление не найдено.`
+		result.Message = &message
+		return
+	}
+
+}
 func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -558,44 +612,129 @@ func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 
 	if db.RowsAffected > 0 {
 		var tests []interface{}
-		var appEntranceTests []digest.AppEntranceTest
-		db = conn.Preload(`EntranceTestDocumentType`).Where(`id_application=?`, idApplication).Find(&appEntranceTests)
-		for index, _ := range appEntranceTests {
-			db = conn.Model(&appEntranceTests[index]).Related(&appEntranceTests[index].EntranceTest, `IdEntranceTest`)
-			db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.EntranceTestType, `IdEntranceTestType`)
-			db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.Subject, `IdSubject`)
-
-			r := map[string]interface{}{
-				"id":                      appEntranceTests[index].Id,
-				"uid":                     appEntranceTests[index].Uid,
-				"id_entrance_test":        appEntranceTests[index].IdEntranceTest,
-				"id_entrance_test_type":   appEntranceTests[index].EntranceTest.EntranceTestType.Id,
-				"name_entrance_test_type": appEntranceTests[index].EntranceTest.EntranceTestType.Name,
-				"is_ege":                  appEntranceTests[index].EntranceTest.IsEge,
-				"name_subject":            appEntranceTests[index].EntranceTest.Subject.Name,
-				"test_name":               appEntranceTests[index].EntranceTest.TestName,
-				"priority":                appEntranceTests[index].EntranceTest.Priority,
-				"min_score":               appEntranceTests[index].EntranceTest.MinScore,
-				"result_value":            appEntranceTests[index].ResultValue,
-			}
-
-			if appEntranceTests[index].IdDocument != nil {
-				var category digest.DocumentSysCategories
-				db = conn.Where(`name_table=?`, `ege`).Find(&category)
-				if category.Id == 0 || db.Error != nil {
-					result.SetErrorResult(`Категория документа не найдена`)
-					return
-				}
-				var d digest.Ege
-				db = conn.Preload(`DocumentType`).Preload(`Subject`).Where("id=?", *appEntranceTests[index].IdDocument).Find(&d)
-				//issueDate := d.IssueDate.Format(`2006-01-02`)
-				r["id_document"] = d.Id
-				r["document_code_category"] = `ege`
-				r["document_name_category"] = category.Name
-			}
-
-			tests = append(tests, r)
+		var competitiveTests []digest.EntranceTest
+		db = conn.Preload(`Subject`).Preload(`EntranceTestType`).Where(`id_competitive_group=? AND actual is true`, application.IdCompetitiveGroup).Find(&competitiveTests)
+		if len(competitiveTests) <= 0 {
+			result.SetErrorResult(`У конкурсной группы не найдены вступительные испытания`)
+			return
 		}
+		for _, value := range competitiveTests {
+			test := map[string]interface{}{
+				"id":                      value.Id,
+				"id_entrance_test_type":   value.EntranceTestType.Id,
+				"name_entrance_test_type": value.EntranceTestType.Name,
+				"id_subject":              value.Subject.Id,
+				"name_subject":            value.Subject.Name,
+				"priority":                value.Priority,
+				"uid":                     value.Uid,
+				"test_name":               value.TestName,
+				"min_score":               value.MinScore,
+				"is_ege":                  value.IsEge,
+			}
+			var entranceTestCalendarAgreed digest.AppEntranceTestAgreed
+			db = conn.Where(`id_entrance_test=?`, value.Id).Find(&entranceTestCalendarAgreed)
+			if entranceTestCalendarAgreed.Id <= 0 {
+				test[`choose_entrance_test_date`] = nil
+			}
+			var entranceTestCalendar []digest.EntranceTestCalendar
+			db = conn.Where(`id_entrance_test=?`, value.Id).Find(&entranceTestCalendar)
+			if len(entranceTestCalendar) > 0 {
+				var ec []interface{}
+				for index, _ := range entranceTestCalendar {
+					//date := entranceTestCalendar[index].EntranceTestDate.Format("2006-01-02 15:04:05")
+					if entranceTestCalendar[index].Id == entranceTestCalendarAgreed.IdEntranceTestCalendar {
+						test[`choose_entrance_test_date`] = map[string]interface{}{
+							`id`:            entranceTestCalendar[index].Id,
+							`date`:          entranceTestCalendar[index].EntranceTestDate,
+							`exam_location`: entranceTestCalendar[index].ExamLocation,
+						}
+					}
+					ec = append(ec, entranceTestCalendar[index].EntranceTestDate)
+				}
+				test[`entrance_test_calendar_dates`] = ec
+			} else {
+				test[`entrance_test_calendar_dates`] = []time.Time{}
+			}
+
+			var appEntranceTest digest.AppEntranceTest
+			db = conn.Preload(`EntranceTestDocumentType`).Where(`id_application=? AND id_entrance_test=?`, idApplication, value.Id).Find(&appEntranceTest)
+			if appEntranceTest.Id > 0 {
+				db = conn.Model(&appEntranceTest).Related(&appEntranceTest.EntranceTest, `IdEntranceTest`)
+				db = conn.Model(&appEntranceTest.EntranceTest).Related(&appEntranceTest.EntranceTest.EntranceTestType, `IdEntranceTestType`)
+				db = conn.Model(&appEntranceTest.EntranceTest).Related(&appEntranceTest.EntranceTest.Subject, `IdSubject`)
+				r := map[string]interface{}{
+					"id":                      appEntranceTest.Id,
+					"uid":                     appEntranceTest.Uid,
+					"id_entrance_test":        appEntranceTest.IdEntranceTest,
+					"id_entrance_test_type":   appEntranceTest.EntranceTest.EntranceTestType.Id,
+					"name_entrance_test_type": appEntranceTest.EntranceTest.EntranceTestType.Name,
+					"is_ege":                  appEntranceTest.EntranceTest.IsEge,
+					"name_subject":            appEntranceTest.EntranceTest.Subject.Name,
+					"test_name":               appEntranceTest.EntranceTest.TestName,
+					"priority":                appEntranceTest.EntranceTest.Priority,
+					"min_score":               appEntranceTest.EntranceTest.MinScore,
+					"result_value":            appEntranceTest.ResultValue,
+				}
+				if appEntranceTest.IdDocument != nil {
+					var category digest.DocumentSysCategories
+					db = conn.Where(`name_table=?`, `ege`).Find(&category)
+					if category.Id == 0 || db.Error != nil {
+						result.SetErrorResult(`Категория документа не найдена`)
+						return
+					}
+					var d digest.Ege
+					db = conn.Preload(`DocumentType`).Preload(`Subject`).Where("id=?", *appEntranceTest.IdDocument).Find(&d)
+					//issueDate := d.IssueDate.Format(`2006-01-02`)
+					r["id_document"] = d.Id
+					r["document_code_category"] = `ege`
+					r["document_name_category"] = category.Name
+				}
+				test[`app_entrance_test`] = r
+
+			} else {
+				test[`app_entrance_test`] = nil
+			}
+			tests = append(tests, test)
+		}
+
+		//var appEntranceTests []digest.AppEntranceTest
+		//db = conn.Preload(`EntranceTestDocumentType`).Where(`id_application=?`, idApplication).Find(&appEntranceTests)
+		//for index, _ := range appEntranceTests {
+		//	db = conn.Model(&appEntranceTests[index]).Related(&appEntranceTests[index].EntranceTest, `IdEntranceTest`)
+		//	db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.EntranceTestType, `IdEntranceTestType`)
+		//	db = conn.Model(&appEntranceTests[index].EntranceTest).Related(&appEntranceTests[index].EntranceTest.Subject, `IdSubject`)
+		//
+		//	r := map[string]interface{}{
+		//		"id":                      appEntranceTests[index].Id,
+		//		"uid":                     appEntranceTests[index].Uid,
+		//		"id_entrance_test":        appEntranceTests[index].IdEntranceTest,
+		//		"id_entrance_test_type":   appEntranceTests[index].EntranceTest.EntranceTestType.Id,
+		//		"name_entrance_test_type": appEntranceTests[index].EntranceTest.EntranceTestType.Name,
+		//		"is_ege":                  appEntranceTests[index].EntranceTest.IsEge,
+		//		"name_subject":            appEntranceTests[index].EntranceTest.Subject.Name,
+		//		"test_name":               appEntranceTests[index].EntranceTest.TestName,
+		//		"priority":                appEntranceTests[index].EntranceTest.Priority,
+		//		"min_score":               appEntranceTests[index].EntranceTest.MinScore,
+		//		"result_value":            appEntranceTests[index].ResultValue,
+		//	}
+		//
+		//	if appEntranceTests[index].IdDocument != nil {
+		//		var category digest.DocumentSysCategories
+		//		db = conn.Where(`name_table=?`, `ege`).Find(&category)
+		//		if category.Id == 0 || db.Error != nil {
+		//			result.SetErrorResult(`Категория документа не найдена`)
+		//			return
+		//		}
+		//		var d digest.Ege
+		//		db = conn.Preload(`DocumentType`).Preload(`Subject`).Where("id=?", *appEntranceTests[index].IdDocument).Find(&d)
+		//		//issueDate := d.IssueDate.Format(`2006-01-02`)
+		//		r["id_document"] = d.Id
+		//		r["document_code_category"] = `ege`
+		//		r["document_name_category"] = category.Name
+		//	}
+		//
+		//	tests = append(tests, r)
+		//}
 		result.Items = []digest.AppEntranceTest{}
 		if len(tests) > 0 {
 			result.Items = tests
@@ -1104,8 +1243,8 @@ func (result *ResultInfo) AddAppAchievement(data digest.AppAchievements) {
 	}()
 	conn.LogMode(config.Conf.Dblog)
 	var achievement digest.IndividualAchievements
-	if data.IdAchievement != nil {
-		ach, err := digest.GetIndividualAchievements(*data.IdAchievement)
+	if data.IdIndividualAchievement != nil {
+		ach, err := digest.GetIndividualAchievements(*data.IdIndividualAchievement)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1156,7 +1295,7 @@ func (result *ResultInfo) AddAppAchievement(data digest.AppAchievements) {
 
 	new.Created = time.Now()
 	new.IdApplication = application.Id
-	new.IdAchievement = &achievement.Id
+	new.IdIndividualAchievement = &achievement.Id
 	new.IdCategory = achievement.IdCategory
 	new.Name = achievement.Name
 	if data.IdDocument != nil {
@@ -1419,6 +1558,11 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 		tx.Rollback()
 		return
 	}
+	if !status.SetVuz {
+		result.SetErrorResult(`Невозможно перевести в данный статус из личного кабинета`)
+		tx.Rollback()
+		return
+	}
 	application, err := digest.GetApplication(data.IdApplication)
 	if err != nil {
 		result.SetErrorResult(err.Error())
@@ -1462,6 +1606,15 @@ func (result *ResultInfo) GetApplicationStatuses(keys map[string][]string) {
 	db = conn.Where(`actual`)
 	if len(keys[`search`]) > 0 {
 		db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(keys[`search`][0])+`%`)
+	}
+	if len(keys[`set_vuz`]) > 0 {
+		if keys[`set_vuz`][0] == `true` {
+			db = db.Where(`set_vuz IS true`)
+		}
+		if keys[`set_vuz`][0] == `false` {
+			db = db.Where(`set_vuz IS false`)
+		}
+
 	}
 
 	db = db.Find(&statuses)

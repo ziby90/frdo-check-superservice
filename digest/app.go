@@ -119,29 +119,43 @@ type VApplications struct {
 	Actual               bool      `xml:"actual" json:"actual"`
 }
 type AppAchievements struct {
-	Id                  uint                   `json:"id" schema:"id"` // Идентификатор
-	Application         Application            `gorm:"foreignkey:IdApplication"`
-	IdApplication       uint                   `json:"id_application"`
-	AchievementCategory AchievementCategory    `gorm:"foreignkey:IdCategory" json:"category"`
-	IdCategory          uint                   `json:"id_category"` // Идентификатор наименования категории индивидуального достижения
-	Achievement         IndividualAchievements `gorm:"foreignkey:IdAchievement"`
-	IdAchievement       *uint                  `json:"id_achievement"`
-	Document            VDocuments             `gorm:"foreignkey:IdDocument"`
-	IdDocument          *uint                  `json:"id_document"`
-	Name                string                 `json:"name"`
-	Mark                *int64                 `json:"mark"`
-	Uid                 *string                `json:"uid" schema:"uid"`
-	UidEpgu             *string                `json:"uid_epgu" schema:"uid_epgu"`
-	Created             time.Time              `json:"created"` // Дата создания
+	Id                      uint                   `json:"id" schema:"id"` // Идентификатор
+	Application             Application            `gorm:"foreignkey:IdApplication"`
+	IdApplication           uint                   `json:"id_application"`
+	AchievementCategory     AchievementCategory    `gorm:"foreignkey:IdCategory" json:"category"`
+	IdCategory              uint                   `json:"id_category"` // Идентификатор наименования категории индивидуального достижения
+	IndividualAchievement   IndividualAchievements `gorm:"foreignkey:IdIndividualAchievement"`
+	IdIndividualAchievement *uint                  `json:"id_achievement"`
+	Document                VDocuments             `gorm:"foreignkey:IdDocument"`
+	IdDocument              *uint                  `json:"id_document"`
+	Name                    string                 `json:"name"`
+	Mark                    *int64                 `json:"mark"`
+	Uid                     *string                `json:"uid" schema:"uid"`
+	UidEpgu                 *string                `json:"uid_epgu" schema:"uid_epgu"`
+	Created                 time.Time              `json:"created"` // Дата создания
+}
+
+type AppEntranceTestAgreed struct {
+	Id                     uint                 `json:"id" schema:"id"` // Идентификатор
+	Application            Application          `gorm:"foreignkey:IdApplication"`
+	IdApplication          uint                 `json:"id_application"`
+	EntranceTestCalendar   EntranceTestCalendar `gorm:"foreignkey:IdEntranceTestCalendar"`
+	IdEntranceTestCalendar uint                 `json:"id_entrance_test_calendar"`
+	EntranceTest           EntranceTest         `gorm:"foreignkey:IdEntranceTest"`
+	IdEntranceTest         uint                 `json:"id_entrance_test"`
+	IdOrganization         uint                 `json:"id_organization"`
+	Uid                    *string              `json:"uid" schema:"uid"`
+	UidEpgu                *string              `json:"uid_epgu" schema:"uid_epgu"`
+	Created                time.Time            `json:"created"` // Дата создания
 }
 
 type AchievementFiles struct {
-	Id            uint                   `json:"id" schema:"id"` // Идентификатор
-	Application   Application            `gorm:"foreignkey:IdApplication"`
-	IdApplication *uint                  `json:"id_application"`
-	Achievement   IndividualAchievements `gorm:"foreignkey:IdAchievement"`
-	IdAchievement *uint                  `json:"id_achievement"`
-	PathFile      *string                `json:"path_file"`
+	Id            uint            `json:"id" schema:"id"` // Идентификатор
+	Application   Application     `gorm:"foreignkey:IdApplication"`
+	IdApplication *uint           `json:"id_application"`
+	Achievement   AppAchievements `gorm:"foreignkey:IdAchievement"`
+	IdAchievement *uint           `json:"id_achievement"`
+	PathFile      *string         `json:"path_file"`
 }
 
 type OrderAdmission struct {
@@ -178,6 +192,9 @@ func (AppAchievements) TableName() string {
 }
 func (AppEntranceTest) TableName() string {
 	return "app.entrance_test"
+}
+func (AppEntranceTestAgreed) TableName() string {
+	return "app.entrance_test_agreed"
 }
 func (OrderAdmission) TableName() string {
 	return "app.order_admission"

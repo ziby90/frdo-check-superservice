@@ -3,24 +3,26 @@ package digest
 import "time"
 
 type Entrants struct {
-	Id                 uint      `json:"id"` // Идентификатор
-	Snils              string    `json:"snils"`
-	Surname            string    `json:"surname"`
-	Name               string    `json:"name"`
-	Patronymic         *string   `json:"patronymic"`
-	Gender             Gender    `json:"gender" gorm:"foreignkey:IdGender"`
-	IdGender           uint      `json:"id_gender"`
-	Birthday           time.Time `json:"birthday"`
-	Birthplace         string    `json:"birthplace"`
-	Phone              *string   `json:"phone"`
-	Email              *string   `json:"email"`
-	IdRegistrationAddr *uint     `json:"id_registration_address"`
-	RegistrationAddr   *Address  `json:"registration_addr" gorm:"foreignkey:IdRegistrationAddr"`
-	IdFactAddr         *uint     `json:"id_fact_address"`
-	FactAddr           *Address  `json:"fact_addr" gorm:"foreignkey:IdFactAddr"`
-	Okcm               Okcm      `json:"okcm" gorm:"foreignkey:IdOkcm"`
-	IdOkcm             uint      `json:"id_okcm"`
-	Created            time.Time `json:"created"` // Дата создания
+	Id                   uint      `json:"id"` // Идентификатор
+	Snils                string    `json:"snils"`
+	Surname              string    `json:"surname"`
+	Name                 string    `json:"name"`
+	Patronymic           *string   `json:"patronymic"`
+	Gender               Gender    `json:"gender" gorm:"foreignkey:IdGender"`
+	IdGender             uint      `json:"id_gender"`
+	Birthday             time.Time `json:"birthday"`
+	Birthplace           string    `json:"birthplace"`
+	Phone                *string   `json:"phone"`
+	RegistrationAddrFull *string   `json:"registration_addr_full"`
+	FactAddrFull         *string   `json:"fact_addr_full"`
+	Email                *string   `json:"email"`
+	IdRegistrationAddr   *uint     `json:"id_registration_address"`
+	RegistrationAddr     *Address  `json:"registration_addr" gorm:"foreignkey:IdRegistrationAddr"`
+	IdFactAddr           *uint     `json:"id_fact_address"`
+	FactAddr             *Address  `json:"fact_addr" gorm:"foreignkey:IdFactAddr"`
+	Okcm                 Okcm      `json:"okcm" gorm:"foreignkey:IdOkcm"`
+	IdOkcm               uint      `json:"id_okcm"`
+	Created              time.Time `json:"created"` // Дата создания
 }
 
 type Address struct {

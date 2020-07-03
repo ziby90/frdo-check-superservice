@@ -1,6 +1,8 @@
 package digest
 
 import (
+	"errors"
+	"persons/config"
 	"time"
 )
 
@@ -82,4 +84,75 @@ func (AdmissionVolume) TableName() string {
 }
 func (DistributedAdmissionVolume) TableName() string {
 	return "cmp.distributed_admission_volume"
+}
+
+func (c AdmissionVolume) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&c, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`КЦП не найдена. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if c.Id <= 0 {
+		return nil, errors.New(`КЦП не найдена. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             c.Id,
+		Uid:            c.Uid,
+		Actual:         c.Actual,
+		IdOrganization: c.IdOrganization,
+		Created:        c.Created,
+		TableName:      "cmp.admission_volume",
+	}
+	return &primary, nil
+}
+
+func (c AdmissionVolume) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist AdmissionVolume
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `КЦП с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+
+func (d DistributedAdmissionVolume) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist DistributedAdmissionVolume
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Уровни бюджета с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+func (d DistributedAdmissionVolume) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&d, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Уровни бюджета не найдены. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if d.Id <= 0 {
+		return nil, errors.New(`Уровни бюджета не найдены. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             d.Id,
+		Uid:            d.Uid,
+		Actual:         d.Actual,
+		IdOrganization: d.IdOrganization,
+		Created:        d.Created,
+		TableName:      d.TableName(),
+	}
+	return &primary, nil
 }

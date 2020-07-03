@@ -2,6 +2,7 @@ package route
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
@@ -58,9 +59,25 @@ func AddAchievementsHandler(r *mux.Router) {
 		if err == nil {
 			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
 			res.GetFileAppAchievement(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
+			if res.Done {
+				path := fmt.Sprintf(`%v`, res.Items)
+				file, err := ioutil.ReadFile(path)
+				if err != nil {
+					res.Done = false
+					m := "Cann't open file: " + path
+					res.Message = &m
+				} else {
+					w.Write(file)
+					return
+				}
+			} else {
+				message := `Неверный параметр id.`
+				res.Message = &message
+			}
+		}
+		if !res.Done {
+			service.ReturnErrorJSON(w, res, 400)
+			return
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")

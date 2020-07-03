@@ -1,6 +1,10 @@
 package digest
 
-import "time"
+import (
+	"errors"
+	"persons/config"
+	"time"
+)
 
 type CompetitiveGroup struct {
 	Id                uint      `gorm:"primary_key";json:"id"` // Идентификатор
@@ -59,4 +63,75 @@ func (CompetitiveGroup) TableName() string {
 
 func (CompetitiveGroupProgram) TableName() string {
 	return "cmp.competitive_group_programs"
+}
+
+func (c CompetitiveGroup) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist CompetitiveGroup
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Конкурсная группа с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+
+func (c CompetitiveGroup) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&c, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Конкурсная группа не найдена. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if c.Id <= 0 {
+		return nil, errors.New(`Конкурсная группа не найдена. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             c.Id,
+		Uid:            c.UID,
+		Actual:         c.Actual,
+		IdOrganization: c.IdOrganization,
+		Created:        c.Created,
+		TableName:      c.TableName(),
+	}
+	return &primary, nil
+}
+
+func (p CompetitiveGroupProgram) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist CompetitiveGroupProgram
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Образовательные программы с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+func (p CompetitiveGroupProgram) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&p, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Образовательные программы не найдены. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if p.Id <= 0 {
+		return nil, errors.New(`Образовательные программы не найдены. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             p.Id,
+		Uid:            p.Uid,
+		Actual:         p.Actual,
+		IdOrganization: p.IdOrganization,
+		Created:        p.Created,
+		TableName:      p.TableName(),
+	}
+	return &primary, nil
 }

@@ -1,12 +1,8 @@
 package handlers
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
-	"io/ioutil"
-	"os"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -124,7 +120,7 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 	}
 
 	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(`id asc`).Preload(`Achievement`).Preload(`AchievementCategory`).Find(&items)
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(`id asc`).Preload(`IndividualAchievement`).Preload(`AchievementCategory`).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
@@ -158,8 +154,8 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 				`uid`:            items[index].Uid,
 				`id_category`:    items[index].AchievementCategory.Id,
 				`name_category`:  items[index].AchievementCategory.Name,
-				`max_value`:      items[index].Achievement.MaxValue,
-				`id_achievement`: items[index].Achievement.Id,
+				`max_value`:      items[index].IndividualAchievement.MaxValue,
+				`id_achievement`: items[index].IndividualAchievement.Id,
 				`mark`:           items[index].Mark,
 				`document`:       doc,
 			}
@@ -180,7 +176,7 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 			if items[index].UidEpgu != nil {
 				c[`name_achievement`] = items[index].Name
 			} else {
-				c[`name_achievement`] = items[index].Achievement.Name
+				c[`name_achievement`] = items[index].IndividualAchievement.Name
 			}
 			responses = append(responses, c)
 		}
@@ -404,6 +400,7 @@ func (result *ResultInfo) EditAchievement(data AchievementMain) {
 	achievement.Name = data.Name
 	t := time.Now()
 	achievement.Changed = &t
+	achievement.IdAuthor = result.User.Id
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&achievement)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
@@ -576,23 +573,24 @@ func (result *ResultInfo) GetFileAppAchievement(ID uint) {
 	if doc.PathFile != nil {
 		filename := *doc.PathFile
 		path := getPath(doc.Application.EntrantsId, `app.achievements`, doc.Achievement.Created) + filename
-		f, err := os.Open(path)
-		if err != nil {
-			result.SetErrorResult(err.Error())
-			return
-		} else {
-			defer f.Close()
-			reader := bufio.NewReader(f)
-			content, _ := ioutil.ReadAll(reader)
-			ext := mimetype.Detect(content)
-			file := digest.FileC{
-				Content: content,
-				Size:    int64(len(content)),
-				Title:   filename,
-				Type:    ext.Extension(),
-			}
-			result.Items = file
-		}
+		//f, err := os.Open(path)
+		//if err != nil {
+		//	result.SetErrorResult(err.Error())
+		//	return
+		//} else {
+		//	defer f.Close()
+		//	reader := bufio.NewReader(f)
+		//	content, _ := ioutil.ReadAll(reader)
+		//	ext := mimetype.Detect(content)
+		//	file := digest.FileC{
+		//		Content: content,
+		//		Size:    int64(len(content)),
+		//		Title:   filename,
+		//		Type:    ext.Extension(),
+		//	}
+		//	result.Items = file
+		//}
+		result.Items = path
 	} else {
 		message := "Файл не найден."
 		result.Message = &message

@@ -40,20 +40,55 @@ func GetIndividualAchievements(id uint) (*IndividualAchievements, error) {
 	return &item, nil
 }
 
+func (i IndividualAchievements) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist DistributedAdmissionVolume
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Индивидуальные достижения с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+func (i IndividualAchievements) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&i, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Индивидуальные достижения не найдены. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if i.Id <= 0 {
+		return nil, errors.New(`Индивидуальные достижения не найдены. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             i.Id,
+		Uid:            i.Uid,
+		Actual:         i.Actual,
+		IdOrganization: i.IdOrganization,
+		Created:        i.Created,
+		TableName:      i.TableName(),
+	}
+	return &primary, nil
+}
+
 func (IndividualAchievements) TableName() string {
 	return "cmp.achievements"
 }
 
-func (r *IndividualAchievements) Init(action string) {
+func (i *IndividualAchievements) Init(action string) {
 
 }
 
-func (r *IndividualAchievements) Add() error {
+func (i *IndividualAchievements) Add() error {
 	return nil
 }
-func (r *IndividualAchievements) Edit() error {
+func (i *IndividualAchievements) Edit() error {
 	return nil
 }
-func (r *IndividualAchievements) Remove() error {
+func (i *IndividualAchievements) Remove() error {
 	return nil
 }

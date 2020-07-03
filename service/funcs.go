@@ -173,6 +173,15 @@ func ReturnJSON(w http.ResponseWriter, object interface{}) {
 		fmt.Println(`ошибка ` + err.Error())
 	}
 }
+func ReturnErrorJSON(w http.ResponseWriter, object interface{}, statusCode int) {
+	ansB, _ := json.Marshal(object)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_, err := w.Write(ansB)
+	if err != nil {
+		fmt.Println(`ошибка ` + err.Error())
+	}
+}
 
 //
 //func ReturnXml(w http.ResponseWriter, object string) {

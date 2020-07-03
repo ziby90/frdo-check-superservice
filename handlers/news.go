@@ -24,8 +24,8 @@ var NewsSearchArray = []string{
 
 type News struct {
 	Id        uint      `json:"id" schema:"id"`
-	Title     string    `json:"title" schema:"title"`
-	Content   string    `json:"content" schema:"content"`
+	Title     *string   `json:"title" schema:"title"`
+	Content   *string   `json:"content" schema:"content"`
 	DateNews  time.Time `json:"date_news" schema:"date_news"`
 	Created   time.Time `json:"created" schema:"created"`
 	Published bool      `json:"published" schema:"published"`
@@ -69,7 +69,11 @@ func (result *ResultInfo) EditNew(data News) {
 		return
 	}
 	new = old
-	new.Title = strings.TrimSpace(data.Title)
+	if data.Title != nil {
+		s := strings.TrimSpace(*data.Title)
+		new.Title = &s
+	}
+
 	new.Created = time.Now()
 	new.IdAuthor = result.User.Id
 	new.Published = data.Published
@@ -254,6 +258,57 @@ func (result *Result) GetListNews() {
 	} else {
 		result.Done = true
 		message := `Новости не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
+func (result *ResultInfo) GetInfoNew(idNew uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var news News
+	db := conn.Where(`id=?`, idNew).Find(&news)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Новости не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		c := map[string]interface{}{
+			`id`:        news.Id,
+			`title`:     news.Title,
+			`content`:   news.Content,
+			`date_news`: news.DateNews,
+			`published`: news.Published,
+			`deleted`:   news.Deleted,
+			`id_author`: news.IdAuthor,
+			`created`:   news.Created,
+		}
+		var files []FileNew
+		db = conn.Where(`id_news=?`, idNew).Find(&files)
+		var f []interface{}
+		for _, file := range files {
+			f = append(f, map[string]interface{}{
+				`id`:    file.Id,
+				`title`: file.Title,
+				`size`:  file.Size,
+				`type`:  file.Mime,
+			})
+		}
+		c[`files`] = f
+		result.Done = true
+		result.Items = c
+		return
+	} else {
+		result.Done = true
+		message := `Новость не найдена.`
 		result.Message = &message
 		result.Items = []digest.Campaign{}
 		return

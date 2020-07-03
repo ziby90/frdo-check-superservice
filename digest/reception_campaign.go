@@ -96,6 +96,77 @@ func GetCampaign(id uint) (*Campaign, error) {
 	return &item, nil
 }
 
+func (c Campaign) CheckUid(uid string, p PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist Campaign
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, p.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Приемная компания с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+
+func (c Campaign) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&c, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Приемная компания не найдена. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if c.Id <= 0 {
+		return nil, errors.New(`Приемная компания не найдена. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             c.Id,
+		Uid:            c.Uid,
+		Actual:         c.Actual,
+		IdOrganization: c.IdOrganization,
+		Created:        c.Created,
+		TableName:      c.TableName(),
+	}
+	return &primary, nil
+}
+func (e EndApplication) CheckUid(uid string, primary PrimaryDataDigest) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var exist EndApplication
+	conn.Where(`id_organization=? AND uid=? AND actual IS TRUE`, primary.IdOrganization, uid).Find(&exist)
+	if exist.Id > 0 {
+		m := `Контрольная дата с данным uid уже существует у выбранной организации. `
+		return errors.New(m)
+	}
+	return nil
+}
+
+func (e EndApplication) GetById(id uint) (*PrimaryDataDigest, error) {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	db := conn.Where(`actual IS TRUE`).Find(&e, id)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			return nil, errors.New(`Контрольная дата не найдена. `)
+		}
+		return nil, errors.New(`Ошибка подключения к БД. `)
+	}
+	if e.Id <= 0 {
+		return nil, errors.New(`Контрольная дата не найдена. `)
+	}
+	primary := PrimaryDataDigest{
+		Id:             e.Id,
+		Uid:            e.Uid,
+		Actual:         e.Actual,
+		IdOrganization: e.IdOrganization,
+		Created:        e.Created,
+		TableName:      e.TableName(),
+	}
+	return &primary, nil
+}
+
 // TableNames
 func (Campaign) TableName() string {
 	return "cmp.campaigns"
@@ -113,22 +184,22 @@ func (VEndApplication) TableName() string {
 	return "cmp.v_end_application"
 }
 
-func (r *Campaign) Check(payload string) error {
+func (c *Campaign) Check(payload string) error {
 	return nil
 }
 
-func (r *Campaign) Add() error {
+func (c *Campaign) Add() error {
 	return nil
 }
-func (r *Campaign) Edit() error {
-	return nil
-}
-
-func (r *Campaign) Remove() error {
+func (c *Campaign) Edit() error {
 	return nil
 }
 
-func (r *Campaign) GetTestJson() interface{} {
+func (c *Campaign) Remove() error {
+	return nil
+}
+
+func (c *Campaign) GetTestJson() interface{} {
 	campaign := map[string]interface{}{
 		"id":                 1,
 		"full_title":         `Name`,

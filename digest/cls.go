@@ -17,11 +17,13 @@ type AppealStatuses struct {
 	Actual   bool `json:"actual"` // Актуальность
 }
 type ApplicationStatuses struct {
-	Id      uint
-	Name    string
-	Created time.Time
-	Code    *string `json:"code"`
-	Actual  bool    `json:"actual"` // Актуальность
+	Id       uint
+	Name     string
+	Created  time.Time
+	Code     *string `json:"code"`
+	Actual   bool    `json:"actual"` // Актуальность
+	SentEpgu bool    `json:"sent_epgu"`
+	SetVuz   bool    `json:"set_vuz"`
 }
 type Benefit struct {
 	Id        uint `xml:"BenefitID"`

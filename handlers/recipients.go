@@ -107,20 +107,22 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 		result.Done = true
 		birthday := entrant.Birthday.Format("2006-01-02")
 		response := map[string]interface{}{
-			`id`:          entrant.Id,
-			`created`:     entrant.Created,
-			"snils":       entrant.Snils,
-			"surname":     entrant.Surname,
-			"name":        entrant.Name,
-			"patronymic":  entrant.Patronymic,
-			"id_gender":   entrant.Gender.Id,
-			"name_gender": entrant.Gender.Name,
-			"birthday":    birthday,
-			"birthplace":  entrant.Birthplace,
-			"phone":       entrant.Phone,
-			"email":       entrant.Email,
-			"id_okcm":     entrant.Okcm.Id,
-			`name_okcm`:   entrant.Okcm.ShortName,
+			`id`:                     entrant.Id,
+			`created`:                entrant.Created,
+			"snils":                  entrant.Snils,
+			"surname":                entrant.Surname,
+			"name":                   entrant.Name,
+			"patronymic":             entrant.Patronymic,
+			"id_gender":              entrant.Gender.Id,
+			"name_gender":            entrant.Gender.Name,
+			"birthday":               birthday,
+			"birthplace":             entrant.Birthplace,
+			"phone":                  entrant.Phone,
+			"email":                  entrant.Email,
+			"id_okcm":                entrant.Okcm.Id,
+			`name_okcm`:              entrant.Okcm.ShortName,
+			`registration_addr_full`: entrant.RegistrationAddrFull,
+			`fact_addr_full`:         entrant.FactAddrFull,
 		}
 		fmt.Println(entrant.IdFactAddr)
 		var factAdrr digest.Address

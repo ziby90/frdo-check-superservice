@@ -156,6 +156,7 @@ func AddAdmissionHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
+
 	// удаление кцп с уровнями бюджета
 	r.HandleFunc("/admission/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

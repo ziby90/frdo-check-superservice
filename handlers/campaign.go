@@ -45,6 +45,7 @@ type AddEndData struct {
 	IdEducationLevel uint      `json:"id_education_level"`
 	IdEducationForm  uint      `json:"id_education_form"`
 	EndDate          time.Time `json:"end_date"`
+	Uid              *string   `json:"uid"`
 }
 type ChangeStatusCampaign struct {
 	Campaign         digest.Campaign       `gorm:"foreignkey:IdCampaign"`
@@ -379,6 +380,7 @@ func (result *ResultInfo) GetEndDateCampaign(ID uint) {
 				`end_date`:             endDate[index].EndDate,
 				`order_end_app`:        endDate[index].OrderEndApp,
 				`created`:              endDate[index].Created,
+				`uid`:                  endDate[index].Uid,
 			})
 		}
 		result.Done = true
@@ -443,7 +445,15 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 		result.SetErrorResult(`Контрольная дата должна назодиться в диапозоне проведения приемной компании `)
 		return
 	}
-
+	if data.Uid != nil {
+		var exist digest.EndApplication
+		db.Where(`uid=? and id_organization=? AND actual IS TRUE AND id!=?`, *data.Uid, result.User.CurrentOrganization.Id, new.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`У данной организации есть дата с данным UID`)
+			return
+		}
+		new.Uid = data.Uid
+	}
 	db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
 	if db.Error != nil {
 		m := db.Error.Error()
@@ -640,7 +650,7 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 			db = tx.Create(&campaignEducForm)
 		}
 	}
-
+	campaign.IdAuthor = result.User.Id
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&campaign)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
@@ -756,7 +766,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		tx.Where(`uid=? and id_organization=? AND actual IS TRUE`, campaignData.UID, user.CurrentOrganization.Id).Find(&exist)
 		if exist.Id > 0 {
 			result.SetErrorResult(`У данной организации есть компания с данным UID`)
-			tx.Commit()
+			tx.Rollback()
 			return
 		}
 		campaign.Uid = campaignData.UID
@@ -862,49 +872,6 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 	tx.Commit()
 }
 
-func (result *ResultInfo) EditUidCampaign(data digest.EditUid) {
-	conn := config.Db.ConnGORM
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	conn.LogMode(config.Conf.Dblog)
-
-	var old digest.Campaign
-
-	db := tx.Where(`id=?  AND actual IS TRUE`, data.Id).Find(&old)
-	if old.Id <= 0 {
-		result.SetErrorResult(`Приемная компания не найдена`)
-		tx.Rollback()
-		return
-	}
-	if data.Uid != nil {
-		var exist digest.Campaign
-		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Приемная компания с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-	}
-	old.Uid = data.Uid
-	old.IdAuthor = result.User.Id
-	t := time.Now()
-	old.Changed = &t
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&old)
-	if db.Error != nil {
-		result.SetErrorResult(db.Error.Error())
-		tx.Rollback()
-		return
-	}
-	result.Done = true
-	result.Items = map[string]interface{}{
-		`id_campaign`: old.Id,
-	}
-	tx.Commit()
-	return
-
-}
 func (result *ResultInfo) AddEducationLevelsCampaign(data AddEducationLevels) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()

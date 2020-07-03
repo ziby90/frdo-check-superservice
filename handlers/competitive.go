@@ -54,6 +54,27 @@ type AddEntrance struct {
 type AddCompetitiveGroupPrograms struct {
 	CompetitiveGroupPrograms []digest.CompetitiveGroupProgram `json:"education_programs"`
 }
+type AddEntranceTestDate struct {
+	IdEntranceTest       uint
+	EntranceTestCalendar []digest.EntranceTestCalendar `json:"entrance_test_calendar"`
+}
+
+var sortByArrayCompetitive = []string{
+	`id`,
+	`uid`,
+	`name`,
+	`id_direction`,
+	`code_specialty`,
+	`name_specialty`,
+	`id_level_budget`,
+	`id_education_source`,
+	`id_education_level`,
+	`id_education_form`,
+	`name_level_budget`,
+	`name_education_source`,
+	`name_education_level`,
+	`name_education_form`,
+}
 
 func (result *ResultCheck) CheckNumberAddCompetitive() {
 	result.Done = true
@@ -65,7 +86,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	conn.LogMode(config.Conf.Dblog)
 	var competitiveGroups []digest.CompetitiveGroup
 	var db *gorm.DB
-	if service.SearchStringInSliceString(result.Sort.Field, sortByArray) >= 0 {
+	if service.SearchStringInSliceString(result.Sort.Field, sortByArrayCompetitive) >= 0 {
 		order := `asc`
 		if service.SearchStringInSliceString(result.Sort.Order, orderArray) >= 0 {
 			order = result.Sort.Order
@@ -75,11 +96,11 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 		db = conn.Order(`created asc `)
 	}
 	for _, search := range result.Search {
-		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
-			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		if service.SearchStringInSliceString(search[0], CompetitiveSearchArray) >= 0 {
+			db = db.Where(`(UPPER(`+search[0]+`) LIKE ? OR ( UPPER( code_specialty || ' ' || name_specialty) LIKE ?))`, `%`+strings.ToUpper(search[1])+`%`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
-	db = db.Where(`id_campaign=? AND actual IS TRUE`, campaignId)
+	db = db.Table(`cmp.v_competitive_groups `).Where(`id_campaign=? AND actual IS TRUE`, campaignId)
 	//if result.Search != `` {
 	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
 	//}
@@ -104,6 +125,61 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	}
 	if db.RowsAffected > 0 {
 		for _, competitveGroup := range competitiveGroups {
+			//number := competitveGroup.BudgetO+competitveGroup.BudgetOz+competitveGroup.BudgetZ+competitveGroup.PaidO+competitveGroup.PaidOz+competitveGroup.PaidZ+competitveGroup.PaidO+competitveGroup.PaidOz+competitveGroup.PaidZ+competitveGroup.TargetO+competitveGroup.TargetOz+competitveGroup.TargetZ
+			var number int64
+			switch competitveGroup.IdEducationSource {
+			case 1: // Бюджетные места
+				switch competitveGroup.IdEducationForm {
+				case 1: // Очная форма
+					number = competitveGroup.BudgetO
+					break
+				case 2: // Очно-заочная(вечерняя)
+					number = competitveGroup.BudgetOz
+					break
+				case 3: // Заочная
+					number = competitveGroup.BudgetZ
+					break
+				}
+				break
+			case 2: // Квота приема лиц, имеющих особое право
+				switch competitveGroup.IdEducationForm {
+				case 1: // Очная форма
+					number = competitveGroup.QuotaO
+					break
+				case 2: // Очно-заочная(вечерняя)
+					number = competitveGroup.QuotaOz
+					break
+				case 3: // Заочная
+					number = competitveGroup.QuotaZ
+					break
+				}
+				break
+			case 3: // С оплатой обучения
+				switch competitveGroup.IdEducationForm {
+				case 1: // Очная форма
+					number = competitveGroup.PaidO
+					break
+				case 2: // Очно-заочная(вечерняя)
+					number = competitveGroup.PaidOz
+					break
+				case 3: // Заочная
+					number = competitveGroup.PaidZ
+					break
+				}
+				break
+			case 4: // Целевой прием
+				switch competitveGroup.IdEducationForm {
+				case 1: // Очная форма
+					number = competitveGroup.TargetO
+					break
+				case 2: // Очно-заочная(вечерняя)
+					number = competitveGroup.TargetOz
+					break
+				case 3: // Заочная
+					number = competitveGroup.TargetZ
+					break
+				}
+			}
 			c := map[string]interface{}{
 				`id`:                    competitveGroup.Id,
 				`name`:                  competitveGroup.Name,
@@ -119,6 +195,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 				`name_education_level`:  competitveGroup.EducationLevel.Name,
 				`id_direction`:          competitveGroup.Direction.Id,
 				`name_direction`:        competitveGroup.Direction.Name,
+				`code_specialty`:        competitveGroup.Direction.Code,
 				`id_level_budget`:       competitveGroup.LevelBudget.Id,
 				`name_level_budget`:     competitveGroup.LevelBudget.Name,
 				`id_author`:             competitveGroup.IdAuthor,
@@ -127,6 +204,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 				`id_organization`:       competitveGroup.IdOrganization,
 				`created`:               competitveGroup.Created,
 				`comment`:               competitveGroup.Comment,
+				`number`:                number,
 			}
 			responses = append(responses, c)
 		}
@@ -141,6 +219,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 		return
 	}
 }
+
 func (result *ResultInfo) GetDirectionByEntrant(keys map[string][]string) {
 	result.Done = false
 	conn := config.Db.ConnGORM
@@ -371,7 +450,11 @@ func (result *ResultInfo) AddCompetitive(data AddCompetitiveGroup) {
 		return
 	}
 	competitive.IdEducationSource = data.CompetitiveGroup.IdEducationSource
-
+	if competitive.IdEducationSource != 3 && data.CompetitiveGroup.IdLevelBudget == nil { // 3 - платка.
+		result.SetErrorResult(`Не указан уровень бюджета`)
+		tx.Rollback()
+		return
+	}
 	if data.CompetitiveGroup.IdLevelBudget != nil {
 		var levelBudget digest.LevelBudget
 		db = tx.Find(&levelBudget, *data.CompetitiveGroup.IdLevelBudget)
@@ -647,7 +730,7 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	t := time.Now()
 
 	competitive.Changed = &t
-
+	competitive.IdAuthor = result.User.Id
 	var campaign digest.Campaign
 	db = tx.Where(`actual IS TRUE`).Preload(`CampaignType`).Find(&campaign, competitive.IdCampaign)
 	if campaign.Id < 1 {
@@ -905,55 +988,6 @@ func (result *ResultInfo) EditNumberCompetitive(data EditNumberCompetitive) {
 	return
 
 }
-func (result *ResultInfo) EditUidCompetitive(data digest.EditUid) {
-	conn := config.Db.ConnGORM
-	tx := conn.Begin()
-	defer func() {
-		tx.Rollback()
-	}()
-	conn.LogMode(config.Conf.Dblog)
-
-	var old digest.CompetitiveGroup
-
-	db := tx.Where(`id=?  AND actual IS TRUE`, data.Id).Find(&old)
-	if old.Id <= 0 {
-		result.SetErrorResult(`Конкурсная группа не найдена`)
-		tx.Rollback()
-		return
-	}
-	if old.IdOrganization != result.User.CurrentOrganization.Id {
-		result.SetErrorResult(`Конкурсная группа принадлежит другой организации.`)
-		tx.Rollback()
-		return
-	}
-	if data.Uid != nil {
-		var exist digest.CompetitiveGroup
-		tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.Uid).Find(&exist)
-		if exist.Id > 0 {
-			result.SetErrorResult(`Конкурсная группа с данным uid уже существует у выбранной организации`)
-			tx.Rollback()
-			return
-		}
-	}
-	old.UID = data.Uid
-
-	t := time.Now()
-	old.Changed = &t
-	old.IdAuthor = result.User.Id
-	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&old)
-	if db.Error != nil {
-		result.SetErrorResult(db.Error.Error())
-		tx.Rollback()
-		return
-	}
-	result.Done = true
-	result.Items = map[string]interface{}{
-		`id_competitive_group`: old.Id,
-	}
-	tx.Commit()
-	return
-
-}
 
 func (result *ResultInfo) AddProgram(idCompetitive uint, data AddCompetitiveGroup) {
 	conn := config.Db.ConnGORM
@@ -1083,6 +1117,240 @@ func (result *ResultInfo) AddEntrance(idCompetitive uint, data AddEntrance) {
 	result.Items = map[string]interface{}{
 		`id_competitive_group`: competitive.Id,
 		`id_entrance_tests`:    idsEntrance,
+	}
+	result.Done = true
+	tx.Commit()
+	return
+}
+
+func (result *ResultInfo) GetEntranceTestsCalendarByEntrance(idEntranceTest uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var entranceTestCalendar []digest.EntranceTestCalendar
+	db := conn.Where(`id_entrance_test=? AND actual IS TRUE`, idEntranceTest).Order(`created desc`).Find(&entranceTestCalendar)
+
+	if db.RowsAffected > 0 {
+		var entranceTestDates []interface{}
+		for index, _ := range entranceTestCalendar {
+			//date := entranceTestCalendar[index].EntranceTestDate.Format("2006-01-02 15:04:05")
+			entranceTestDates = append(entranceTestDates, map[string]interface{}{
+				"id":                 entranceTestCalendar[index].Id,
+				"id_entrance_test":   entranceTestCalendar[index].IdEntranceTest,
+				"entrance_test_date": entranceTestCalendar[index].EntranceTestDate,
+				"exam_location":      entranceTestCalendar[index].ExamLocation,
+				"uid":                entranceTestCalendar[index].Uid,
+				"uid_epgu":           entranceTestCalendar[index].UidEpgu,
+				"created":            entranceTestCalendar[index].Created,
+				"count_c":            entranceTestCalendar[index].CountC,
+			})
+		}
+		result.Done = true
+		result.Items = entranceTestDates
+		return
+	} else {
+		result.Done = true
+		message := `Даты вступительных испытаний не найдены.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+func (result *ResultInfo) GetListDatesByEntranceTest(idEntranceTest uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var ec []digest.EntranceTestCalendar
+	var db *gorm.DB
+
+	db = conn.Where(`id_entrance_test=? AND actual IS TRUE`, idEntranceTest).Find(&ec)
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Даты не найдены не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for index, _ := range ec {
+			date := ec[index].EntranceTestDate.Format("2006-01-02 15:04:05")
+			c := map[string]interface{}{
+				"id":                 ec[index].Id,
+				"id_entrance_test":   ec[index].IdEntranceTest,
+				"entrance_test_date": date,
+				"exam_location":      ec[index].ExamLocation,
+				"uid":                ec[index].Uid,
+				"uid_epgu":           ec[index].UidEpgu,
+				"created":            ec[index].Created,
+				"count_c":            ec[index].CountC,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Даты не найдены.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+func (result *ResultInfo) AddEntranceTestCalendar(data AddEntranceTestDate) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var entranceTest digest.EntranceTest
+	db := conn.Where(`id=? AND actual IS TRUE`, data.IdEntranceTest).Find(&entranceTest)
+	if entranceTest.Id == 0 {
+		result.SetErrorResult(`Вступительное испытание не найдено`)
+		tx.Rollback()
+		return
+	}
+	err := CheckEditEntranceCompetitiveGroup(entranceTest.IdCompetitiveGroup)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+	if entranceTest.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Не совпадает организация`)
+		tx.Rollback()
+		return
+	}
+	//err := CheckEditEntranceCompetitiveGroup(competitive.Id)
+	//if err != nil {
+	//	result.SetErrorResult(err.Error())
+	//	tx.Rollback()
+	//	return
+	//}
+	var idsEntranceCalendar []uint
+	if len(data.EntranceTestCalendar) > 0 {
+		for _, value := range data.EntranceTestCalendar {
+			var entranceCalendar digest.EntranceTestCalendar
+			if value.EntranceTestDate.Year() < 2006 {
+				result.SetErrorResult(`Неверное значение даты`)
+				tx.Rollback()
+				return
+			}
+			if strings.TrimSpace(value.ExamLocation) == `` {
+				result.SetErrorResult(`Неверное значение места проведения`)
+				tx.Rollback()
+				return
+			}
+			entranceCalendar = value
+			if value.CountC != nil {
+				entranceCalendar.CountC = value.CountC
+			} else {
+				entranceCalendar.CountC = nil
+			}
+
+			entranceCalendar.IdOrganization = result.User.CurrentOrganization.Id
+			entranceCalendar.IdAuthor = result.User.Id
+			entranceCalendar.IdEntranceTest = data.IdEntranceTest
+			entranceCalendar.Actual = true
+			entranceCalendar.Created = time.Now()
+			entranceCalendar.UidEpgu = nil
+			if value.Uid != nil {
+				var exist digest.EntranceTestCalendar
+				tx.Where(`id_organization=? AND uid=? AND actual IS TRUE`, result.User.CurrentOrganization.Id, *value.Uid).Find(&exist)
+				if exist.Id > 0 {
+					result.SetErrorResult(`Дата проведения вступительного испытания с данным uid уже существует у выбранной организации`)
+					tx.Rollback()
+					return
+				}
+				entranceCalendar.Uid = value.Uid
+			}
+
+			db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&entranceCalendar)
+			if db.Error != nil {
+				result.SetErrorResult(db.Error.Error())
+				tx.Rollback()
+				return
+			}
+			idsEntranceCalendar = append(idsEntranceCalendar, entranceCalendar.Id)
+		}
+	} else {
+		result.SetErrorResult(`Даты проведения втсупительных  испытаний не найдены`)
+		tx.Rollback()
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_entrance_test`:          data.IdEntranceTest,
+		`id_entrance_test_calendar`: idsEntranceCalendar,
+	}
+	result.Done = true
+	tx.Commit()
+	return
+}
+func (result *ResultInfo) RemoveEntranceTestCalendar(idEntranceTestDate uint) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var entranceCalendar digest.EntranceTestCalendar
+	db := conn.Where(`id=? AND actual IS TRUE`, idEntranceTestDate).Find(&entranceCalendar)
+	if entranceCalendar.Id == 0 {
+		result.SetErrorResult(`Дата вступительного испытания не найдена`)
+		tx.Rollback()
+		return
+	}
+	if entranceCalendar.UidEpgu != nil {
+		result.SetErrorResult(`Невозможно удалить дату вступительных испытаний, полученную с ЕПГУ`)
+		tx.Rollback()
+		return
+	}
+	if db.RowsAffected > 0 {
+		var entranceTest digest.EntranceTest
+		db = conn.Where(`id=? AND actual IS TRUE`, entranceCalendar.IdEntranceTest).Find(&entranceTest)
+		if entranceTest.Id == 0 {
+			result.SetErrorResult(`Вступительное испытание не найдено`)
+			tx.Rollback()
+			return
+		}
+		err := CheckEditEntranceCompetitiveGroup(entranceTest.IdCompetitiveGroup)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			tx.Rollback()
+			return
+		}
+		if entranceTest.IdOrganization != result.User.CurrentOrganization.Id {
+			result.SetErrorResult(`Не совпадает организация`)
+			tx.Rollback()
+			return
+		}
+		t := time.Now()
+		entranceCalendar.Changed = &t
+		entranceCalendar.Actual = false
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&entranceCalendar)
+		if db.Error != nil {
+			result.SetErrorResult(db.Error.Error())
+			tx.Rollback()
+			return
+		}
+
+	} else {
+		result.Done = true
+		message := `Дата вступительного испытания не найдена.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_entrance_test`:          entranceCalendar.IdEntranceTest,
+		`id_entrance_test_calendar`: entranceCalendar.Id,
 	}
 	result.Done = true
 	tx.Commit()
@@ -1289,7 +1557,7 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 		for _, id := range idsEntrance {
 			var entrance digest.EntranceTest
 			db = conn.Preload(`Subject`).Preload(`EntranceTestType`).Find(&entrance, id)
-			entranceTests = append(entranceTests, map[string]interface{}{
+			e := map[string]interface{}{
 				"id":                      entrance.Id,
 				"id_entrance_test_type":   entrance.EntranceTestType.Id,
 				"name_entrance_test_type": entrance.EntranceTestType.Name,
@@ -1300,7 +1568,33 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 				"test_name":               entrance.TestName,
 				"min_score":               entrance.MinScore,
 				"is_ege":                  entrance.IsEge,
-			})
+			}
+			var entranceTestCalendar []digest.EntranceTestCalendar
+			db := conn.Where(`id_entrance_test=? AND actual IS TRUE`, entrance.Id).Order(`created desc`).Find(&entranceTestCalendar)
+			var entranceTestDates []interface{}
+			if db.RowsAffected > 0 {
+				for index, _ := range entranceTestCalendar {
+					//date := entranceTestCalendar[index].EntranceTestDate.Format("2006-01-02 15:04:05")
+					entranceTestDates = append(entranceTestDates, map[string]interface{}{
+						"id":                 entranceTestCalendar[index].Id,
+						"id_entrance_test":   entranceTestCalendar[index].IdEntranceTest,
+						"entrance_test_date": entranceTestCalendar[index].EntranceTestDate,
+						"exam_location":      entranceTestCalendar[index].ExamLocation,
+						"uid":                entranceTestCalendar[index].Uid,
+						"uid_epgu":           entranceTestCalendar[index].UidEpgu,
+						"created":            entranceTestCalendar[index].Created,
+						"count_c":            entranceTestCalendar[index].CountC,
+					})
+				}
+			}
+			if len(entranceTestDates) > 0 {
+				e["entrance_test_calendar"] = entranceTestDates
+			} else {
+				e["entrance_test_calendar"] = []digest.EntranceTestCalendar{}
+			}
+
+			entranceTests = append(entranceTests, e)
+
 		}
 		result.Done = true
 		r := map[string]interface{}{

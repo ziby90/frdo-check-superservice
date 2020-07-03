@@ -13,7 +13,7 @@ import (
 )
 
 func AddNewHandler(r *mux.Router) {
-	//
+	// добавляем новость
 	r.HandleFunc("/api/new/add", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		auth := handlers.CheckAuthCookie(r)
@@ -45,7 +45,7 @@ func AddNewHandler(r *mux.Router) {
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
 
-	//
+	// получаем список новостей
 	r.HandleFunc("/api/new/list", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
 		res.Sort = handlers.Sort{
@@ -59,7 +59,7 @@ func AddNewHandler(r *mux.Router) {
 		res.GetListNews()
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-	// изменение конкурсной группы
+	// изменяем новость
 	r.HandleFunc("/api/new/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		var cmp handlers.News
@@ -88,7 +88,21 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
-	// получаем файл у документа. кстати, рабоатет только на таблицу general
+	// изменяем новость
+	r.HandleFunc("/api/new/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			res.GetInfoNew(uint(id))
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// получаем файл новости
 	r.HandleFunc("/api/new/file/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
@@ -102,7 +116,7 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-	// добавляем файл у документа. кстати, рабоатет только на таблицу general
+	// добавляем файл к новости
 	r.HandleFunc("/api/new/{id:[0-9]+}/file/add", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		auth := handlers.CheckAuthCookie(r)
@@ -137,7 +151,7 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
-	// удаляем файл у документа. кстати, рабоатет только на таблицу general
+	// удаляем файл у новости
 	r.HandleFunc("/api/new/file/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
@@ -151,5 +165,12 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
-
+	// страдаем херней
+	r.HandleFunc("/api/new/stradat/hernya", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		res.Items = map[string]interface{}{
+			`stradat`: true,
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
 }

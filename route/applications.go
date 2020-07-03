@@ -209,6 +209,43 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
+	// редактирование конкретной информации по заявлению
+	r.HandleFunc("/applications/{id:[0-9]+}/test/{id_test:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var data handlers.EditApplicationTest
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckApplicationByUser(uint(id), res.User)
+			if err == nil {
+				b, _ := ioutil.ReadAll(r.Body)
+				err := json.Unmarshal(b, &data)
+				data.IdApplication = uint(id)
+				if err == nil {
+					idTest, err := strconv.ParseInt(vars[`id_test`], 10, 32)
+					if err == nil {
+						data.IdApplication = uint(id)
+						data.IdEntranceTest = uint(idTest)
+						res.EditApplicationTestById(data)
+					} else {
+						message := `Неверный параметр id_test.`
+						res.Message = &message
+					}
+				} else {
+					m := err.Error()
+					res.Message = &m
+				}
+			} else {
+				message := err.Error()
+				res.Message = &message
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 	// документы заявления
 	r.HandleFunc("/applications/{id:[0-9]+}/docs/list", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo

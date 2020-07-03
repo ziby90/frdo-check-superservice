@@ -536,9 +536,9 @@ func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
 	}
 	db := conn.Raw(`SELECT sum(`+numField+`) 
 					FROM cmp.competitive_groups 
-					WHERE id!=? AND id_education_level=?  AND actual is true
+					WHERE id!=? AND actual is true
 					AND id_education_form=? AND id_education_source=? AND id_level_budget=?
-					AND id_campaign=?`, competitive.Id, competitive.IdEducationLevel, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign).Scan(&sumNumber)
+					AND id_campaign=? AND id_direction=?`, competitive.Id, competitive.IdEducationForm, competitive.IdEducationSource, competitive.IdLevelBudget, competitive.IdCampaign, competitive.IdDirection).Scan(&sumNumber)
 	if db.Error != nil {
 		return db.Error
 	}
