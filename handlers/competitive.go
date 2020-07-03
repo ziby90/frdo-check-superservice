@@ -1736,6 +1736,9 @@ func (result *ResultInfo) RemoveCompetitive(idCompetitive uint) {
 	var entrance []digest.EntranceTest
 	db = conn.Where(`id_competitive_group=? AND actual IS TRUE`, idCompetitive).Find(&entrance)
 	if len(entrance) > 0 {
+		for _, value := range entrance {
+			db = tx.Exec(`UPDATE cmp.entrance_test_calendar SET actual=false, changed=? WHERE id_entrance_test=?`, time.Now(), value.Id)
+		}
 		db = tx.Exec(`UPDATE cmp.entrance_test SET actual=false, changed=? WHERE id_competitive_group=?`, time.Now(), idCompetitive)
 	}
 

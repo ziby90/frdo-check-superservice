@@ -101,6 +101,11 @@ type AddApplicationEntranceTest struct {
 	IdDocument     uint    `json:"id_document"`
 	Uid            *string `json:"uid"`
 }
+type ChooseCalendar struct {
+	IdApplication          uint
+	IdEntranceTest         uint `json:"id_entrance_test"`
+	IdEntranceTestCalendar uint `json:"id_entrance_calendar"`
+}
 
 func (result *Result) GetApplications(keys map[string][]string) {
 	result.Done = false
@@ -602,6 +607,127 @@ func (result *ResultInfo) EditApplicationTestById(data EditApplicationTest) {
 	}
 
 }
+func (result *ResultInfo) ChooseCalendarEntranceTest(data ChooseCalendar) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var application digest.Application
+	db := conn.Where(`id_organization=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.IdApplication).Preload(`Status`).Find(&application)
+
+	if db.RowsAffected > 0 {
+		//if application.Status.Code != nil && *application.Status.Code != `app_edit` {
+		//	result.SetErrorResult(`Заявление не находится в статусе редактирования`)
+		//	tx.Rollback()
+		//	return
+		//}
+		var entranceTest digest.EntranceTest
+		db := conn.Where(`id_organization=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.IdEntranceTest).Find(&entranceTest)
+		if entranceTest.Id <= 0 {
+			result.SetErrorResult(`Вступительное испытание не найдено`)
+			tx.Rollback()
+			return
+		}
+
+		var exist digest.AppEntranceTestAgreed
+		db = conn.Where(`id_application=? AND id_entrance_test=?`, data.IdApplication, data.IdEntranceTest).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Уже есть выбранная дата у данного заявления и вступительного испытания`)
+			tx.Rollback()
+			return
+		}
+		var entranceTestCalendar digest.EntranceTestCalendar
+		db = conn.Where(`id_organization=? AND id_entrance_test=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, data.IdEntranceTest, data.IdEntranceTestCalendar).Find(&entranceTestCalendar)
+		if entranceTestCalendar.Id <= 0 {
+			result.SetErrorResult(`Дата вступительного испытания не найдена`)
+			tx.Rollback()
+			return
+		}
+		var countChooseDates int64
+		conn.Where("id_entrance_test_calendar = ?", data.IdEntranceTestCalendar).Find(&exist).Count(&countChooseDates)
+		fmt.Println(`Count persons, choose date - ` + fmt.Sprintf(`%d`, countChooseDates))
+		if entranceTestCalendar.CountC != nil && (*entranceTestCalendar.CountC >= countChooseDates) {
+			result.SetErrorResult(`Уже все занято. Пересядь.`)
+			tx.Rollback()
+			return
+		}
+
+		var entranceTestAgreed digest.AppEntranceTestAgreed
+		entranceTestAgreed.IdEntranceTestCalendar = data.IdEntranceTestCalendar
+		entranceTestAgreed.IdEntranceTest = data.IdEntranceTest
+		entranceTestAgreed.IdApplication = data.IdApplication
+		entranceTestAgreed.IdOrganization = result.User.CurrentOrganization.Id
+		entranceTestAgreed.Created = time.Now()
+
+		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&entranceTestAgreed)
+		if db.Error != nil {
+			result.SetErrorResult(`Ошибка при выборе даты вступительного испытания ` + db.Error.Error())
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		result.Done = true
+		result.Items = map[string]interface{}{
+			"id_application":            data.IdApplication,
+			"id_entrance_test":          entranceTestAgreed.IdEntranceTest,
+			"id_entrance_test_calendar": entranceTestAgreed.IdEntranceTestCalendar,
+			"id_entrance_test_agreed":   entranceTestAgreed.Id,
+		}
+		return
+	} else {
+		result.Done = false
+		message := `Заявление не найдено.`
+		result.Message = &message
+		return
+	}
+
+}
+func (result *ResultInfo) RemoveCalendarEntranceTest(idApplication uint, idCalendarAgreed uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var application digest.Application
+	db := conn.Where(`id_organization=? AND id=?  AND actual IS TRUE`, result.User.CurrentOrganization.Id, idApplication).Find(&application)
+
+	if db.RowsAffected > 0 {
+		var entranceTestAgreed digest.AppEntranceTestAgreed
+		db = conn.Where(`id_organization=? AND id_application=? AND id=?`, result.User.CurrentOrganization.Id, idApplication, idCalendarAgreed).Find(&entranceTestAgreed)
+		if entranceTestAgreed.Id <= 0 {
+			result.SetErrorResult(`Выбранная дата вступительного испытания не найдена`)
+			tx.Rollback()
+			return
+		}
+
+		db = tx.Where(`id=?`, idCalendarAgreed).Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Delete(&entranceTestAgreed)
+		if db.Error != nil {
+			result.SetErrorResult(`Ошибка при удалении выбранной даты вступительного испытания ` + db.Error.Error())
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+		result.Done = true
+		result.Items = map[string]interface{}{
+			"id_application":            idApplication,
+			"id_entrance_test":          entranceTestAgreed.IdEntranceTest,
+			"id_entrance_test_calendar": entranceTestAgreed.IdEntranceTestCalendar,
+			"id_entrance_test_agreed":   entranceTestAgreed.Id,
+		}
+		return
+	} else {
+		result.Done = false
+		message := `Заявление не найдено.`
+		result.Message = &message
+		return
+	}
+
+}
 func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -644,9 +770,10 @@ func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 					//date := entranceTestCalendar[index].EntranceTestDate.Format("2006-01-02 15:04:05")
 					if entranceTestCalendar[index].Id == entranceTestCalendarAgreed.IdEntranceTestCalendar {
 						test[`choose_entrance_test_date`] = map[string]interface{}{
-							`id`:            entranceTestCalendar[index].Id,
-							`date`:          entranceTestCalendar[index].EntranceTestDate,
-							`exam_location`: entranceTestCalendar[index].ExamLocation,
+							`id_entrance_test_calendar`: entranceTestCalendar[index].Id,
+							`id_entrance_test_agreed`:   entranceTestCalendarAgreed.Id,
+							`date`:                      entranceTestCalendar[index].EntranceTestDate,
+							`exam_location`:             entranceTestCalendar[index].ExamLocation,
 						}
 					}
 					ec = append(ec, entranceTestCalendar[index].EntranceTestDate)

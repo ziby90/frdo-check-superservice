@@ -358,6 +358,67 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("Post")
+	// выбор даты ви
+	r.HandleFunc("/applications/{id:[0-9]+}/calendar/choose", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var data handlers.ChooseCalendar
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		err = handlers.CheckApplicationByUser(uint(id), res.User)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &data)
+		data.IdApplication = uint(id)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+		res.ChooseCalendarEntranceTest(data)
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
+	// удаление даты ви
+	r.HandleFunc("/applications/{id:[0-9]+}/calendar/{id_entrance_test_agreed:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		err = handlers.CheckApplicationByUser(uint(id), res.User)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+		idCalendar, err := strconv.ParseInt(vars[`id_entrance_test_agreed`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id_entrance_test_agreed.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		res.RemoveCalendarEntranceTest(uint(id), uint(idCalendar))
+		service.ReturnJSON(w, res)
+	}).Methods("Post")
 	// добавление документов к заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/docs/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
