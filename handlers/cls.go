@@ -29,6 +29,7 @@ type Subjects struct {
 
 var ListClsTableName = []string{
 	`achievement_categories`,
+	`app_accept_phases`,
 	`appeal_statuses`,
 	`benefits`,
 	`campaign_statuses`,

@@ -10,6 +10,7 @@ import (
 	"persons/digest"
 	"persons/handlers"
 	"persons/route"
+	route_admin "persons/route/admin"
 	"persons/service"
 	"strings"
 	"time"
@@ -27,6 +28,22 @@ func authMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		} else {
 			m := `Для выполнения данного действия необходима авторизация`
+			service.ReturnJSON(w, handlers.ResultInfo{
+				Done:    false,
+				Message: &m,
+			})
+		}
+	})
+}
+func adminMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := time.Now().Format("01-02 15:04:05") + ` adminMw ` + r.RequestURI + ` ` + r.Header.Get("X-Real-Ip")
+		fmt.Println(log)
+		mainUser = handlers.CheckAuthCookie(r)
+		if mainUser != nil && mainUser.Role.Code == `administrator` {
+			next.ServeHTTP(w, r)
+		} else {
+			m := `Ты не админ, вали отсюда`
 			service.ReturnJSON(w, handlers.ResultInfo{
 				Done:    false,
 				Message: &m,
@@ -57,6 +74,12 @@ func main() {
 	// общие маршруты
 	routeAll := mux.NewRouter()
 	route.GetApiHandlerNoAuth(routeAll)
+
+	// админка
+	routeWithAdmin := routeAll.PathPrefix(`/api/admin`).Subrouter()
+	route_admin.GetApiAdminHandlerAuth(routeWithAdmin)
+	routeWithAdmin.Use(adminMw)
+
 	// маршруты с организацией выбранной и авторизацией
 	routeWithAuth := routeAll.PathPrefix(`/api`).Subrouter()
 	route.GetApiHandlerAuth(routeWithAuth)

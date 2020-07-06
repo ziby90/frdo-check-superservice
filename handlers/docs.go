@@ -1,14 +1,11 @@
 package handlers
 
 import (
-	"bufio"
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/jinzhu/gorm"
 	sendToEpguPath "gitlab.com/unkal/sendtoepgu/path_files"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"persons/config"
@@ -2928,9 +2925,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.CompatriotCategory, "IdCompatriotCategory")
+			var doc interface{}
 			file := false
 			if r.PathFile != nil {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                       r.Id,
@@ -2948,6 +2951,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"code_sys_category":        sysCategory.NameTable,
 				"uid":                      r.Uid,
 				"file":                     file,
+				"doc":                      doc,
 				"name_ident_document":      getIdentName(r.IdIdentDocument),
 			}
 		}
@@ -2960,9 +2964,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.CompositionThemes, "IdCompositionTheme")
 			db = conn.Model(&r).Related(&r.AppealStatuses, "IdAppealStatus")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                     r.Id,
@@ -2985,6 +2995,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":      sysCategory.Name,
 				"uid":                    r.Uid,
 				"file":                   file,
+				"doc":                    doc,
 				"name_ident_document":    getIdentName(r.IdIdentDocument),
 				"code_sys_category":      sysCategory.NameTable,
 			}
@@ -2999,9 +3010,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.Subject, "IdSubject")
 			issueDate := r.IssueDate.Format("2006-01-02")
 			resultDate := r.ResultDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3025,6 +3042,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3038,9 +3056,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.Direction, "IdDirection")
 			db = conn.Model(&r).Related(&r.EducationLevel, "IdEducationLevel")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			res := map[string]interface{}{
 				"id":                   r.Id,
@@ -3063,6 +3087,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":    sysCategory.Name,
 				"uid":                  r.Uid,
 				"file":                 file,
+				"doc":                  doc,
 				"name_ident_document":  getIdentName(r.IdIdentDocument),
 				"code_sys_category":    sysCategory.NameTable,
 			}
@@ -3076,9 +3101,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.DisabilityType, "IdDisabilityType")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                   r.Id,
@@ -3097,6 +3128,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":    sysCategory.Name,
 				"uid":                  r.Uid,
 				"file":                 file,
+				"doc":                  doc,
 				"name_ident_document":  getIdentName(r.IdIdentDocument),
 				"code_sys_category":    sysCategory.NameTable,
 			}
@@ -3109,9 +3141,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.Okcm, "IdOkcm")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                 r.Id,
@@ -3133,6 +3171,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":  sysCategory.Name,
 				"uid":                r.Uid,
 				"file":               file,
+				"doc":                doc,
 				"code_sys_category":  sysCategory.NameTable,
 			}
 		}
@@ -3144,9 +3183,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.MilitaryCategories, "IdCategory")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3166,6 +3211,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3178,9 +3224,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.Olympics, "IdOlympic")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3200,6 +3252,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3212,9 +3265,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.OrphanCategories, "IdCategory")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3234,6 +3293,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3245,9 +3305,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 		if r.Id > 0 {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3265,6 +3331,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3277,9 +3344,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.ParentsLostCategory, "IdCategory")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3299,6 +3372,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3311,9 +3385,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.RadiationWorkCategory, "IdCategory")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3333,6 +3413,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3345,9 +3426,15 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 			db = conn.Model(&r).Related(&r.DocumentType, "IdDocumentType")
 			db = conn.Model(&r).Related(&r.VeteranCategory, "IdCategory")
 			issueDate := r.IssueDate.Format("2006-01-02")
+			var doc interface{}
 			file := false
-			if r.PathFile != nil {
+			if r.PathFile != nil && *r.PathFile != `` {
+				doc = map[string]interface{}{
+					`title`: r.PathFile,
+				}
 				file = true
+			} else {
+				doc = nil
 			}
 			result.Items = map[string]interface{}{
 				"id":                  r.Id,
@@ -3367,6 +3454,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 				"name_sys_category":   sysCategory.Name,
 				"uid":                 r.Uid,
 				"file":                file,
+				"doc":                 doc,
 				"name_ident_document": getIdentName(r.IdIdentDocument),
 				"code_sys_category":   sysCategory.NameTable,
 			}
@@ -3394,6 +3482,7 @@ func (result *ResultInfo) GetInfoEDocs(ID uint, tableName string) {
 
 	return
 }
+
 func (result *ResultInfo) GetFileDoc(ID uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -3412,26 +3501,40 @@ func (result *ResultInfo) GetFileDoc(ID uint) {
 		result.Message = &message
 		return
 	}
-	if doc.PathFile != nil {
+	if doc.PathFile != nil && *doc.PathFile != `` {
 		filename := *doc.PathFile
-		path := `./` + getPath(doc.EntrantsId, `documents.`+doc.NameTable, doc.Created) + filename
-		f, err := os.Open(path)
-		if err != nil {
-			result.SetErrorResult(err.Error())
+		path := getPath(doc.EntrantsId, `documents.`+doc.NameTable, doc.Created) + filename
+		result.Items = path
+	} else {
+		message := "Файл не найден."
+		result.Message = &message
+		return
+	}
+	result.Done = true
+	return
+}
+func (result *ResultInfo) GetFileDocIdentification(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.Identifications
+	db := conn.Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
 			return
-		} else {
-			defer f.Close()
-			reader := bufio.NewReader(f)
-			content, _ := ioutil.ReadAll(reader)
-			ext := mimetype.Detect(content)
-			file := digest.FileC{
-				Content: content,
-				Size:    int64(len(content)),
-				Title:   filename,
-				Type:    ext.Extension(),
-			}
-			result.Items = file
 		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	if doc.PathFile != nil && *doc.PathFile != `` {
+		filename := *doc.PathFile
+		path := getPath(doc.EntrantsId, doc.TableName(), doc.Created) + filename
+		result.Items = path
 	} else {
 		message := "Файл не найден."
 		result.Message = &message
@@ -3471,6 +3574,49 @@ func (result *ResultInfo) RemoveFileDoc(ID uint) {
 	}
 	if doc.PathFile != nil {
 		db = conn.Exec(`UPDATE documents.`+doc.NameTable+` SET path_file=null WHERE id=?`, doc.IdDocument)
+		if db.Error != nil {
+			result.SetErrorResult(db.Error.Error())
+			return
+		}
+	} else {
+		message := "Файл не найден."
+		result.Message = &message
+		return
+	}
+	result.Done = true
+	return
+}
+func (result *ResultInfo) RemoveFileDocIdentification(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.Identifications
+	db := conn.Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+
+	if doc.UidEpgu != nil {
+		message := "Документы, загруженные через ЕПГУ не подлежат редактированию"
+		result.Message = &message
+		return
+	}
+	if (doc.IdOrganization != nil && *doc.IdOrganization != result.User.CurrentOrganization.Id) || doc.IdOrganization == nil {
+		message := "Выбранная организация не соответствует организации , создавшей документ."
+		result.Message = &message
+		return
+	}
+	if doc.PathFile != nil {
+		db = conn.Exec(`UPDATE documents.identification SET path_file=null WHERE id=?`, doc.Id)
 		if db.Error != nil {
 			result.SetErrorResult(db.Error.Error())
 			return
@@ -3538,6 +3684,75 @@ func (result *ResultInfo) AddFileDoc(ID uint, f *digest.File) {
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
 		return
+	}
+	result.Items = map[string]interface{}{
+		`doc`: map[string]interface{}{
+			`title`: name,
+		},
+	}
+	result.Done = true
+	return
+}
+func (result *ResultInfo) AddFileDocIdentification(ID uint, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.Identifications
+	db := conn.Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	if doc.UidEpgu != nil {
+		message := "Документы, загруженные через ЕПГУ не подлежат редактированию"
+		result.Message = &message
+		return
+	}
+	if (doc.IdOrganization != nil && *doc.IdOrganization != result.User.CurrentOrganization.Id) || doc.IdOrganization == nil {
+		message := "Выбранная организация не соответствует организации , создавшей документ."
+		result.Message = &message
+		return
+	}
+	path := getPath(doc.EntrantsId, `documents.identification`, time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+
+	db = conn.Exec(`UPDATE documents.identification SET path_file=? WHERE id=?`, &name, doc.Id)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`doc`: map[string]interface{}{
+			`title`: name,
+		},
 	}
 	result.Done = true
 	return

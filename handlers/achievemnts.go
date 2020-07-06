@@ -42,10 +42,6 @@ var sortByArray = []string{
 	`id_category`,
 	`max_value`,
 }
-var orderArray = []string{
-	`asc`,
-	`desc`,
-}
 
 func (result *Result) GetListAchievement() {
 	result.Done = false

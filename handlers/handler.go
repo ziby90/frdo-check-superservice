@@ -19,6 +19,11 @@ type Sort struct {
 	Order string `json:"order"`
 }
 
+var orderArray = []string{
+	`asc`,
+	`desc`,
+}
+
 type Result struct {
 	Done      bool        `json:"done"`
 	Message   *string     `json:"message, omitempty"`

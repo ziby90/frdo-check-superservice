@@ -19,7 +19,7 @@ type Campaign struct {
 	EducationLevels  EducationLevels
 	YearStart        int64        `json:"year_start";xml:"YearStart"`            // Год начала компании
 	YearEnd          int64        `json:"year_end";xml:"YearEnd"`                // Год окончания компании
-	IdAuthor         uint         `gorm:"foreignkey:id_author";json:"id_author"` // Идентификатор автора
+	IdAuthor         uint         `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
 	Organization     Organization `gorm:"foreignkey:IdOrganization"`
 	IdOrganization   uint         // Идентификатор организации
 	Created          time.Time    `json:"created"` // Дата создания
@@ -37,9 +37,10 @@ type EndApplication struct {
 	OrderEndApp      *string    `json:"order_end_app"`
 	Actual           bool       `json:"actual"`
 	IdOrganization   uint       // Идентификатор организации
-	Created          time.Time  `json:"created"`       // Дата создания
-	Changed          *time.Time `json:"changed"`       // Дата создания
-	Uid              *string    `xml:"UID" json:"uid"` // Идентификатор от организации
+	IdAuthor         *uint      `gorm:"foreignkey:id_author" json:"id_author"` // Идентификатор автора
+	Created          time.Time  `json:"created"`                               // Дата создания
+	Changed          *time.Time `json:"changed"`                               // Дата создания
+	Uid              *string    `xml:"UID" json:"uid"`                         // Идентификатор от организации
 }
 type VEndApplication struct {
 	Id               uint       `gorm:"primary_key" json:"id"` // Идентификатор

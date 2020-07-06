@@ -1,7 +1,12 @@
 package handlers
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -154,7 +159,7 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 		}
 
 		var regAdrr digest.Address
-		if entrant.IdFactAddr != nil {
+		if entrant.IdRegistrationAddr != nil {
 			db = conn.Preload(`Region`).Where(`id=?`, entrant.IdRegistrationAddr).Find(&regAdrr)
 			if regAdrr.Id > 0 {
 				response[`registration_address`] = map[string]interface{}{
@@ -179,6 +184,16 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 			}
 		} else {
 			response[`registration_address`] = nil
+		}
+		var photo digest.EntrantPhotoFiles
+		db = conn.Raw(`select * from persons.entrant_photo_files WHERE id_entrant = ? AND (id_organization = ? OR id_organization IS NULL) ORDER BY uid_epgu asc NULLS LAST LIMIT 1`, entrant.Id, result.User.CurrentOrganization.Id).Scan(&photo)
+		if photo.Id > 0 {
+			response[`photo`] = map[string]interface{}{
+				`id`:    photo.Id,
+				`title`: photo.PathFile,
+			}
+		} else {
+			response[`photo`] = nil
 		}
 		result.Items = response
 		return
@@ -780,4 +795,165 @@ func (result *ResultInfo) AddEntrant(entrantData AddEntrantData) {
 	}
 	result.Done = true
 	tx.Commit()
+}
+
+func (result *ResultInfo) GetFilePhotoPersons(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.EntrantPhotoFiles
+	db := conn.Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+
+	filename := doc.PathFile
+	path := getPath(doc.IdEntrant, doc.TableName(), doc.Created) + filename
+	result.Items = path
+
+	result.Done = true
+	return
+}
+func (result *ResultInfo) RemoveFilePhotoPersons(ID uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.EntrantPhotoFiles
+	db := conn.Where(`id=? AND uid_epgu IS NULL AND id_organization=?`, ID, result.User.CurrentOrganization.Id).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	db = conn.Exec(`Delete FROM `+doc.TableName()+` WHERE id=?`, doc.Id)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+
+	result.Done = true
+	return
+}
+func (result *ResultInfo) AddFilePhotoPersons(idEntrant uint, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.EntrantPhotoFiles
+	db := conn.Where(`id_entrant=? AND uid_epgu IS NULL AND id_organization=?`, idEntrant, result.User.CurrentOrganization.Id).Find(&doc)
+
+	path := getPath(idEntrant, doc.TableName(), time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	doc.PathFile = name
+	if doc.Id > 0 {
+		db = conn.Exec(`UPDATE `+doc.TableName()+` SET path_file=? WHERE id=?`, &name, doc.Id)
+	} else {
+		doc.IdEntrant = idEntrant
+		doc.IdOrganization = &result.User.CurrentOrganization.Id
+		doc.IdAuthor = &result.User.Id
+		doc.Created = time.Now()
+		db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	}
+
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`doc`: map[string]interface{}{
+			`title`: name,
+			`id`:    doc.Id,
+		},
+	}
+	result.Done = true
+	return
+}
+func (result *ResultInfo) EditFilePhotoPersons(ID uint, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.EntrantPhotoFiles
+	db := conn.Where(`id=? AND uid_epgu IS NULL AND id_organization=?`, ID, result.User.CurrentOrganization.Id).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Документ не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	path := getPath(doc.IdEntrant, doc.TableName(), time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+
+	db = conn.Exec(`UPDATE `+doc.TableName()+` SET path_file=? WHERE id=?`, &name, doc.Id)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`doc`: map[string]interface{}{
+			`title`: name,
+		},
+	}
+	result.Done = true
+	return
 }

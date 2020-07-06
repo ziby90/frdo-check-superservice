@@ -56,30 +56,29 @@ func AddAchievementsHandler(r *mux.Router) {
 		res := handlers.ResultInfo{}
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
-			res.GetFileAppAchievement(uint(id))
-			if res.Done {
-				path := fmt.Sprintf(`%v`, res.Items)
-				file, err := ioutil.ReadFile(path)
-				if err != nil {
-					res.Done = false
-					m := "Cann't open file: " + path
-					res.Message = &m
-				} else {
-					w.Write(file)
-					return
-				}
-			} else {
-				message := `Неверный параметр id.`
-				res.Message = &message
-			}
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnErrorJSON(w, res, 400)
+			return
 		}
+		// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
+		res.GetFileAppAchievement(uint(id))
 		if !res.Done {
 			service.ReturnErrorJSON(w, res, 400)
 			return
 		}
-		service.ReturnJSON(w, res)
+		path := fmt.Sprintf(`%v`, res.Items)
+		file, err := ioutil.ReadFile(path)
+		if err != nil {
+			res.Done = false
+			m := "Can't open file: " + path
+			res.Message = &m
+			service.ReturnErrorJSON(w, res, 400)
+			return
+		}
+		w.Write(file)
+		return
 	}).Methods("GET")
 	// добавление достижений
 	r.HandleFunc("/achievements/add", func(w http.ResponseWriter, r *http.Request) {

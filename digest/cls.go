@@ -16,6 +16,13 @@ type AppealStatuses struct {
 	IdAuthor uint // Идентификатор автора
 	Actual   bool `json:"actual"` // Актуальность
 }
+type AppAcceptPhases struct {
+	Id      uint
+	Name    string
+	Created time.Time
+	Changed *time.Time
+	Actual  bool `json:"actual"` // Актуальность
+}
 type ApplicationStatuses struct {
 	Id       uint
 	Name     string
@@ -279,6 +286,9 @@ func (AchievementCategory) TableName() string {
 }
 func (AppealStatuses) TableName() string {
 	return "cls.appeal_statuses"
+}
+func (AppAcceptPhases) TableName() string {
+	return "cls.app_accept_phases"
 }
 func (ApplicationStatuses) TableName() string {
 	return "cls.application_statuses"

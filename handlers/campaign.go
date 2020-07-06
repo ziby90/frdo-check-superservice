@@ -62,6 +62,17 @@ type AddEducationForms struct {
 	IdCampaign     uint
 	EducationForms []uint `json:"education_forms"`
 }
+type AddAppAcceptPhases struct {
+	IdCampaign              uint
+	CampaignAppAcceptPhases []CampaignAppAcceptPhases `json:"app_accept_phases"`
+}
+type CampaignAppAcceptPhases struct {
+	Id               uint      `json:"id"`
+	EndDate          time.Time `json:"end_date"`
+	IdEducationLevel uint      `json:"id_education_level"`
+	IdEducationForm  uint      `json:"id_education_form"`
+	Uid              *string   `json:"uid"`
+}
 
 var CampaignSearchArray = []string{
 	`name`,
@@ -843,6 +854,14 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 			tx.Rollback()
 			return
 		}
+		row = conn.Table(`cmp.campaigns_educ_level`).Where(`id_campaign=? AND id_education_level=?`, campaign.Id, educLevelId).Select(`id`).Row()
+		var idEducLevelCampaignEducLevel uint
+		err = row.Scan(&idEducLevelCampaignEducLevel)
+		if err != nil || idEducLevelCampaignEducLevel <= 0 {
+			result.SetErrorResult(`Данный уровень образования не соответствует приемной компании`)
+			tx.Rollback()
+			return
+		}
 		campaignEducLevel := digest.CampaignEducLevel{
 			IdCampaign:       campaign.Id,
 			IdEducationLevel: educLevelId,
@@ -856,6 +875,14 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 		tx.Find(&educationForm, educFormId)
 		if !educationForm.Actual {
 			result.SetErrorResult(`Форма образования не найдена`)
+			tx.Rollback()
+			return
+		}
+		row := conn.Table(`cmp.campaigns_educ_form`).Where(`id_campaign=? AND id_education_form=?`, campaign.Id, educFormId).Select(`id`).Row()
+		var idEducLevelCampaignEducForm uint
+		err := row.Scan(&idEducLevelCampaignEducForm)
+		if err != nil || idEducLevelCampaignEducForm <= 0 {
+			result.SetErrorResult(`Данная форма обучения не соответствует приемной компании`)
 			tx.Rollback()
 			return
 		}
@@ -996,6 +1023,320 @@ func (result *ResultInfo) AddEducationFormsCampaign(data AddEducationForms) {
 	tx.Commit()
 }
 
+func (result *ResultInfo) AddAppAcceptPhases(data AddAppAcceptPhases) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Where(`id=? AND actual is true`, data.IdCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		result.SetErrorResult(`Приемная компания не найдена `)
+		tx.Rollback()
+		return
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - Статус завершена
+		result.SetErrorResult(`Добавление невозможно, когда приемная компания завершена. `)
+		tx.Rollback()
+		return
+	}
+	var idsAdd []uint
+	for _, acceptPhases := range data.CampaignAppAcceptPhases {
+		var appAcceptPhase digest.AppAcceptPhases
+		tx.Find(&appAcceptPhase, acceptPhases.Id)
+		if !appAcceptPhase.Actual {
+			result.SetErrorResult(`Этап подачи согласия не найден`)
+			tx.Rollback()
+			return
+		}
+		var exist digest.VEndApplication
+		conn.Where(`id=? AND id_app_accept_phase=?`, campaign.Id, acceptPhases.Id).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`Данная дата уже существует у приемной компании`)
+			tx.Rollback()
+			return
+		}
+		var educationLevel digest.EducationLevel
+		tx.Find(&educationLevel, acceptPhases.IdEducationLevel)
+		if !educationLevel.Actual {
+			result.SetErrorResult(`Уровень образования не найден`)
+			tx.Rollback()
+			return
+		}
+		row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.IdCampaignType, acceptPhases.IdEducationLevel).Select(`id`).Row()
+		var idEducLevelCampaignType uint
+		err := row.Scan(&idEducLevelCampaignType)
+		if err != nil || idEducLevelCampaignType <= 0 {
+			result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+			tx.Rollback()
+			return
+		}
+		row = conn.Table(`cmp.campaigns_educ_level`).Where(`id_campaign=? AND id_education_level=?`, campaign.Id, acceptPhases.IdEducationLevel).Select(`id`).Row()
+		var idEducLevelCampaignEducLevel uint
+		err = row.Scan(&idEducLevelCampaignEducLevel)
+		if err != nil || idEducLevelCampaignEducLevel <= 0 {
+			result.SetErrorResult(`Данный уровень образования не соответствует приемной компании`)
+			tx.Rollback()
+			return
+		}
+
+		var educationForm digest.EducationForm
+		tx.Find(&educationForm, acceptPhases.IdEducationForm)
+		if !educationForm.Actual {
+			result.SetErrorResult(`Форма образования не найдена`)
+			tx.Rollback()
+			return
+		}
+		row = conn.Table(`cmp.campaigns_educ_form`).Where(`id_campaign=? AND id_education_form=?`, campaign.Id, acceptPhases.IdEducationForm).Select(`id`).Row()
+		var idEducLevelCampaignEducForm uint
+		err = row.Scan(&idEducLevelCampaignEducForm)
+		if err != nil || idEducLevelCampaignEducForm <= 0 {
+			result.SetErrorResult(`Данная форма обучения не соответствует приемной компании`)
+			tx.Rollback()
+			return
+		}
+
+		new := digest.EndApplication{
+			IdCampaign:       data.IdCampaign,
+			IdAppAcceptPhase: &acceptPhases.Id,
+			IdEducationLevel: acceptPhases.IdEducationLevel,
+			IdEducationForm:  acceptPhases.IdEducationForm,
+			EndDate:          acceptPhases.EndDate,
+			Actual:           true,
+			IdOrganization:   result.User.CurrentOrganization.Id,
+			Created:          time.Now(),
+			IdAuthor:         &result.User.Id,
+		}
+
+		if acceptPhases.Uid != nil && *acceptPhases.Uid != `` {
+			conn.Where(`id_organization=? AND uid=? AND actual is true`, result.User.CurrentOrganization.Id, *acceptPhases.Uid).Find(&exist)
+			if exist.Id > 0 {
+				result.SetErrorResult(`У данной организации уже есть подобный uid в датах`)
+				tx.Rollback()
+				return
+			}
+			new.Uid = acceptPhases.Uid
+		}
+
+		db = tx.Create(&new)
+		if db.Error == nil {
+			idsAdd = append(idsAdd, new.Id)
+		} else {
+			tx.Rollback()
+			m := db.Error.Error()
+			result.Message = &m
+			return
+		}
+	}
+
+	result.Items = map[string]interface{}{
+		`id_campaign`:        campaign.Id,
+		`id_end_application`: idsAdd,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) EditAppAcceptPhasesCampaign(idCampaign uint, idEndApplication uint, data CampaignAppAcceptPhases) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		result.SetErrorResult(`Приемная компания не найдена `)
+		tx.Rollback()
+		return
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - Статус завершена
+		result.SetErrorResult(`Добавление невозможно, когда приемная компания завершена. `)
+		tx.Rollback()
+		return
+	}
+	var old digest.EndApplication
+	tx.Find(&old, idEndApplication)
+	if !old.Actual {
+		result.SetErrorResult(`Дата не найдена`)
+		tx.Rollback()
+		return
+	}
+	var appAcceptPhase digest.AppAcceptPhases
+	tx.Find(&appAcceptPhase, data.Id)
+	if !appAcceptPhase.Actual {
+		result.SetErrorResult(`Этап подачи согласия не найден`)
+		tx.Rollback()
+		return
+	}
+
+	var educationLevel digest.EducationLevel
+	tx.Find(&educationLevel, data.IdEducationLevel)
+	if !educationLevel.Actual {
+		result.SetErrorResult(`Уровень образования не найден`)
+		tx.Rollback()
+		return
+	}
+	row := conn.Table(`cls.edu_levels_campaign_types`).Where(`id_campaign_types=? AND id_education_level=?`, campaign.IdCampaignType, data.IdEducationLevel).Select(`id`).Row()
+	var idEducLevelCampaignType uint
+	err := row.Scan(&idEducLevelCampaignType)
+	if err != nil || idEducLevelCampaignType <= 0 {
+		result.SetErrorResult(`Данный уровень образования не соответствует типу приемной компании`)
+		tx.Rollback()
+		return
+	}
+	row = conn.Table(`cmp.campaigns_educ_level`).Where(`id_campaign=? AND id_education_level=?`, campaign.Id, data.IdEducationLevel).Select(`id`).Row()
+	var idEducLevelCampaignEducLevel uint
+	err = row.Scan(&idEducLevelCampaignEducLevel)
+	if err != nil || idEducLevelCampaignEducLevel <= 0 {
+		result.SetErrorResult(`Данный уровень образования не соответствует приемной компании`)
+		tx.Rollback()
+		return
+	}
+
+	var educationForm digest.EducationForm
+	tx.Find(&educationForm, data.IdEducationForm)
+	if !educationForm.Actual {
+		result.SetErrorResult(`Форма образования не найдена`)
+		tx.Rollback()
+		return
+	}
+	row = conn.Table(`cmp.campaigns_educ_form`).Where(`id_campaign=? AND id_education_form=?`, campaign.Id, data.IdEducationForm).Select(`id`).Row()
+	var idEducLevelCampaignEducForm uint
+	err = row.Scan(&idEducLevelCampaignEducForm)
+	if err != nil || idEducLevelCampaignEducForm <= 0 {
+		result.SetErrorResult(`Данная форма обучения не соответствует приемной компании`)
+		tx.Rollback()
+		return
+	}
+
+	old.IdAppAcceptPhase = &data.Id
+	old.IdEducationLevel = data.IdEducationLevel
+	old.IdEducationForm = data.IdEducationForm
+	old.EndDate = data.EndDate
+	t := time.Now()
+	old.Changed = &t
+	old.IdAuthor = &result.User.Id
+
+	if data.Uid != nil && *data.Uid != `` {
+		var exist digest.VEndApplication
+		conn.Where(`id_organization=? AND uid=? AND actual is true AND id_end_application!=?`, result.User.CurrentOrganization.Id, *data.Uid, idEndApplication).Find(&exist)
+		if exist.Id > 0 {
+			result.SetErrorResult(`У данной организации уже есть подобный uid в датах`)
+			tx.Rollback()
+			return
+		}
+		old.Uid = data.Uid
+	}
+
+	db = tx.Save(&old)
+	if db.Error != nil {
+		tx.Rollback()
+		m := db.Error.Error()
+		result.Message = &m
+		return
+	}
+
+	result.Items = map[string]interface{}{
+		`id_campaign`:        campaign.Id,
+		`id_end_application`: old.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) RemoveAppAcceptPhasesCampaign(idCampaign uint, idEndApplication uint) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Where(`id=? AND actual is true`, idCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		result.SetErrorResult(`Приемная компания не найдена `)
+		tx.Rollback()
+		return
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - Статус завершена
+		result.SetErrorResult(`Удаление невозможно, когда приемная компания завершена. `)
+		tx.Rollback()
+		return
+	}
+	var old digest.EndApplication
+	tx.Find(&old, idEndApplication)
+	if !old.Actual {
+		result.SetErrorResult(`Дата не найдена`)
+		tx.Rollback()
+		return
+	}
+	t := time.Now()
+	old.Actual = false
+	old.Changed = &t
+
+	db = tx.Save(&old)
+	if db.Error != nil {
+		tx.Rollback()
+		m := db.Error.Error()
+		result.Message = &m
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_campaign`:        campaign.Id,
+		`id_end_application`: old.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) GetAppAcceptPhasesCampaign(ID uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var campaign digest.Campaign
+	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Компания не найдена.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД. `
+		result.Message = &message
+		return
+	}
+	var endDate []digest.VEndApplication
+	db = conn.Where(`id=? AND id_app_accept_phase IS NOT NULL AND actual is NOT FALSE`, campaign.Id).Find(&endDate)
+
+	if db.RowsAffected > 0 {
+		var r []interface{}
+		for index, _ := range endDate {
+			r = append(r, map[string]interface{}{
+				`id_end_application`:    endDate[index].IdEndApplication,
+				`id_app_accept_phase`:   endDate[index].IdAppAcceptPhase,
+				`name_app_accept_phase`: endDate[index].AppAcceptPhase,
+				`id_education_level`:    endDate[index].IdEducationLevel,
+				`name_education_level`:  endDate[index].EducationLevel,
+				`id_education_form`:     endDate[index].IdEducationForm,
+				`name_education_form`:   endDate[index].EducationForm,
+				`end_date`:              endDate[index].EndDate,
+				`order_end_app`:         endDate[index].OrderEndApp,
+				`created`:               endDate[index].Created,
+				`uid`:                   endDate[index].Uid,
+			})
+		}
+		result.Done = true
+		result.Items = r
+		return
+	} else {
+		message := `Не найдены даты. `
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
+	}
+}
 func GetCampaignStatusByCode(code string) (*digest.CampaignStatus, error) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)

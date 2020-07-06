@@ -44,10 +44,22 @@ type Address struct {
 	Apartment        *string `json:"apartment"`
 	IdAuthor         *uint   `json:"id_author" gorm:"column:id_author"` // Идентификатор автора
 }
+type EntrantPhotoFiles struct {
+	Id             uint      `json:"id"`
+	IdEntrant      uint      `json:"id_entrant"`
+	PathFile       string    `json:"path_file"`
+	UidEpgu        *string   `json:"uid_epgu"`
+	IdOrganization *uint     `json:"id_organization"`
+	Created        time.Time `json:"created"`
+	IdAuthor       *uint     `json:"id_author"` // Идентификатор автора
+}
 
 func (Entrants) TableName() string {
 	return "persons.entrants"
 }
 func (Address) TableName() string {
 	return "persons.addresses"
+}
+func (EntrantPhotoFiles) TableName() string {
+	return "persons.entrant_photo_files"
 }

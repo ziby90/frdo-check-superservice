@@ -50,78 +50,6 @@ func AddCampaignHandler(r *mux.Router) {
 		res.GetListCompetitiveGroupsByCompanyId(uint(id))
 		service.ReturnJSON(w, res)
 	}).Methods("GET")
-	// конкурсы приемной компании
-	r.HandleFunc("/campaign/{id:[0-9]+}/enddate", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			res.GetEndDateCampaign(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-		service.ReturnJSON(w, res)
-	}).Methods("GET")
-	// редактирование даты окончания
-	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/edit", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		var cmp handlers.AddEndData
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err != nil {
-			message := `Неверный параметр id.`
-			res.Message = &message
-			service.ReturnJSON(w, res)
-			return
-		}
-		err = handlers.CheckCampaignByUser(uint(id), res.User)
-		if err != nil {
-			message := err.Error()
-			res.Message = &message
-			service.ReturnJSON(w, res)
-			return
-		}
-		b, _ := ioutil.ReadAll(r.Body)
-		err = json.Unmarshal(b, &cmp)
-		if err != nil {
-			m := err.Error()
-			res.Message = &m
-			service.ReturnJSON(w, res)
-			return
-		}
-		cmp.IdCampaign = uint(id)
-		res.EditEndDateCampaign(cmp)
-		service.ReturnJSON(w, res)
-	}).Methods("POST")
-	// обнуление даты окончания
-	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/{id_end_date:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		vars := mux.Vars(r)
-		res.User = *handlers.CheckAuthCookie(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			err = handlers.CheckCampaignByUser(uint(id), res.User)
-			if err != nil {
-				message := err.Error()
-				res.Message = &message
-			} else {
-				idEndDate, err := strconv.ParseInt(vars[`id_end_date`], 10, 32)
-				if err == nil {
-					res.RemoveEndDateCampaign(uint(id), uint(idEndDate))
-				} else {
-					message := `Неверный параметр id_end_date.`
-					res.Message = &message
-				}
-			}
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-		service.ReturnJSON(w, res)
-	}).Methods("POST")
 	// редактирование приемной компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
@@ -151,7 +79,6 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
-
 	// короткий список компаний для выпадаек
 	r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultList
@@ -363,4 +290,211 @@ func AddCampaignHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, res)
 	}).Methods("POST")
+
+	// даты окончания приемной компании
+	r.HandleFunc("/campaign/{id:[0-9]+}/enddate", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+
+		res.GetEndDateCampaign(uint(id))
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// редактирование даты окончания
+	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.AddEndData
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &cmp)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+		cmp.IdCampaign = uint(id)
+		res.EditEndDateCampaign(cmp)
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// обнуление даты окончания
+	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/{id_end_date:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			err = handlers.CheckCampaignByUser(uint(id), res.User)
+			if err != nil {
+				message := err.Error()
+				res.Message = &message
+			} else {
+				idEndDate, err := strconv.ParseInt(vars[`id_end_date`], 10, 32)
+				if err == nil {
+					res.RemoveEndDateCampaign(uint(id), uint(idEndDate))
+				} else {
+					message := `Неверный параметр id_end_date.`
+					res.Message = &message
+				}
+			}
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// добавление дат по волнам набора
+	r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/add", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+
+		var cmp handlers.AddAppAcceptPhases
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &cmp)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+		cmp.IdCampaign = uint(id)
+		res.AddAppAcceptPhases(cmp)
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// даты окончания приемной компании по волнам набора
+	r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+
+		res.GetAppAcceptPhasesCampaign(uint(id))
+		service.ReturnJSON(w, res)
+	}).Methods("GET")
+	// редактирование дат по волнам набора
+	r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/{id_end_application:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.CampaignAppAcceptPhases
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		idEndApplication, err := strconv.ParseInt(vars[`id_end_application`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &cmp)
+		if err != nil {
+			m := err.Error()
+			res.Message = &m
+			service.ReturnJSON(w, res)
+			return
+		}
+
+		res.EditAppAcceptPhasesCampaign(uint(id), uint(idEndApplication), cmp)
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+	// редактирование дат по волнам набора
+	r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/{id_end_application:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		idEndApplication, err := strconv.ParseInt(vars[`id_end_application`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		err = handlers.CheckCampaignByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, res)
+			return
+		}
+		res.RemoveAppAcceptPhasesCampaign(uint(id), uint(idEndApplication))
+		service.ReturnJSON(w, res)
+	}).Methods("POST")
+
 }
