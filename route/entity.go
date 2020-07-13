@@ -21,7 +21,7 @@ func AddEntityHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		b, _ := ioutil.ReadAll(r.Body)
@@ -29,7 +29,7 @@ func AddEntityHandler(r *mux.Router) {
 		if err != nil {
 			message := err.Error()
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.User = *handlers.CheckAuthCookie(r)
@@ -75,10 +75,10 @@ func AddEntityHandler(r *mux.Router) {
 		default:
 			message := `Неверный параметр entity_name.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.EditUid(cmp)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 }

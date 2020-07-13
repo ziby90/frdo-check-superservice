@@ -20,7 +20,7 @@ func AddEntrantHandler(r *mux.Router) {
 		res.MakeUrlParamsSearch(keys, handlers.EntrantsSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetListEntrants()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/{id:[0-9]+}/short", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
@@ -33,7 +33,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/add", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
@@ -47,7 +47,7 @@ func AddEntrantHandler(r *mux.Router) {
 			m := err.Error()
 			res.Message = &m
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	r.HandleFunc("/entrants/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -57,12 +57,12 @@ func AddEntrantHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 
 		}
 		res.GetInfoEntrant(uint(id))
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/{id:[0-9]+}/others", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -75,7 +75,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/{id:[0-9]+}/idents", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -88,7 +88,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/{id:[0-9]+}/idents/list", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -101,7 +101,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/entrants/{id:[0-9]+}/docs/short", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -115,7 +115,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
 	// получаем файл фотки абитуриента.
@@ -127,13 +127,13 @@ func AddEntrantHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
 		res.GetFilePhotoPersons(uint(id))
 		if !res.Done {
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		path := fmt.Sprintf(`%v`, res.Items)
@@ -142,7 +142,7 @@ func AddEntrantHandler(r *mux.Router) {
 			res.Done = false
 			m := "Can't open file: " + path
 			res.Message = &m
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		w.Write(file)
@@ -160,7 +160,7 @@ func AddEntrantHandler(r *mux.Router) {
 			file, header, fileErr := r.FormFile("file")
 			if fileErr != nil && fileErr.Error() != `http: no such file` {
 				res.SetErrorResult(fileErr.Error())
-				service.ReturnJSON(w, res)
+				service.ReturnJSON(w, &res)
 				return
 			}
 
@@ -177,7 +177,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// изменяем  файл фотки абитуриента.
 	r.HandleFunc("/entrants/photo/{id:[0-9]+}/file/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +191,7 @@ func AddEntrantHandler(r *mux.Router) {
 			file, header, fileErr := r.FormFile("file")
 			if fileErr != nil && fileErr.Error() != `http: no such file` {
 				res.SetErrorResult(fileErr.Error())
-				service.ReturnJSON(w, res)
+				service.ReturnJSON(w, &res)
 				return
 			}
 
@@ -208,7 +208,7 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// удаляем  файл фотки абитуриента.
 	r.HandleFunc("/entrants/photo/{id:[0-9]+}/file/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +223,6 @@ func AddEntrantHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 }

@@ -358,7 +358,7 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 	if db.Error != nil {
 		if db.Error.Error() == `record not found` {
 			result.Done = true
-			message := `Достижения не найдены.`
+			message := `Конкурсные группы не найдены.`
 			result.Message = &message
 			return
 		}
@@ -374,6 +374,88 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 				`uid`:          competitveGroup.UID,
 				`id_direction`: competitveGroup.IdDirection,
 				`created`:      competitveGroup.Created,
+			}
+			responses = append(responses, c)
+		}
+		result.Done = true
+		result.Items = responses
+		return
+	} else {
+		result.Done = true
+		message := `Конкурсные группы не найдены.`
+		result.Message = &message
+		result.Items = []digest.CompetitiveGroup{}
+		return
+	}
+}
+func (result *ResultInfo) GetShortListCompetitiveGroups(keys map[string][]string) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitiveGroups []digest.CompetitiveGroup
+	var db *gorm.DB
+	db = conn.Where(`id_organization=? AND actual IS TRUE`, result.User.CurrentOrganization.Id)
+
+	for key, value := range keys {
+		if len(value) > 0 {
+			switch key {
+			case `id_campaign`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_campaign=?`, v)
+				}
+				break
+			case `id_education_form`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_form=?`, v)
+				}
+				break
+			case `id_education_level`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_level=?`, v)
+				}
+				break
+			case `id_education_source`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_education_source=?`, v)
+				}
+				break
+			case `id_direction`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_direction=?`, v)
+				}
+				break
+			case `id_level_budget`:
+				if v, ok := strconv.Atoi(value[0]); ok == nil {
+					db = db.Where(`id_level_budget=?`, v)
+				}
+				break
+			case `search`:
+				db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(value[0])+`%`)
+				break
+			}
+		}
+	}
+
+	db = db.Find(&competitiveGroups)
+
+	var responses []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == `record not found` {
+			result.Done = true
+			message := `Конкурсные группы не найдены.`
+			result.Message = &message
+			result.Items = []digest.CompetitiveGroup{}
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, competitveGroup := range competitiveGroups {
+			c := map[string]interface{}{
+				`id`:   competitveGroup.Id,
+				`name`: competitveGroup.Name,
 			}
 			responses = append(responses, c)
 		}
@@ -858,6 +940,76 @@ func (result *ResultInfo) EditCompetitive(data CompetitiveGroup) {
 	return
 
 }
+func (result *ResultInfo) EditCompetitiveComment(idCompetitiveGroup uint, comment string) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var competitive digest.CompetitiveGroup
+
+	db := tx.Where(`id=?  AND actual IS TRUE`, idCompetitiveGroup).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+
+	t := time.Now()
+	competitive.Changed = &t
+	competitive.Comment = &comment
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_competitive_group`: competitive.Id,
+	}
+	tx.Commit()
+	return
+
+}
+func (result *ResultInfo) EditCompetitiveName(idCompetitiveGroup uint, name string) {
+	conn := config.Db.ConnGORM
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var competitive digest.CompetitiveGroup
+
+	db := tx.Where(`id=?  AND actual IS TRUE`, idCompetitiveGroup).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+
+	t := time.Now()
+	competitive.Changed = &t
+	competitive.Name = name
+
+	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`id_competitive_group`: competitive.Id,
+	}
+	tx.Commit()
+	return
+
+}
 func (result *ResultInfo) EditNumberCompetitive(data EditNumberCompetitive) {
 	conn := config.Db.ConnGORM
 	tx := conn.Begin()
@@ -1216,7 +1368,7 @@ func (result *ResultInfo) AddEntranceTestCalendar(data AddEntranceTestDate) {
 		tx.Rollback()
 		return
 	}
-	err := CheckEditEntranceCompetitiveGroup(entranceTest.IdCompetitiveGroup)
+	err := CheckAddRemoveEntranceTestCalendar(entranceTest.IdCompetitiveGroup)
 	if err != nil {
 		result.SetErrorResult(err.Error())
 		tx.Rollback()
@@ -1320,7 +1472,7 @@ func (result *ResultInfo) RemoveEntranceTestCalendar(idEntranceTestDate uint) {
 			tx.Rollback()
 			return
 		}
-		err := CheckEditEntranceCompetitiveGroup(entranceTest.IdCompetitiveGroup)
+		err := CheckAddRemoveEntranceTestCalendar(entranceTest.IdCompetitiveGroup)
 		if err != nil {
 			result.SetErrorResult(err.Error())
 			tx.Rollback()
@@ -1334,6 +1486,7 @@ func (result *ResultInfo) RemoveEntranceTestCalendar(idEntranceTestDate uint) {
 		t := time.Now()
 		entranceCalendar.Changed = &t
 		entranceCalendar.Actual = false
+		conn.Exec(`DELETE FROM app.entrance_test_agreed WHERE id_entrance_test_calendar=?`, idEntranceTestDate)
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&entranceCalendar)
 		if db.Error != nil {
 			result.SetErrorResult(db.Error.Error())

@@ -25,45 +25,57 @@ var orderArray = []string{
 }
 
 type Result struct {
-	Done      bool        `json:"done"`
-	Message   *string     `json:"message, omitempty"`
-	Items     interface{} `json:"data"`
-	Paginator Paginator   `json:"paginator"`
-	Sort      Sort        `json:"sort"`
-	Search    [][]string  `json:"-"`
-	User      digest.User `json:"-"`
+	Done                  bool        `json:"done"`
+	Message               *string     `json:"message, omitempty"`
+	Items                 interface{} `json:"data"`
+	Paginator             Paginator   `json:"paginator"`
+	Sort                  Sort        `json:"sort"`
+	Search                [][]string  `json:"-"`
+	User                  digest.User `json:"-"`
+	digest.PrimaryLogging `json:"-"`
 }
 
 type ResultCheck struct {
 	Done    bool        `json:"done"`
 	Message *string     `json:"message, omitempty"`
 	User    digest.User `json:"-"`
+	digest.PrimaryLogging
 }
 
 type ResultList struct {
-	Done    bool        `json:"done"`
-	Message *string     `json:"message, omitempty"`
-	Items   interface{} `json:"data"`
-	Search  string      `json:"search, 	omitempty"`
-	Filter  string      `json:"filter, 	omitempty"`
-	Value   string      `json:"value, 	omitempty"`
-	User    digest.User `json:"-"`
+	Done                  bool        `json:"done"`
+	Message               *string     `json:"message, omitempty"`
+	Items                 interface{} `json:"data"`
+	Search                string      `json:"search, 	omitempty"`
+	Filter                string      `json:"filter, 	omitempty"`
+	Value                 string      `json:"value, 	omitempty"`
+	User                  digest.User `json:"-"`
+	digest.PrimaryLogging `json:"-"`
 }
 
 type ResultInfo struct {
-	Done    bool        `json:"done"`
-	Message *string     `json:"message, omitempty"`
-	Items   interface{} `json:"data, omitempty"`
-	User    digest.User `json:"-"`
+	Done                  bool        `json:"done"`
+	Message               *string     `json:"message, omitempty"`
+	Items                 interface{} `json:"data, omitempty"`
+	User                  digest.User `json:"-"`
+	digest.PrimaryLogging `json:"-"`
 }
 
 type ResultCls struct {
-	Done    bool        `json:"done"`
-	Message *string     `json:"message, omitempty"`
-	Items   interface{} `json:"data"`
-	Search  string      `json:"search, 	omitempty"`
-	Filter  string      `json:"filter, 	omitempty"`
-	Value   string      `json:"value, 	omitempty"`
+	Done                  bool        `json:"done"`
+	Message               *string     `json:"message, omitempty"`
+	Items                 interface{} `json:"data"`
+	Search                string      `json:"search, 	omitempty"`
+	Filter                string      `json:"filter, 	omitempty"`
+	Value                 string      `json:"value, 	omitempty"`
+	digest.PrimaryLogging `json:"-"`
+}
+type ResultAuth struct {
+	User                  *digest.User `json:"user_info,omitempty"`
+	Links                 interface{}  `json:"organizations_list,omitempty"`
+	Done                  bool         `json:"done"`
+	Message               string       `json:"message"`
+	digest.PrimaryLogging `json:"-"`
 }
 
 func NewResult() Result {
@@ -156,3 +168,6 @@ func (result *ResultInfo) SetErrorResult(m string) {
 	result.Message = &m
 	return
 }
+
+//
+//

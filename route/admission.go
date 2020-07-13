@@ -34,7 +34,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	r.HandleFunc("/campaign/{id:[0-9]+}/admission2", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.NewResult()
@@ -56,7 +56,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// список уровней бюджета кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/budget", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавление бюджета к кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/budget/add", func(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +104,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// Добавление кцп с нулевыми значениями
 	r.HandleFunc("/admission/add", func(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// редактирование цифр кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +154,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 
 	// удаление кцп с уровнями бюджета
@@ -175,7 +175,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// удаление конкретного уровня бюджета у кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/budget/{id_budget:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +201,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// редактирование конкретного уровня бюджета у кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/budget/{id_budget:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +237,7 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// информация по кцп
 	r.HandleFunc("/admission/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
@@ -257,6 +257,6 @@ func AddAdmissionHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

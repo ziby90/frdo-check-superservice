@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	"net/http"
 	"persons/config"
+	"persons/digest"
 	"regexp"
 	"strconv"
 )
@@ -25,6 +26,16 @@ type File struct {
 	Title   string `json:"title,omitempty"`
 	Size    int64  `json:"size,omitempty"`
 	Type    string `json:"type, omitempty"`
+}
+
+func GetParamKeyFilterUintArray(key []string) []uint {
+	var filter []uint
+	for _, value := range key {
+		if id, err := strconv.ParseUint(value, 10, 32); err == nil {
+			filter = append(filter, uint(id))
+		}
+	}
+	return filter
 }
 
 //
@@ -165,15 +176,19 @@ func SearchUintInSliceUint(a uint, list []uint) int {
 //	return text
 //}
 
-func ReturnJSON(w http.ResponseWriter, object interface{}) {
+func ReturnJSON(w http.ResponseWriter, object digest.Logging) {
 	ansB, _ := json.Marshal(object)
 	w.Header().Set("Content-Type", "application/json")
 	_, err := w.Write(ansB)
 	if err != nil {
 		fmt.Println(`ошибка ` + err.Error())
 	}
+	if object.Check() {
+		err = object.SaveLogs()
+	}
+
 }
-func ReturnErrorJSON(w http.ResponseWriter, object interface{}, statusCode int) {
+func ReturnErrorJSON(w http.ResponseWriter, object digest.Logging, statusCode int) {
 	ansB, _ := json.Marshal(object)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)

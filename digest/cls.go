@@ -229,6 +229,13 @@ type OrphanCategories struct {
 	IdAuthor uint // Идентификатор автора
 	Actual   bool `json:"actual"` // Актуальность
 }
+type PackagesStatuses struct {
+	Id      uint
+	Name    string
+	Created time.Time
+	Code    *string `json:"code"`
+	Actual  bool    `json:"actual"` // Актуальность
+}
 type ParentsLostCategories struct {
 	Id       uint `xml:"ParentsLostCategoryID"`
 	Name     string
@@ -364,6 +371,9 @@ func (Okcm) TableName() string {
 }
 func (OrphanCategories) TableName() string {
 	return "cls.orphan_categories"
+}
+func (PackagesStatuses) TableName() string {
+	return "cls.packages_statuses"
 }
 func (ParentsLostCategories) TableName() string {
 	return "cls.parents_lost_categories"

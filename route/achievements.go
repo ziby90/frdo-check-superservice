@@ -19,7 +19,7 @@ func AddAchievementsHandler(r *mux.Router) {
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
 		res.GetListAchievement()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавление достижения в заявление
 	r.HandleFunc("/applications/{id:[0-9]+}/achievements/add", func(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// получаем файл у достижения заявления
 	r.HandleFunc("/applications/achievements/file/{id:[0-9]+}/get", func(w http.ResponseWriter, r *http.Request) {
@@ -59,13 +59,13 @@ func AddAchievementsHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
 		res.GetFileAppAchievement(uint(id))
 		if !res.Done {
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		path := fmt.Sprintf(`%v`, res.Items)
@@ -74,7 +74,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			res.Done = false
 			m := "Can't open file: " + path
 			res.Message = &m
-			service.ReturnErrorJSON(w, res, 400)
+			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
 		w.Write(file)
@@ -97,7 +97,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			res.AddAchievement(cmp, *handlers.CheckAuthCookie(r))
 		}
 
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// изменение достижения
 	r.HandleFunc("/achievements/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +120,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// достижения по компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements", func(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +135,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// достижения конкурсной группы
 	r.HandleFunc("/competitive/{id:[0-9]+}/achievements/select", func(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +157,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// достижения по компании, выпадайка
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements/select", func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// информация по достижениям
 	r.HandleFunc("/achievements/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +196,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// удаление достижения
 	r.HandleFunc("/achievements/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +214,7 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// удаление достижения
 	r.HandleFunc("/applications/achievements/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -232,6 +232,6 @@ func AddAchievementsHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

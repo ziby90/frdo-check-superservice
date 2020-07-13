@@ -13,6 +13,6 @@ func AddOlympHandler(r *mux.Router) {
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
 		res.GetListOlympics()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

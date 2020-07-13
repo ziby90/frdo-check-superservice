@@ -45,13 +45,13 @@ func AddCertificatesHandler(r *mux.Router) {
 		} else {
 			res.SetErrorResult(`fileErr ` + err.Error())
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// конкретная информация по сертификату организации
 	r.HandleFunc("/organizations/certificates/info", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetOrganizationCertificate()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

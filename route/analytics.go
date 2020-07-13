@@ -29,6 +29,12 @@ func AddAnalyticsHandler(r *mux.Router) {
 				return
 			}
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+
+	r.HandleFunc("/api/analytics/dima_sokolin/test", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		res.GetAnalyticsTest()
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

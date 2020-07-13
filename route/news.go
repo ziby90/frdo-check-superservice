@@ -42,7 +42,7 @@ func AddNewHandler(r *mux.Router) {
 				res.AddNews(cmp, files)
 			}
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 
 	// получаем список новостей
@@ -57,7 +57,7 @@ func AddNewHandler(r *mux.Router) {
 		res.MakeUrlParamsSearch(keys, handlers.NewsSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetListNews()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// изменяем новость
 	r.HandleFunc("/api/new/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +86,7 @@ func AddNewHandler(r *mux.Router) {
 				res.Message = &message
 			}
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// изменяем новость
 	r.HandleFunc("/api/new/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func AddNewHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// получаем файл новости
 	r.HandleFunc("/api/new/file/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func AddNewHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавляем файл к новости
 	r.HandleFunc("/api/new/{id:[0-9]+}/file/add", func(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +149,7 @@ func AddNewHandler(r *mux.Router) {
 				res.Message = &message
 			}
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// удаляем файл у новости
 	r.HandleFunc("/api/new/file/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +163,7 @@ func AddNewHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// страдаем херней
 	r.HandleFunc("/api/new/stradat/hernya", func(w http.ResponseWriter, r *http.Request) {
@@ -171,6 +171,6 @@ func AddNewHandler(r *mux.Router) {
 		res.Items = map[string]interface{}{
 			`stradat`: true,
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

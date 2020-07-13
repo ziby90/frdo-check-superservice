@@ -54,6 +54,7 @@ var ListClsTableName = []string{
 	`olympic_levels`,
 	`v_okcm`,
 	`orphan_categories`,
+	`packages_statuses`,
 	`parents_lost_categories`,
 	`radiation_work_categories`,
 	`regions`,

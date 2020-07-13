@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -565,6 +566,12 @@ func (result *ResultInfo) EditCampaign(data CampaignMain) {
 		tx.Rollback()
 		return
 	}
+	oldData, _ := json.Marshal(campaign)
+	strOldData := string(oldData)
+	result.PrimaryLogging.OldData = &strOldData
+	newData, _ := json.Marshal(data)
+	strNewData := string(newData)
+	result.PrimaryLogging.NewData = &strNewData
 
 	if campaign.IdOrganization != result.User.CurrentOrganization.Id {
 		result.SetErrorResult(`Приемная компания принадлежит другой организации.`)
@@ -854,14 +861,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 			tx.Rollback()
 			return
 		}
-		row = conn.Table(`cmp.campaigns_educ_level`).Where(`id_campaign=? AND id_education_level=?`, campaign.Id, educLevelId).Select(`id`).Row()
-		var idEducLevelCampaignEducLevel uint
-		err = row.Scan(&idEducLevelCampaignEducLevel)
-		if err != nil || idEducLevelCampaignEducLevel <= 0 {
-			result.SetErrorResult(`Данный уровень образования не соответствует приемной компании`)
-			tx.Rollback()
-			return
-		}
+
 		campaignEducLevel := digest.CampaignEducLevel{
 			IdCampaign:       campaign.Id,
 			IdEducationLevel: educLevelId,
@@ -878,14 +878,7 @@ func (result *ResultInfo) AddCampaign(campaignData CampaignMain, user digest.Use
 			tx.Rollback()
 			return
 		}
-		row := conn.Table(`cmp.campaigns_educ_form`).Where(`id_campaign=? AND id_education_form=?`, campaign.Id, educFormId).Select(`id`).Row()
-		var idEducLevelCampaignEducForm uint
-		err := row.Scan(&idEducLevelCampaignEducForm)
-		if err != nil || idEducLevelCampaignEducForm <= 0 {
-			result.SetErrorResult(`Данная форма обучения не соответствует приемной компании`)
-			tx.Rollback()
-			return
-		}
+
 		campaignEducForm := digest.CampaignEducForm{
 			IdCampaign:      campaign.Id,
 			IdEducationForm: educFormId,

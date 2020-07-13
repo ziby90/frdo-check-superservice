@@ -24,7 +24,7 @@ func AddApplicationHandler(r *mux.Router) {
 		//res.MakeUrlParamsSearch(keys, handlers.ApplicationSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetApplications(keys)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавление заявления
 	r.HandleFunc("/applications/add", func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +39,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := err.Error()
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// заявления конкретного абитуриента
 	r.HandleFunc("/entrants/{id:[0-9]+}/applications", func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// меняем статус заявления GET
 	r.HandleFunc("/applications/{id:[0-9]+}/status/set/{code_status}", func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// меняем статус заявления POST
 	r.HandleFunc("/applications/{id:[0-9]+}/status/set", func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// меняем статус заявления POST
 	r.HandleFunc("/applications/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +137,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// основная информация по заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +157,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// конкретная информация по заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/info", func(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +177,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// редактирование конкретной информации по заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/info/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +207,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// редактирование конкретной информации по заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/test/{id_test:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -244,7 +244,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// документы заявления
 	r.HandleFunc("/applications/{id:[0-9]+}/docs/list", func(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +264,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// документы заявления кратакая запись чисто айдишников
 	r.HandleFunc("/applications/{id:[0-9]+}/docs/short", func(w http.ResponseWriter, r *http.Request) {
@@ -284,7 +284,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// вступительные тесты заявления
 	r.HandleFunc("/applications/{id:[0-9]+}/tests/list", func(w http.ResponseWriter, r *http.Request) {
@@ -304,7 +304,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// список достижений к заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/achievements/list", func(w http.ResponseWriter, r *http.Request) {
@@ -327,7 +327,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавление вступительного теста к заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/tests/add", func(w http.ResponseWriter, r *http.Request) {
@@ -356,7 +356,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// выбор даты ви
 	r.HandleFunc("/applications/{id:[0-9]+}/calendar/choose", func(w http.ResponseWriter, r *http.Request) {
@@ -367,7 +367,7 @@ func AddApplicationHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.User = *handlers.CheckAuthCookie(r)
@@ -375,7 +375,7 @@ func AddApplicationHandler(r *mux.Router) {
 		if err != nil {
 			m := err.Error()
 			res.Message = &m
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		b, _ := ioutil.ReadAll(r.Body)
@@ -384,11 +384,11 @@ func AddApplicationHandler(r *mux.Router) {
 		if err != nil {
 			m := err.Error()
 			res.Message = &m
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.ChooseCalendarEntranceTest(data)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// удаление даты ви
 	r.HandleFunc("/applications/{id:[0-9]+}/calendar/{id_entrance_test_agreed:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -398,7 +398,7 @@ func AddApplicationHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.User = *handlers.CheckAuthCookie(r)
@@ -406,18 +406,18 @@ func AddApplicationHandler(r *mux.Router) {
 		if err != nil {
 			m := err.Error()
 			res.Message = &m
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		idCalendar, err := strconv.ParseInt(vars[`id_entrance_test_agreed`], 10, 32)
 		if err != nil {
 			message := `Неверный параметр id_entrance_test_agreed.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.RemoveCalendarEntranceTest(uint(id), uint(idCalendar))
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// добавление документов к заявлению
 	r.HandleFunc("/applications/{id:[0-9]+}/docs/add", func(w http.ResponseWriter, r *http.Request) {
@@ -446,7 +446,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("Post")
 	// удаление вступительного теста к заявлению
 	r.HandleFunc("/applications/tests/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -464,7 +464,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// удаление документа к заявлению
 	r.HandleFunc("/applications/{id_application:[0-9]+}/docs/{id_document:[0-9]+}/{code_category}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -489,7 +489,7 @@ func AddApplicationHandler(r *mux.Router) {
 			message := `Неверный параметр id_application.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
 	//
@@ -503,7 +503,7 @@ func AddApplicationHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//
 	//r.HandleFunc("/entrants/{id:[0-9]+}/idents", func(w http.ResponseWriter, r *http.Request) {
@@ -516,7 +516,7 @@ func AddApplicationHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//
 	//r.HandleFunc("/entrants/{id:[0-9]+}/idents/list", func(w http.ResponseWriter, r *http.Request) {
@@ -530,7 +530,7 @@ func AddApplicationHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 
 }

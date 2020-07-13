@@ -16,7 +16,7 @@ func AddOrgsHandler(r *mux.Router) {
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
 		res.GetListOrganization()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// инфа по организации
 	r.HandleFunc("/organizations/info", func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func AddOrgsHandler(r *mux.Router) {
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetInfoOrganization()
 
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// добавление направления обучения организации
 	r.HandleFunc("/organizations/directions/add", func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func AddOrgsHandler(r *mux.Router) {
 			message := err.Error()
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// изменение параметров отправки в ИС ООВО
 	r.HandleFunc("/organizations/isoovo/change", func(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,7 @@ func AddOrgsHandler(r *mux.Router) {
 			message := err.Error()
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// удаление направления обучения организации
 	r.HandleFunc("/organizations/directions/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func AddOrgsHandler(r *mux.Router) {
 			message := err.Error()
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 	// список всех направлений
 	r.HandleFunc("/directions/list", func(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +90,7 @@ func AddOrgsHandler(r *mux.Router) {
 		res.MakeUrlParamsSearch(keys, handlers.CampaignSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetDirections()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// список всех направлений
 	r.HandleFunc("/organizations/directions/list", func(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +104,7 @@ func AddOrgsHandler(r *mux.Router) {
 		res.MakeUrlParamsSearch(keys, handlers.DirectionsSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetDirectionsByOrganization(keys)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// направления обучения по вузам
 	r.HandleFunc("/organizations/directions/select", func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func AddOrgsHandler(r *mux.Router) {
 
 		res.MakeUrlParams(keys)
 		res.GetDirectionsSelectListByOrg(keys)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// группы направлений обучения по вузам
 	r.HandleFunc("/organizations/directions/parents/select", func(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +124,6 @@ func AddOrgsHandler(r *mux.Router) {
 
 		res.MakeUrlParams(keys)
 		res.GetDirectionsParentsSelectListByOrg(keys)
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

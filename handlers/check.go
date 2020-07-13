@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"persons/config"
 	"persons/digest"
+	"time"
 )
 
 func CheckCampaignByUser(idCampaign uint, user digest.User) error {
@@ -557,6 +558,36 @@ func CheckNumberCompetitiveById(idCompetitive uint, number int64) error {
 
 		fmt.Println(m)
 		return errors.New(m)
+	}
+	return nil
+}
+
+func CheckAddRemoveEntranceTestCalendar(idCompetitive uint) error {
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var competitive digest.CompetitiveGroup
+	conn.Where(`id=? AND actual is true`, idCompetitive).Find(&competitive)
+	if competitive.Id <= 0 {
+		return errors.New(`Конкурсная группа не найдена `)
+	}
+	var campaign digest.Campaign
+	conn.Where(`id=? AND actual is true`, competitive.IdCampaign).Find(&campaign)
+	if campaign.Id <= 0 {
+		return errors.New(`Компания конкурсной группы не найдена `)
+	}
+	if campaign.IdCampaignStatus == 3 { // 3 - статус завершена
+		return errors.New(`Приемная компания уже завершена. `)
+	}
+	var endDate digest.EndApplication
+	conn.Where(`id_campaign=? and id_education_level=? and id_education_form=? and id_app_accept_phase IS NULL and actual is true`, campaign.Id, competitive.IdEducationLevel, competitive.IdEducationForm).Find(&endDate)
+	if endDate.Id > 0 {
+		t := time.Now()
+		r := t.After(endDate.EndDate)
+		if r {
+			date := endDate.EndDate.Format("2006-01-02")
+			m := fmt.Sprintf(`Дата окончания подачи заявлений компании (%v) уже прошла. Редактирование невозможно`, date)
+			return errors.New(m)
+		}
 	}
 	return nil
 }

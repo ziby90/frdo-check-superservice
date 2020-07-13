@@ -14,7 +14,7 @@ func GetApiHandlerAuth(r *mux.Router) {
 	AddChecksHandler(r)
 	AddApplicationHandler(r)
 	AddEntityHandler(r)
-
+	AddPackageHandler(r)
 }
 
 func GetApiHandlerNoOrg(r *mux.Router) {
@@ -29,6 +29,5 @@ func GetApiHandlerNoOrg(r *mux.Router) {
 func GetApiHandlerNoAuth(r *mux.Router) {
 	AddAuthHandler(r)
 	AddNewHandler(r)
-	AddTestHandler(r)
 	AddAnalyticsHandler(r)
 }

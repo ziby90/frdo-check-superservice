@@ -133,6 +133,24 @@ func (result *Result) GetApplications(keys map[string][]string) {
 		db = db.Where(`uid_epgu::character varying LIKE (?)`, `%`+strings.ToUpper(keys[`search_uid_epgu`][0])+`%`)
 	}
 
+	if len(keys[`filter_competitive`]) > 0 {
+		filter := service.GetParamKeyFilterUintArray(keys[`filter_competitive`])
+		if len(filter) > 0 {
+			db = db.Where(`id_competitive_group IN (?)`, filter)
+		}
+	}
+	if len(keys[`filter_status`]) > 0 {
+		filter := service.GetParamKeyFilterUintArray(keys[`filter_status`])
+		if len(filter) > 0 {
+			db = db.Where(`id_status IN (?)`, filter)
+		}
+	}
+	if len(keys[`filter_campaign`]) > 0 {
+		filter := service.GetParamKeyFilterUintArray(keys[`filter_campaign`])
+		if len(filter) > 0 {
+			db = db.Where(`id_campaign IN (?)`, filter)
+		}
+	}
 	dbCount := db.Model(&applications).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -146,6 +164,8 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"id":                     applications[index].Id,
 				"app_number":             applications[index].AppNumber,
 				"name_competitive_group": applications[index].NameCompetitiveGroup,
+				"id_competitive_group":   applications[index].IdCompetitiveGroup,
+				"id_campaign":            applications[index].IdCampaign,
 				"entrant_fullname":       applications[index].EntrantFullname,
 				"entrant_snils":          applications[index].EntrantSnils,
 				"id_status":              applications[index].IdStatus,
@@ -154,6 +174,7 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
 				"original":               applications[index].Original,
+				"need_hostel":            applications[index].NeedHostel,
 				"rating":                 applications[index].Rating,
 				"created":                applications[index].Created,
 				"uid_epgu":               applications[index].UidEpgu,
@@ -1720,6 +1741,13 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 		sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
 		err = sendToEpgu.PrepareSendStatementResponse(*application.UidEpgu, sendToEpgu.NewApplication)
 		fmt.Println(err)
+		if status.Id == 24 {
+			comment := ``
+			if application.StatusComment != nil {
+				comment = *application.StatusComment
+			}
+			sendToEpgu.PrepareSendCancelApplication(*application.UidEpgu, `CANCELLED`, comment)
+		}
 	}
 	return
 }

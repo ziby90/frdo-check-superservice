@@ -8,13 +8,6 @@ import (
 	"strings"
 )
 
-type ResultAuth struct {
-	User    *digest.User `json:"user_info,omitempty"`
-	Links   interface{}  `json:"organizations_list,omitempty"`
-	Done    bool         `json:"done"`
-	Message string       `json:"message"`
-}
-
 func GetAuthUser() {
 
 }

@@ -28,7 +28,7 @@ func authMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		} else {
 			m := `Для выполнения данного действия необходима авторизация`
-			service.ReturnJSON(w, handlers.ResultInfo{
+			service.ReturnJSON(w, &handlers.ResultInfo{
 				Done:    false,
 				Message: &m,
 			})
@@ -44,7 +44,7 @@ func adminMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		} else {
 			m := `Ты не админ, вали отсюда`
-			service.ReturnJSON(w, handlers.ResultInfo{
+			service.ReturnJSON(w, &handlers.ResultInfo{
 				Done:    false,
 				Message: &m,
 			})
@@ -60,7 +60,7 @@ func organizationMw(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		} else {
 			m := `Для выполнения данного действия необходимо выбрать организацию.`
-			service.ReturnJSON(w, handlers.ResultInfo{
+			service.ReturnJSON(w, &handlers.ResultInfo{
 				Done:    false,
 				Message: &m,
 			})

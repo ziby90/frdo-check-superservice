@@ -242,6 +242,16 @@ func (result *ResultInfo) GetInfoEntrantApp(ID uint) {
 			`count_org_app`: countApp,
 			`app_org`:       apps,
 		}
+		var photo digest.EntrantPhotoFiles
+		db = conn.Raw(`select * from persons.entrant_photo_files WHERE id_entrant = ? AND (id_organization = ? OR id_organization IS NULL) ORDER BY uid_epgu asc NULLS LAST LIMIT 1`, entrant.Id, result.User.CurrentOrganization.Id).Scan(&photo)
+		if photo.Id > 0 {
+			response[`photo`] = map[string]interface{}{
+				`id`:    photo.Id,
+				`title`: photo.PathFile,
+			}
+		} else {
+			response[`photo`] = nil
+		}
 		result.Done = true
 		result.Items = response
 		return

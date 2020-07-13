@@ -30,7 +30,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли редактировать и обнулять контролльные даты
 	r.HandleFunc("/campaign/{id:[0-9]+}/enddate/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли добавлять кцп
 	r.HandleFunc("/campaign/{id:[0-9]+}/admission/check/add", func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли редактировать кцп
 	r.HandleFunc("/campaign/{id:[0-9]+}/admission/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +96,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли добавлять кцп
 	r.HandleFunc("/campaign/{id:[0-9]+}/competitive/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +118,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли удалять кцп
 	//r.HandleFunc("/competitive/{id:[0-9]+}/check/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func AddChecksHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	// можно ли редактировать кг
 	r.HandleFunc("/competitive/{id:[0-9]+}/check/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли редактировать образовательные программы у кг
 	r.HandleFunc("/competitive/{id:[0-9]+}/programs/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли редактировать втсупительные испытания у кг
 	r.HandleFunc("/competitive/{id:[0-9]+}/tests/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +206,29 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+	// можно ли редактировать втсупительные испытания у кг
+	r.HandleFunc("/competitive/{id:[0-9]+}/dates/check/add-remove", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err == nil {
+			can := false
+			err = handlers.CheckAddRemoveEntranceTestCalendar(uint(id))
+			if err == nil {
+				can = true
+			}
+			res.Items = map[string]interface{}{
+				`can`: can,
+			}
+			res.Done = true
+		} else {
+			message := `Неверный параметр id.`
+			res.Message = &message
+		}
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли добавлять достижение
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements/check/add", func(w http.ResponseWriter, r *http.Request) {
@@ -228,7 +250,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// можно ли редактировать достижение
 	r.HandleFunc("/campaign/{id:[0-9]+}/achievements/check/edit-remove", func(w http.ResponseWriter, r *http.Request) {
@@ -250,7 +272,7 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// цифра в кг
 	r.HandleFunc("/competitive/{id:[0-9]+}/number/{number:[0-9]+}/check", func(w http.ResponseWriter, r *http.Request) {
@@ -282,6 +304,6 @@ func AddChecksHandler(r *mux.Router) {
 			message := `Неверный параметр id.`
 			res.Message = &message
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }

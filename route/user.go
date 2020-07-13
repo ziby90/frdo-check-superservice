@@ -15,13 +15,13 @@ func AddUserHandler(r *mux.Router) {
 		var res handlers.ResultInfo
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetUserInfoResponse()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
 	r.HandleFunc("/user/links", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		res.Items = handlers.GetOrganizationsLinks(handlers.CheckAuthCookie(r))
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
 	r.HandleFunc("/user/current-org", func(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func AddUserHandler(r *mux.Router) {
 		}
 		paramId := fmt.Sprintf(`%v`, data[`id`])
 		if paramId == `` {
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 		} else {
 			u64, err := strconv.ParseUint(paramId, 10, 32)
 			if err == nil {
@@ -58,7 +58,7 @@ func AddUserHandler(r *mux.Router) {
 				}
 			}
 		}
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("POST")
 
 }

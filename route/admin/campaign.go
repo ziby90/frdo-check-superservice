@@ -22,7 +22,7 @@ func AddCampaignHandler(r *mux.Router) {
 		res.MakeUrlParamsSearch(keys, handlers_admin.CampaignSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetListCampaign()
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	// конкурсы приемной компании
 	r.HandleFunc("/campaign/{id:[0-9]+}/competitive", func(w http.ResponseWriter, r *http.Request) {
@@ -36,11 +36,11 @@ func AddCampaignHandler(r *mux.Router) {
 		if err != nil {
 			message := `Неверный параметр id.`
 			res.Message = &message
-			service.ReturnJSON(w, res)
+			service.ReturnJSON(w, &res)
 			return
 		}
 		res.GetListCompetitiveGroupsByCompanyId(uint(id))
-		service.ReturnJSON(w, res)
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 	//// редактирование приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// короткий список компаний для выпадаек
 	//r.HandleFunc("/campaign/short", func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//	res.MakeUrlParams(keys)
 	//	res.User = *handlers_admin.CheckAuthCookie(r)
 	//	res.GetShortListCampaign()
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// добавление приемной компании
 	//r.HandleFunc("/campaign/add", func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		m := err.Error()
 	//		res.Message = &m
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("Post")
 	//// информация по приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// уровни образования у приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/education_levels", func(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +132,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// добавить уровни образования у приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/education_levels/add", func(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +161,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// добавить формы обучения у приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/education_forms/add", func(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +190,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// это что? какой то спсиок предметов по вузам . ааа, выбор предметов для егэ по годам приемной компании! Женя, КОля - привет!
 	//// Аня сказала "это список предметов ЕГЭ с их минимальными баллами в зависимости от года, каждый год разный минимальный балл"
@@ -211,7 +211,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// ФОрмы образования приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/education_forms", func(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// удаление приемной компании
 	//r.HandleFunc("/campaign/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -251,7 +251,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// меняем статус приемной компании POST
 	//r.HandleFunc("/campaign/{id:[0-9]+}/status/set", func(w http.ResponseWriter, r *http.Request) {
@@ -280,7 +280,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//
 	//// даты окончания приемной компании
@@ -292,19 +292,19 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//
 	//	res.GetEndDateCampaign(uint(id))
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// редактирование даты окончания
 	//r.HandleFunc("/campaign/{id:[0-9]+}/enddate/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -316,14 +316,14 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	b, _ := ioutil.ReadAll(r.Body)
@@ -331,12 +331,12 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		m := err.Error()
 	//		res.Message = &m
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	cmp.IdCampaign = uint(id)
 	//	res.EditEndDateCampaign(cmp)
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// обнуление даты окончания
 	//r.HandleFunc("/campaign/{id:[0-9]+}/enddate/{id_end_date:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -362,7 +362,7 @@ func AddCampaignHandler(r *mux.Router) {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
 	//	}
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// добавление дат по волнам набора
 	//r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/add", func(w http.ResponseWriter, r *http.Request) {
@@ -373,14 +373,14 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//
@@ -390,12 +390,12 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		m := err.Error()
 	//		res.Message = &m
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	cmp.IdCampaign = uint(id)
 	//	res.AddAppAcceptPhases(cmp)
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// даты окончания приемной компании по волнам набора
 	//r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases", func(w http.ResponseWriter, r *http.Request) {
@@ -406,19 +406,19 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//
 	//	res.GetAppAcceptPhasesCampaign(uint(id))
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("GET")
 	//// редактирование дат по волнам набора
 	//r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/{id_end_application:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
@@ -430,21 +430,21 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	idEndApplication, err := strconv.ParseInt(vars[`id_end_application`], 10, 32)
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	b, _ := ioutil.ReadAll(r.Body)
@@ -452,12 +452,12 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		m := err.Error()
 	//		res.Message = &m
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//
 	//	res.EditAppAcceptPhasesCampaign(uint(id), uint(idEndApplication), cmp)
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 	//// редактирование дат по волнам набора
 	//r.HandleFunc("/campaign/{id:[0-9]+}/accept_phases/{id_end_application:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
@@ -468,25 +468,25 @@ func AddCampaignHandler(r *mux.Router) {
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	idEndApplication, err := strconv.ParseInt(vars[`id_end_application`], 10, 32)
 	//	if err != nil {
 	//		message := `Неверный параметр id.`
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	err = handlers_admin.CheckCampaignByUser(uint(id), res.User)
 	//	if err != nil {
 	//		message := err.Error()
 	//		res.Message = &message
-	//		service.ReturnJSON(w, res)
+	//		service.ReturnJSON(w, &res)
 	//		return
 	//	}
 	//	res.RemoveAppAcceptPhasesCampaign(uint(id), uint(idEndApplication))
-	//	service.ReturnJSON(w, res)
+	//	service.ReturnJSON(w, &res)
 	//}).Methods("POST")
 
 }

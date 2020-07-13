@@ -101,6 +101,7 @@ type VApplications struct {
 	Id                   uint      `json:"id" schema:"id"` // Идентификатор
 	IdOrganization       uint      `json:"id_organization"`
 	IdEntrant            uint      `json:"id_entrant"`
+	IdCampaign           uint      `json:"id_campaign"`
 	EntrantFullname      string    `json:"entrant_fullname"`
 	EntrantSnils         string    `json:"entrant_snils"`
 	IdCompetitiveGroup   uint      `json:"id_competitive_group"`
@@ -113,6 +114,7 @@ type VApplications struct {
 	CodeStatus           string    `json:"code_status" schema:"code_status"`
 	Agreed               *bool     `json:"agreed" schema:"agreed"`
 	Original             bool      `json:"original" schema:"original"`
+	NeedHostel           bool      `json:"need_hostel" schema:"need_hostel"`
 	Uid                  *string   `json:"uid" schema:"uid"`
 	UidEpgu              *string   `json:"uid_epgu" schema:"uid_epgu"`
 	Created              time.Time `json:"created"` // Дата создания
