@@ -196,6 +196,9 @@ func ReturnErrorJSON(w http.ResponseWriter, object digest.Logging, statusCode in
 	if err != nil {
 		fmt.Println(`ошибка ` + err.Error())
 	}
+	if object.Check() {
+		err = object.SaveLogs()
+	}
 }
 
 //

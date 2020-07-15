@@ -53,6 +53,7 @@ func AddPackageHandler(r *mux.Router) {
 		}
 		keys := r.URL.Query()
 		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.PackageSearchArray)
 		//res.MakeUrlParamsSearch(keys, handlers.ApplicationSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
 		res.GetMarkEgePackages()

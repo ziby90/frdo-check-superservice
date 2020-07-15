@@ -38,27 +38,36 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 		var rows *sql.Rows
 		var err error
 		if user.Role.Code == `administrator` {
-			rows, err = conn.Table(`admin.organizations`).Where(`actual`).Select(`id`).Rows()
+			rows, err = conn.Table(`admin.organizations`).Select(`id, short_title, ogrn, kpp`).Where(`actual`).Rows()
 		} else {
-			rows, err = conn.Table(`admin.organizations_users`).Where(`id_user=?`, user.Id).Select(`id_organization`).Rows()
+			rows, err = conn.Table(`admin.organizations_users ou`).Where(`id_user=? AND id_status=2`, user.Id).
+				Select(`id_organization as id, short_title, ogrn, kpp`).
+				Joins(`right join admin.organizations org ON org.id=ou.id_organization`).
+				Rows()
 		}
 		if err == nil {
 			defer func() {
 				_ = rows.Close()
 			}()
 			for rows.Next() {
-				var idOrganization uint
-				err := rows.Scan(&idOrganization)
+				var organization struct {
+					Id         uint   `json:"id"`
+					ShortTitle string `json:"short_title"`
+					Ogrn       string `json:"ogrn"`
+					Kpp        string `json:"kpp"`
+				}
+				//var idOrganization uint
+				err := rows.Scan(&organization.Id, &organization.ShortTitle, &organization.Ogrn, &organization.Kpp)
 				if err != nil {
 					log.Fatal(err)
 				}
-				org := digest.Organization{}
-				conn.Find(&org, idOrganization)
+				//org := digest.Organization{}
+				//conn.Find(&org, idOrganization)
 				links = append(links, map[string]interface{}{
-					`id`:          org.Id,
-					`short_title`: org.ShortTitle,
-					`ogrn`:        org.Ogrn,
-					`kpp`:         org.Kpp,
+					`id`:          organization.Id,
+					`short_title`: organization.ShortTitle,
+					`ogrn`:        organization.Ogrn,
+					`kpp`:         organization.Kpp,
 				})
 			}
 		}

@@ -17,13 +17,11 @@ func AddUserHandler(r *mux.Router) {
 		res.GetUserInfoResponse()
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
-
 	r.HandleFunc("/user/links", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		res.Items = handlers.GetOrganizationsLinks(handlers.CheckAuthCookie(r))
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
-
 	r.HandleFunc("/user/current-org", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		data := make(map[string]interface{})
@@ -60,5 +58,17 @@ func AddUserHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, &res)
 	}).Methods("POST")
-
+	r.HandleFunc("/user/current-org/remove", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "current-org",
+			Value:    ``,
+			HttpOnly: true,
+			Path:     `/`,
+		})
+		service.ReturnJSON(w, &handlers.ResultAuth{
+			User:    nil,
+			Done:    true,
+			Message: "Организация сброшена",
+		})
+	}).Methods("GET")
 }

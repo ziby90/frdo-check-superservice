@@ -24,7 +24,18 @@ type Organization struct {
 	IsOOVO     bool       `json:"is_oovo"`
 	Changed    *time.Time `json:"changed"`
 }
-
+type OrganizationsUsers struct {
+	Id                   uint                 `json:"id"`
+	IdUser               uint                 `json:"id_user"`
+	IdOrganization       uint                 `json:"id_organization"`
+	IdStatus             uint                 `json:"id_status"`
+	OrganizationStatuses OrganizationStatuses `gorm:"foreignkey:IdStatus"`
+	ConfirmingDoc        *string              `json:"confirming_doc"`
+	Created              time.Time            `json:"created"`
+	Changed              *time.Time           `json:"changed"`
+	Comment              *string              `json:"comment"`
+	IdAuthor             *uint                `json:"id_author"`
+}
 type OrgDirections struct {
 	Id          uint       `json:"id"`
 	Direction   Direction  `json:"direction" gorm:"foreignkey:id_direction"`
@@ -57,6 +68,9 @@ func (Organization) TableName() string {
 }
 func (OrgDirections) TableName() string {
 	return "admin.org_directions"
+}
+func (OrganizationsUsers) TableName() string {
+	return "admin.organizations_users"
 }
 func (VOrganizationsDirections) TableName() string {
 	return "admin.v_org_directions"

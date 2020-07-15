@@ -327,6 +327,7 @@ func (result *ResultInfo) GetApplicationInfoById(idApplication uint) {
 			"priority":               application.Priority,
 			"uid":                    application.Uid,
 			"uid_epgu":               application.UidEpgu,
+			"status_comment":         application.StatusComment,
 		}
 		result.Done = true
 		result.Items = info

@@ -6,12 +6,24 @@ type User struct {
 	Id                  uint                 `json:"id"`
 	Login               string               `json:"login"`
 	Password            string               `json:"-"`
-	Patronymic          string               `json:"patronymic"`
+	Patronymic          *string              `json:"patronymic"`
 	Surname             string               `json:"surname"`
 	Name                string               `json:"name"`
 	IdRole              uint                 `json:"-"`
+	IdRegion            *uint                `json:"id_region"`
+	Region              Region               `json:"region" gorm:"foreignkey:IdRegion"`
 	Role                Role                 `json:"role" gorm:"foreignkey:IdRole"`
 	CurrentOrganization *CurrentOrganization `json:"organization,omitempty" gorm:"-"`
+	RegistrationDate    time.Time            `json:"registration_date"`
+	Post                *string              `json:"post"`
+	Work                *string              `json:"work"`
+	Adress              *string              `json:"adress"`
+	Phone               *string              `json:"phone"`
+	Email               *string              `json:"email"`
+	IdAuthor            *uint                `json:"id_Author"`
+	Actual              bool                 `json:"actual"` // Актуальность
+	Changed             *time.Time           `json:"changed"`
+	Snils               *string              `json:"snils"`
 }
 
 type CurrentOrganization struct {

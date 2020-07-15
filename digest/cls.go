@@ -229,6 +229,11 @@ type OrphanCategories struct {
 	IdAuthor uint // Идентификатор автора
 	Actual   bool `json:"actual"` // Актуальность
 }
+type OrganizationStatuses struct {
+	Id      uint
+	Name    string
+	Created time.Time
+}
 type PackagesStatuses struct {
 	Id      uint
 	Name    string
@@ -362,6 +367,9 @@ func (MilitaryCategories) TableName() string {
 }
 func (OlympicDiplomType) TableName() string {
 	return "cls.olympic_diploma_types"
+}
+func (OrganizationStatuses) TableName() string {
+	return "cls.organization_statuses"
 }
 func (OlympicLevel) TableName() string {
 	return "cls.olympic_levels"

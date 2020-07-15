@@ -23,6 +23,13 @@ type Sort struct {
 	Field string `json:"sortby"`
 	Order string `json:"order"`
 }
+
+type ServiceResults interface {
+	MakeUrlParams(keys map[string][]string)
+	MakeUrlParamsSearch(keys map[string][]string, searchArray []string)
+	SetError(m string)
+}
+
 type Result struct {
 	Done                  bool        `json:"done"`
 	Message               *string     `json:"message, omitempty"`
@@ -113,7 +120,6 @@ func (result *Result) MakeUrlParams(keys map[string][]string) {
 		result.Sort.Field = keys[`sortby`][0]
 	}
 }
-
 func (result *Result) MakeUrlParamsSearch(keys map[string][]string, searchArray []string) {
 	for _, s := range searchArray {
 		keyS := `search_` + s
@@ -123,7 +129,6 @@ func (result *Result) MakeUrlParamsSearch(keys map[string][]string, searchArray 
 		}
 	}
 }
-
 func (result *ResultCls) MakeUrlParams(keys map[string][]string) {
 	if len(keys[`search`]) > 0 {
 		result.Search = keys[`search`][0]
@@ -146,7 +151,6 @@ func (result *ResultList) MakeUrlParams(keys map[string][]string) {
 		result.Value = keys[`value`][0]
 	}
 }
-
 func (paginator *Paginator) Make() {
 	if paginator.TotalCount <= 0 {
 		return
@@ -154,9 +158,9 @@ func (paginator *Paginator) Make() {
 	paginator.AllPage = int(math.Ceil(float64(paginator.TotalCount) / float64(paginator.Limit)))
 	paginator.Offset = (paginator.CurrentPage - 1) * paginator.Limit
 }
-
 func (result *ResultInfo) SetErrorResult(m string) {
 	result.Done = false
 	result.Message = &m
+	result.SetError(m)
 	return
 }

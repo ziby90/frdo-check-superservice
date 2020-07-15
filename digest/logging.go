@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"encoding/json"
 	"persons/config"
 	"time"
 )
@@ -9,6 +10,8 @@ type Logging interface {
 	SaveLogs() error
 	GetPrimaryLogging() *PrimaryLogging
 	Check() bool
+	SetError(string)
+	SetNewData(interface{})
 }
 
 type PrimaryLogging struct {
@@ -25,7 +28,6 @@ type PrimaryLogging struct {
 	Route       *string   `json:"route"`
 	IdAuthor    uint      `json:"id_author"` // Идентификатор автора
 	TypeLogging *string   `gorm:"-"`
-	Logging     Logging   `gorm:"-"`
 }
 
 func (p *PrimaryLogging) GetTableNameLogging() string {
@@ -54,4 +56,14 @@ func (p *PrimaryLogging) Check() bool {
 		return true
 	}
 	return false
+}
+func (p *PrimaryLogging) SetError(m string) {
+	p.Result = false
+	p.Errors = &m
+}
+func (p *PrimaryLogging) SetNewData(object interface{}) {
+	newData, _ := json.Marshal(object)
+	strNewData := string(newData)
+	p.NewData = &strNewData
+
 }

@@ -39,7 +39,7 @@ func CheckAuthCookie(r *http.Request) *digest.User {
 	if err == nil {
 		login = strings.ToUpper(cookieLogin.Value)
 	}
-	cookiePass, _ := r.Cookie(`password`)
+	cookiePass, err := r.Cookie(`password`)
 	if err == nil {
 		pass = cookiePass.Value
 	}

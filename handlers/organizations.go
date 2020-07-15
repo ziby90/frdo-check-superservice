@@ -443,7 +443,11 @@ func CheckOrgCookie(user digest.User, r *http.Request) uint {
 	conn.LogMode(config.Conf.Dblog)
 	var row *sql.Row
 	if user.Role.Code == `administrator` {
+		if currentOrgId == 0 {
+			return 0
+		}
 		row = conn.Table(`admin.organizations`).Where(`id=?`, currentOrgId).Select(`id`).Row()
+
 	} else {
 		row = conn.Table(`admin.organizations_users`).Where(`id_user=? AND id_organization=?`, user.Id, currentOrgId).Select(`id_organization`).Row()
 	}
@@ -456,7 +460,6 @@ func CheckOrgCookie(user digest.User, r *http.Request) uint {
 		}
 	}
 	return 0
-
 }
 
 func (result *ResultInfo) SetIsOOVOOrganization(isOOVO bool) {

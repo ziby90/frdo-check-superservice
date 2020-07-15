@@ -8,8 +8,14 @@ import (
 	"path/filepath"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
+	"strings"
 	"time"
 )
+
+var PackageSearchArray = []string{
+	`name`,
+}
 
 func (result *Result) GetMarkEgePackages() {
 	result.Done = false
@@ -22,9 +28,14 @@ func (result *Result) GetMarkEgePackages() {
 	if result.Sort.Order == `` {
 		result.Sort.Order = `asc`
 	}
+
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
 	db = db.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
-
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], CampaignSearchArray) >= 0 {
+			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
+	}
 	dbCount := db.Model(&packages).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -87,7 +98,7 @@ func (result *Result) GetMarkEgeElements(idPackage uint) {
 
 	}
 	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&elements)
+	db = db.Limit(result.Paginator.Limit).Preload(`Region`).Offset(result.Paginator.Offset).Find(&elements)
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range elements {
@@ -105,6 +116,7 @@ func (result *Result) GetMarkEgeElements(idPackage uint) {
 				"mark":            elements[index].Mark,
 				"year":            elements[index].Year,
 				"id_region":       elements[index].IdRegion,
+				"name_region":     elements[index].Region.Name,
 				"status":          elements[index].Status,
 				"app_per":         elements[index].AppPer,
 				"cert_number":     elements[index].CertNumber,

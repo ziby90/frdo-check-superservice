@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strings"
+	"time"
 )
 
 func AddAuthHandler(r *mux.Router) {
@@ -42,32 +44,42 @@ func AddAuthHandler(r *mux.Router) {
 	}).Methods("GET")
 	// логин, ну что тут сказать
 	r.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
 		data := make(map[string]string)
+		res.PrimaryLogging = digest.PrimaryLogging{
+			TableObject: `admin.users`,
+			Action:      "login",
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+		}
 		err := json.NewDecoder(r.Body).Decode(&data)
 		if err != nil {
 			fmt.Println(`ошибка ` + err.Error())
 		}
 
 		if data[`login`] == `` || data[`password`] == `` {
-			var res handlers.ResultInfo
-			m := `Неверные параметры`
-			res.Message = &m
+			res.SetErrorResult(`Неверные параметры`)
 			service.ReturnJSON(w, &res)
 		}
 		userAgent := r.Header.Get(`User-agent`)
 		pass := data[`password`]
 		mail := strings.ToUpper(data[`login`])
-		res := handlers.CheckAuthBase(mail, pass)
-		if res.Done {
+		resNext := handlers.CheckAuthBase(mail, pass)
+		resNext.PrimaryLogging = res.PrimaryLogging
+		if resNext.Done {
+			resNext.PrimaryLogging.Result = true
+			resNext.PrimaryLogging.IdObject = &resNext.User.Id
+			resNext.PrimaryLogging.IdAuthor = resNext.User.Id
 			http.SetCookie(w, &http.Cookie{
 				Name:     "login",
-				Value:    res.User.Login,
+				Value:    resNext.User.Login,
 				HttpOnly: true,
 				Path:     `/`,
 			})
 			http.SetCookie(w, &http.Cookie{
 				Name:     "password",
-				Value:    service.GetHash(res.User.Password+userAgent, true),
+				Value:    service.GetHash(resNext.User.Password+userAgent, true),
 				HttpOnly: true,
 				Path:     `/`,
 			})
@@ -78,6 +90,8 @@ func AddAuthHandler(r *mux.Router) {
 				Path:     `/`,
 			})
 		} else {
+			resNext.PrimaryLogging.Result = false
+			resNext.SetNewData(data)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "login",
 				Value:    ``,
@@ -97,10 +111,24 @@ func AddAuthHandler(r *mux.Router) {
 				Path:     `/`,
 			})
 		}
-		service.ReturnJSON(w, &res)
+		service.ReturnJSON(w, &resNext)
 	}).Methods("POST")
 	// уже уходите? нам тоже не понравилось. сами вы лагаете.
 	r.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultAuth
+		res.User = handlers.CheckAuthCookie(r)
+		res.PrimaryLogging = digest.PrimaryLogging{
+			TableObject: `admin.users`,
+			Action:      "logout",
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+		}
+		if res.User != nil {
+			res.PrimaryLogging.IdObject = &res.User.Id
+			res.PrimaryLogging.IdAuthor = res.User.Id
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "login",
 			Value:    ``,
@@ -119,10 +147,9 @@ func AddAuthHandler(r *mux.Router) {
 			HttpOnly: true,
 			Path:     `/`,
 		})
-		service.ReturnJSON(w, &handlers.ResultAuth{
-			User:    nil,
-			Done:    true,
-			Message: "Разлогинился",
-		})
+		res.User = nil
+		res.Done = true
+		res.PrimaryLogging.Result = true
+		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 }
