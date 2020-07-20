@@ -72,8 +72,10 @@ func AddUserHandler(r *mux.Router) {
 
 	// список связей кокнретного пользователя
 	r.HandleFunc("/users/{id:[0-9]+}/links", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers_admin.ResultInfo{}
+		res := handlers_admin.NewResult()
 		vars := mux.Vars(r)
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
 		res.PrimaryLogging = digest.PrimaryLogging{
 			TableObject: `admin.users`,
 			Action:      "view",
@@ -146,6 +148,49 @@ func AddUserHandler(r *mux.Router) {
 			Header:   *header,
 		}
 		res.AddLinksToUser(idUser, cmp.IdOrganization, f, cmp.Comment)
+		res.PrimaryLogging.Result = res.Done
+		res.PrimaryLogging.Errors = res.Message
+		service.ReturnJSON(w, &res)
+	}).Methods("POST")
+	// добавление связи с организацией пользователю
+	r.HandleFunc("/users/{id:[0-9]+}/links/{id_link:[0-9]+}/break-off", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers_admin.ResultInfo
+		var cmp struct {
+			Comment string `json:"comment"`
+		}
+		vars := mux.Vars(r)
+		res.PrimaryLogging = digest.PrimaryLogging{
+			TableObject: `admin.organizations_users`,
+			Action:      "link-break-off",
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+			IdAuthor:    res.User.Id,
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		res.PrimaryLogging.IdAuthor = res.User.Id
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			res.SetErrorResult(`Неверный параметр id.`)
+			service.ReturnJSON(w, &res)
+			return
+		}
+		idUser := uint(id)
+		idLinkUrl, err := strconv.ParseInt(vars[`id_link`], 10, 32)
+		if err != nil {
+			res.SetErrorResult(`Неверный параметр id_link.`)
+			service.ReturnJSON(w, &res)
+			return
+		}
+		idLink := uint(idLinkUrl)
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &cmp)
+		if err != nil {
+			res.SetErrorResult(err.Error())
+			service.ReturnJSON(w, &res)
+			return
+		}
+		res.BreakOff(idUser, idLink, cmp.Comment)
 		res.PrimaryLogging.Result = res.Done
 		res.PrimaryLogging.Errors = res.Message
 		service.ReturnJSON(w, &res)

@@ -6,6 +6,7 @@ import (
 
 func GetApiAdminHandlerAuth(r *mux.Router) {
 	AddCampaignHandler(r)
+	AddOrgsAddminHandler(r)
 	//AddClsHandler(r)
 	//AddAchievementsHandler(r)
 	//AddAdmissionHandler(r)

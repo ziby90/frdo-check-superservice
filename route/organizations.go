@@ -10,14 +10,6 @@ import (
 )
 
 func AddOrgsHandler(r *mux.Router) {
-	//список организаций
-	r.HandleFunc("/organizations/list", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.NewResult()
-		keys := r.URL.Query()
-		res.MakeUrlParams(keys)
-		res.GetListOrganization()
-		service.ReturnJSON(w, &res)
-	}).Methods("GET")
 	// инфа по организации
 	r.HandleFunc("/organizations/info", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{

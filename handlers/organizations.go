@@ -20,57 +20,6 @@ var DirectionsSearchArray = []string{
 	`name`,
 }
 
-func (result *Result) GetListOrganization() {
-	result.Done = false
-	conn := config.Db.ConnGORM
-	conn.LogMode(config.Conf.Dblog)
-	var organizations []digest.Organization
-	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
-	//if result.Search != `` {
-	//	db = db.Where(`UPPER(name) LIKE ?`, `%`+strings.ToUpper(result.Search)+`%`)
-	//}
-	dbCount := db.Model(&organizations).Count(&result.Paginator.TotalCount)
-	if dbCount.Error != nil {
-
-	}
-	result.Paginator.Make()
-	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&organizations)
-	var orgs []interface{}
-	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
-			result.Done = true
-			message := `Компании не найдены.`
-			result.Message = &message
-			return
-		}
-		message := `Ошибка подключения к БД.`
-		result.Message = &message
-		return
-	}
-	if db.RowsAffected > 0 {
-		for _, organization := range organizations {
-			//db = conn.Model(&campaign).Related(&campaign.CampaignType, `IdCampaignType`)
-			//db = conn.Model(&campaign).Related(&campaign.CampaignStatus, `IdCampaignStatus`)
-			c := map[string]interface{}{
-				`id`:          organization.Id,
-				`short_title`: organization.ShortTitle,
-				`created`:     organization.Created,
-				`is_oovo`:     organization.IsOOVO,
-			}
-			orgs = append(orgs, c)
-		}
-		result.Done = true
-		result.Items = orgs
-		return
-	} else {
-		result.Done = true
-		message := `Организации не найдены.`
-		result.Message = &message
-		result.Items = []digest.Organization{}
-		return
-	}
-}
-
 func (result *ResultInfo) GetInfoOrganization() {
 	result.Done = false
 	conn := config.Db.ConnGORM

@@ -108,7 +108,7 @@ func (result *Result) MakeUrlParams(keys map[string][]string) {
 	}
 	if len(keys[`page`]) > 0 {
 		if v, ok := strconv.Atoi(keys[`page`][0]); ok == nil {
-			if v > 0 && v < 50 {
+			if v > 0 {
 				result.Paginator.CurrentPage = v
 			}
 		}
@@ -159,6 +159,12 @@ func (paginator *Paginator) Make() {
 	paginator.Offset = (paginator.CurrentPage - 1) * paginator.Limit
 }
 func (result *ResultInfo) SetErrorResult(m string) {
+	result.Done = false
+	result.Message = &m
+	result.SetError(m)
+	return
+}
+func (result *Result) SetErrorResult(m string) {
 	result.Done = false
 	result.Message = &m
 	result.SetError(m)

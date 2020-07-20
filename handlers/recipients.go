@@ -603,7 +603,6 @@ func (result *Result) GetListEntrants() {
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
 	for _, search := range result.Search {
 		db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
-
 	}
 	dbCount := db.Model(&entrants).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {

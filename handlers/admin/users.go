@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"persons/config"
 	"persons/digest"
-	"persons/handlers"
 	"strings"
 	"time"
 )
@@ -236,7 +235,7 @@ func (result *ResultInfo) UnblockUser(idUser uint) {
 		return
 	}
 }
-func (result *ResultInfo) GetLinksUser(idUser uint) {
+func (result *Result) GetLinksUser(idUser uint) {
 	result.Done = false
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -254,10 +253,36 @@ func (result *ResultInfo) GetLinksUser(idUser uint) {
 		return
 	}
 	if db.RowsAffected > 0 {
-		links := handlers.GetOrganizationsLinks(&item)
-		c := map[string]interface{}{
-			`id`:    item.Id,
-			`links`: links,
+		var links []digest.OrganizationsUsers
+		db := conn.Where(`id_user=? AND id_status=2`, idUser).Preload(`Organization`)
+		dbCount := db.Model(&links).Count(&result.Paginator.TotalCount)
+		if dbCount.Error != nil {
+
+		}
+		result.Paginator.Make()
+		db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&links)
+
+		if len(links) <= 0 {
+			result.SetErrorResult(`Связи не найдены`)
+			result.Done = true
+			result.Items = []digest.OrganizationsUsers{}
+			return
+		}
+		var c []interface{}
+		for _, value := range links {
+			hasFile := false
+			if value.ConfirmingDoc != nil {
+				hasFile = true
+			}
+			c = append(c, map[string]interface{}{
+				`id`:              value.Id,
+				`has_file`:        hasFile,
+				`file`:            value.ConfirmingDoc,
+				`id_organization`: value.Organization.Id,
+				`ogrn`:            value.Organization.Ogrn,
+				`kpp`:             value.Organization.Kpp,
+				`short_title`:     value.Organization.ShortTitle,
+			})
 		}
 		result.Done = true
 		result.Items = c
@@ -446,6 +471,11 @@ func (result *ResultInfo) ResetPasswordUser(idUser uint, password string) {
 	defer func() {
 		tx.Rollback()
 	}()
+	if password == "" {
+		result.SetErrorResult(`Аня, ты опять шлешь pass??`)
+		tx.Rollback()
+		return
+	}
 	var user digest.User
 	conn.Where(`id=?`, idUser).Find(&user)
 	if user.Id <= 0 {
@@ -462,6 +492,42 @@ func (result *ResultInfo) ResetPasswordUser(idUser uint, password string) {
 	}
 	result.Items = map[string]interface{}{
 		`id_user`: user.Id,
+	}
+	result.Done = true
+	tx.Commit()
+}
+func (result *ResultInfo) BreakOff(idUser uint, idLink uint, comment string) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	var user digest.User
+	conn.Where(`id=?`, idUser).Find(&user)
+	if user.Id <= 0 {
+		result.SetErrorResult(`Пользователь не найден`)
+		tx.Rollback()
+		return
+	}
+	var link digest.OrganizationsUsers
+	conn.Where(`id=? and id_user=? and id_status=2`, idLink, idUser).Find(&link)
+	if link.Id <= 0 {
+		result.SetErrorResult(`Связь не найдена`)
+		tx.Rollback()
+		return
+	}
+	db := conn.Table(link.TableName()).Where(`id=?`, idLink).Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).
+		Updates(map[string]interface{}{"changed": time.Now(), "id_author": result.User.Id, "comment": comment, "id_status": 4})
+	if db.Error != nil {
+		result.SetErrorResult(`Ошибка при разрые связи пользователя: ` + db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_user`: user.Id,
+		`id_link`: link.Id,
 	}
 	result.Done = true
 	tx.Commit()

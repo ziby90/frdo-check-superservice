@@ -28,6 +28,7 @@ type OrganizationsUsers struct {
 	Id                   uint                 `json:"id"`
 	IdUser               uint                 `json:"id_user"`
 	IdOrganization       uint                 `json:"id_organization"`
+	Organization         Organization         `gorm:"foreignkey:IdOrganization"`
 	IdStatus             uint                 `json:"id_status"`
 	OrganizationStatuses OrganizationStatuses `gorm:"foreignkey:IdStatus"`
 	ConfirmingDoc        *string              `json:"confirming_doc"`
