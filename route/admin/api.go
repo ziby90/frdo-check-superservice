@@ -11,6 +11,7 @@ func GetApiAdminHandlerAuth(r *mux.Router) {
 	//AddAdmissionHandler(r)
 	AddCompetitiveGroupsHandler(r)
 	AddUserHandler(r)
+	AddNewHandler(r)
 	//AddCertificatesHandler(r)
 	//AddChecksHandler(r)
 	//AddApplicationHandler(r)

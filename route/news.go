@@ -1,11 +1,7 @@
 package route
 
 import (
-	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
-	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"persons/handlers"
 	"persons/service"
@@ -13,37 +9,6 @@ import (
 )
 
 func AddNewHandler(r *mux.Router) {
-	// добавляем новость
-	r.HandleFunc("/api/new/add", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
-		auth := handlers.CheckAuthCookie(r)
-		if auth == nil {
-			message := "Необходима авторизация"
-			res.Message = &message
-		} else {
-			res.User = *handlers.CheckAuthCookie(r)
-			var files []*multipart.FileHeader
-			err := r.ParseMultipartForm(0)
-			if r.MultipartForm != nil {
-				value, ok := r.MultipartForm.File["files"]
-				if ok {
-					for _, file := range value {
-						files = append(files, file)
-					}
-				}
-			}
-			decoder := schema.NewDecoder()
-			var cmp handlers.News
-			err = decoder.Decode(&cmp, r.Form)
-			if err != nil {
-				message := err.Error()
-				res.Message = &message
-			} else {
-				res.AddNews(cmp, files)
-			}
-		}
-		service.ReturnJSON(w, &res)
-	}).Methods("POST")
 
 	// получаем список новостей
 	r.HandleFunc("/api/new/list", func(w http.ResponseWriter, r *http.Request) {
@@ -59,36 +24,8 @@ func AddNewHandler(r *mux.Router) {
 		res.GetListNews()
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
-	// изменяем новость
-	r.HandleFunc("/api/new/{id:[0-9]+}/edit", func(w http.ResponseWriter, r *http.Request) {
-		var res handlers.ResultInfo
-		var cmp handlers.News
-		auth := handlers.CheckAuthCookie(r)
-		if auth == nil {
-			message := "Необходима авторизация"
-			res.Message = &message
-		} else {
-			res.User = *handlers.CheckAuthCookie(r)
-			vars := mux.Vars(r)
-			id, err := strconv.ParseInt(vars[`id`], 10, 32)
-			if err == nil {
-				b, _ := ioutil.ReadAll(r.Body)
-				err := json.Unmarshal(b, &cmp)
-				if err == nil {
-					cmp.Id = uint(id)
-					res.EditNew(cmp)
-				} else {
-					message := err.Error()
-					res.Message = &message
-				}
-			} else {
-				message := `Неверный параметр id.`
-				res.Message = &message
-			}
-		}
-		service.ReturnJSON(w, &res)
-	}).Methods("Post")
-	// изменяем новость
+
+	// детализация новости
 	r.HandleFunc("/api/new/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
 		res.User = *handlers.CheckAuthCookie(r)
@@ -102,6 +39,7 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
+
 	// получаем файл новости
 	r.HandleFunc("/api/new/file/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
@@ -116,55 +54,7 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
-	// добавляем файл к новости
-	r.HandleFunc("/api/new/{id:[0-9]+}/file/add", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
-		auth := handlers.CheckAuthCookie(r)
-		vars := mux.Vars(r)
-		if auth == nil {
-			message := "Необходима авторизация"
-			res.Message = &message
-		} else {
-			id, err := strconv.ParseInt(vars[`id`], 10, 32)
-			if err == nil {
-				res.User = *handlers.CheckAuthCookie(r)
-				var files []*multipart.FileHeader
-				err := r.ParseMultipartForm(0)
-				if r.MultipartForm != nil {
-					value, ok := r.MultipartForm.File["files"]
-					if ok {
-						for _, file := range value {
-							files = append(files, file)
-						}
-					}
-				}
-				if err != nil {
-					message := err.Error()
-					res.Message = &message
-				} else {
-					res.AddFileNew(uint(id), files)
-				}
-			} else {
-				message := `Неверный параметр id.`
-				res.Message = &message
-			}
-		}
-		service.ReturnJSON(w, &res)
-	}).Methods("POST")
-	// удаляем файл у новости
-	r.HandleFunc("/api/new/file/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
-		res := handlers.ResultInfo{}
-		vars := mux.Vars(r)
-		id, err := strconv.ParseInt(vars[`id`], 10, 32)
-		if err == nil {
-			// TODO а если чужие спиздят? Утечка! надо замутить проверку на доступ, а как?
-			res.RemoveFileNew(uint(id))
-		} else {
-			message := `Неверный параметр id.`
-			res.Message = &message
-		}
-		service.ReturnJSON(w, &res)
-	}).Methods("POST")
+
 	// страдаем херней
 	r.HandleFunc("/api/new/stradat/hernya", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{}
