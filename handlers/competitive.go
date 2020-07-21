@@ -113,7 +113,7 @@ func (result *Result) GetListCompetitiveGroupsByCompanyId(campaignId uint) {
 	db = db.Preload(`EducationLevel`).Preload(`Campaign`).Preload(`LevelBudget`).Preload(`EducationSource`).Preload(`EducationForm`).Preload(`Direction`).Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&competitiveGroups)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсы не найдены.`
 			result.Message = &message
@@ -356,7 +356,7 @@ func (result *ResultInfo) GetListCompetitiveGroups(keys map[string][]string) {
 
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсные группы не найдены.`
 			result.Message = &message
@@ -440,7 +440,7 @@ func (result *ResultInfo) GetShortListCompetitiveGroups(keys map[string][]string
 
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсные группы не найдены.`
 			result.Message = &message
@@ -1318,7 +1318,7 @@ func (result *ResultInfo) GetListDatesByEntranceTest(idEntranceTest uint) {
 	db = conn.Where(`id_entrance_test=? AND actual IS TRUE`, idEntranceTest).Find(&ec)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Даты не найдены не найдены.`
 			result.Message = &message
@@ -1517,7 +1517,7 @@ func (result *ResultInfo) GetInfoCompetitiveGroup(ID uint) {
 	var competitive digest.CompetitiveGroup
 	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Preload(`EducationForm`).Preload(`EducationLevel`).Preload(`EducationSource`).Preload(`LevelBudget`).Preload(`Direction`).Find(&competitive, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсная группа не найдена.`
 			result.Message = &message
@@ -1646,7 +1646,7 @@ func (result *ResultInfo) GetEducationProgramsCompetitiveGroup(ID uint) {
 	var competitive digest.CompetitiveGroup
 	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Find(&competitive, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсная группа не найдена.`
 			result.Message = &message
@@ -1693,7 +1693,7 @@ func (result *ResultInfo) GetEntranceTestsCompetitiveGroup(ID uint) {
 	var competitive digest.CompetitiveGroup
 	db := conn.Where(`actual IS TRUE`).Preload(`Campaign`).Find(&competitive, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Конкурсная группа не найдена.`
 			result.Message = &message
@@ -1929,7 +1929,7 @@ func (result *ResultList) GetEntranceTestsSelectListByCompetitive(idCompetitive 
 	db = db.Preload(`EntranceTestType`).Preload(`Subject`).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Вступительные испытания не найдены.`
 			result.Message = &message

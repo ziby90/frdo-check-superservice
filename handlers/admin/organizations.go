@@ -3,6 +3,7 @@ package handlers_admin
 import (
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ func (result *Result) GetListOrganization() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&organizations)
 	var orgs []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компании не найдены.`
 			result.Message = &message
@@ -73,7 +74,7 @@ func (result *ResultInfo) GetListOrganizationShort() {
 	db := conn.Where(`actual is true`).Find(&organizations)
 	var orgs []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Организации не найдены.`
 			result.Message = &message

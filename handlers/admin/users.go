@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 	"time"
 )
@@ -66,7 +67,7 @@ func (result *Result) GetListUsers() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Пользователи не найдены.`
 			result.Message = &message
@@ -113,7 +114,7 @@ func (result *ResultInfo) GetInfoUser(idUser uint) {
 	var item digest.User
 	db := conn.Preload(`Region`).Preload(`Role`).Find(&item, idUser)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Пользователь не найден.`
 			result.Message = &message
@@ -162,7 +163,7 @@ func (result *ResultInfo) BlockUser(idUser uint) {
 	var item digest.User
 	db := conn.Where(`actual is true`).Find(&item, idUser)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Пользователь не найден.`
 			result.Message = &message
@@ -201,7 +202,7 @@ func (result *ResultInfo) UnblockUser(idUser uint) {
 	var item digest.User
 	db := conn.Where(`actual is false`).Find(&item, idUser)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Пользователь не найден.`
 			result.Message = &message
@@ -242,7 +243,7 @@ func (result *Result) GetLinksUser(idUser uint) {
 	var item digest.User
 	db := conn.Find(&item, idUser)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Пользователь не найден.`
 			result.Message = &message

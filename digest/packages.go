@@ -45,16 +45,17 @@ type MarkEgePackages struct {
 }
 
 type RatingApplicationsPackages struct {
-	Id             uint      `json:"id"`
-	IdStatus       uint      `json:"id_status"`
-	IdAuthor       uint      `json:"id_author"`
-	IdOrganization uint      `json:"id_organization"`
-	Name           string    `json:"name"`
-	PathFile       string    `json:"path_file"`
-	Error          *string   `json:"error"`
-	Created        time.Time `json:"created"`
-	CountAll       int64     `json:"count_all"`
-	CountAdd       int64     `json:"count_add"`
+	Id             uint             `json:"id"`
+	Status         PackagesStatuses `gorm:"foreignkey:id_status"`
+	IdStatus       uint             `json:"id_status" schema:"id_status"`
+	IdAuthor       uint             `json:"id_author"`
+	IdOrganization uint             `json:"id_organization"`
+	Name           string           `json:"name"`
+	PathFile       string           `json:"path_file"`
+	Error          *string          `json:"error"`
+	Created        time.Time        `json:"created"`
+	CountAll       int64            `json:"count_all"`
+	CountAdd       int64            `json:"count_add"`
 }
 
 type RatingApplicationsElement struct {

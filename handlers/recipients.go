@@ -96,7 +96,7 @@ func (result *ResultInfo) GetInfoEntrant(ID uint) {
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриент не найден.`
 			result.Message = &message
@@ -211,7 +211,7 @@ func (result *ResultInfo) GetInfoEntrantApp(ID uint) {
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			message := `Абитуриент не найден.`
 			result.Message = &message
 			return
@@ -270,7 +270,7 @@ func (result *ResultInfo) GetDocsEntrant(ID uint) {
 	var entrant digest.Entrants
 	db := conn.Find(&entrant, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриент не найден.`
 			result.Message = &message
@@ -322,7 +322,7 @@ func (result *ResultInfo) GetDocsIdentsEntrant(ID uint) {
 
 	db := conn.Find(&entrant, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриент не найден.`
 			result.Message = &message
@@ -399,7 +399,7 @@ func (result *ResultInfo) GetListDocsIdentsEntrant(ID uint) {
 
 	db := conn.Find(&entrant, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриент не найден.`
 			result.Message = &message
@@ -447,7 +447,7 @@ func (result *ResultInfo) GetShortListDocsEntrant(idEntrant uint, keys map[strin
 
 	db := conn.Find(&entrant, idEntrant)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриент не найден.`
 			result.Message = &message
@@ -611,7 +611,7 @@ func (result *Result) GetListEntrants() {
 	result.Paginator.Make()
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&entrants)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Абитуриенты не найдены.`
 			result.Message = &message

@@ -98,27 +98,30 @@ type AppEntranceTest struct {
 }
 
 type VApplications struct {
-	Id                   uint      `json:"id" schema:"id"` // Идентификатор
-	IdOrganization       uint      `json:"id_organization"`
-	IdEntrant            uint      `json:"id_entrant"`
-	IdCampaign           uint      `json:"id_campaign"`
-	EntrantFullname      string    `json:"entrant_fullname"`
-	EntrantSnils         string    `json:"entrant_snils"`
-	IdCompetitiveGroup   uint      `json:"id_competitive_group"`
-	NameCompetitiveGroup string    `json:"name_competitive_group"`
-	AppNumber            string    `json:"app_number"`
-	RegistrationDate     time.Time `json:"registration_date"`
-	Rating               float32   `json:"rating" schema:"rating"`
-	IdStatus             uint      `json:"id_status" schema:"id_status"`
-	NameStatus           string    `json:"name_status" schema:"name_status"`
-	CodeStatus           string    `json:"code_status" schema:"code_status"`
-	Agreed               *bool     `json:"agreed" schema:"agreed"`
-	Original             bool      `json:"original" schema:"original"`
-	NeedHostel           bool      `json:"need_hostel" schema:"need_hostel"`
-	Uid                  *string   `json:"uid" schema:"uid"`
-	UidEpgu              *string   `json:"uid_epgu" schema:"uid_epgu"`
-	Created              time.Time `json:"created"` // Дата создания
-	Actual               bool      `xml:"actual" json:"actual"`
+	Id                   uint       `json:"id" schema:"id"` // Идентификатор
+	IdOrganization       uint       `json:"id_organization"`
+	IdEntrant            uint       `json:"id_entrant"`
+	IdCampaign           uint       `json:"id_campaign"`
+	EntrantFullname      string     `json:"entrant_fullname"`
+	EntrantSnils         string     `json:"entrant_snils"`
+	IdCompetitiveGroup   uint       `json:"id_competitive_group"`
+	NameCompetitiveGroup string     `json:"name_competitive_group"`
+	AppNumber            string     `json:"app_number"`
+	RegistrationDate     time.Time  `json:"registration_date"`
+	Rating               float32    `json:"rating" schema:"rating"`
+	IdStatus             uint       `json:"id_status" schema:"id_status"`
+	NameStatus           string     `json:"name_status" schema:"name_status"`
+	CodeStatus           string     `json:"code_status" schema:"code_status"`
+	Agreed               *bool      `json:"agreed" schema:"agreed"`
+	Disagreed            *bool      `json:"disagreed" schema:"disagreed"`
+	Original             bool       `json:"original" schema:"original"`
+	NeedHostel           bool       `json:"need_hostel" schema:"need_hostel"`
+	Uid                  *string    `json:"uid" schema:"uid"`
+	UidEpgu              *string    `json:"uid_epgu" schema:"uid_epgu"`
+	Created              time.Time  `json:"created"` // Дата создания
+	Actual               bool       `xml:"actual" json:"actual"`
+	AgreedDate           *time.Time `json:"agreed_date" schema:"agreed_date"`
+	DisagreedDate        *time.Time `json:"disagreed_date" schema:"disagreed_date"`
 }
 type AppAchievements struct {
 	Id                      uint                   `json:"id" schema:"id"` // Идентификатор

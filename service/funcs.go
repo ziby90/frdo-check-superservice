@@ -15,6 +15,8 @@ import (
 	"strconv"
 )
 
+var ErrorDbNotFound = `record not found`
+
 type Result struct {
 	Done    bool    `json:"done,omitempty"`
 	Message *string `json:"message,omitempty"`

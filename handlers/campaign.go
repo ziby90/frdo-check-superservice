@@ -107,7 +107,7 @@ func (result *Result) GetListCampaign() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&campaigns)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компании не найдены.`
 			result.Message = &message
@@ -162,7 +162,7 @@ func (result *ResultList) GetShortListCampaign() {
 	db = db.Find(&campaigns)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компании не найдены.`
 			result.Message = &message
@@ -199,7 +199,7 @@ func (result *ResultInfo) GetEducationLevelCampaign(ID uint) {
 
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -246,7 +246,7 @@ func (result *ResultInfo) GetEducationFormCampaign(ID uint) {
 
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -292,7 +292,7 @@ func (result *ResultInfo) GetInfoCampaign(ID uint) {
 	var campaign digest.Campaign
 	db := conn.Where(`actual is true`).Find(&campaign, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -367,7 +367,7 @@ func (result *ResultInfo) GetEndDateCampaign(ID uint) {
 	var campaign digest.Campaign
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -412,7 +412,7 @@ func (result *ResultInfo) EditEndDateCampaign(data AddEndData) {
 	var campaign digest.Campaign
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, data.IdCampaign)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -515,7 +515,7 @@ func (result *ResultInfo) RemoveCampaign(idCampaign uint) {
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, idCampaign)
 	if db.Error != nil {
 		tx.Rollback()
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -1290,7 +1290,7 @@ func (result *ResultInfo) GetAppAcceptPhasesCampaign(ID uint) {
 	var campaign digest.Campaign
 	db := conn.Where(`actual IS TRUE`).Find(&campaign, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Компания не найдена.`
 			result.Message = &message
@@ -1336,7 +1336,7 @@ func GetCampaignStatusByCode(code string) (*digest.CampaignStatus, error) {
 	var item digest.CampaignStatus
 	db := conn.Where(`code=?`, code).Find(&item)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			return nil, errors.New(`Статус не найден. `)
 		}
 		return nil, errors.New(`Ошибка подключения к БД. `)

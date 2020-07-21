@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strings"
 	"time"
 )
@@ -120,7 +121,7 @@ func (result *Result) GetListAdmissionVolume(IdCampaign uint) {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&admissions)
 
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `КЦП не найдены.`
 			result.Message = &message
@@ -270,7 +271,7 @@ func (result *Result) GetListAdmissionVolumeBySpec(IdCampaign uint) {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&admissions)
 
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `КЦП не найдены.`
 			result.Message = &message
@@ -395,7 +396,7 @@ func (result *Result) GetAdmissionVolumeById(IdAdmission uint) {
 	var admission digest.AdmissionVolume
 	db := conn.Where(`actual IS TRUE`).Find(&admission, IdAdmission)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `КЦП не найден.`
 			result.Message = &message

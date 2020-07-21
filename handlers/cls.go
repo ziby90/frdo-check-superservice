@@ -130,7 +130,7 @@ func (result *ResultCls) GetClsResponse(clsName string) {
 	result.Items = r
 
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Формы образования не найдены.`
 			result.Message = &message
@@ -178,7 +178,7 @@ func (result *ResultCls) GetClsSysCategoryResponse() {
 	result.Items = r
 
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Справочник не найден.`
 			result.Message = &message
@@ -217,7 +217,7 @@ func (result *Result) GetDirections() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&directions)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Направления не найдены.`
 			result.Message = &message

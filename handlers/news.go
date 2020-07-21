@@ -44,7 +44,7 @@ func (result *Result) GetListNews() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&news)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Новости не найдены.`
 			result.Message = &message
@@ -99,7 +99,7 @@ func (result *ResultInfo) GetInfoNew(idNew uint) {
 	var news digest.News
 	db := conn.Where(`id=? AND published IS true AND deleted IS NOT true`, idNew).Find(&news)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Новость не найдена.`
 			result.Message = &message

@@ -173,6 +173,9 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"code_status":            applications[index].CodeStatus,
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
+				"agreed_date":            applications[index].AgreedDate,
+				"disagreed":              applications[index].Disagreed,
+				"disagreed_date":         applications[index].DisagreedDate,
 				"original":               applications[index].Original,
 				"need_hostel":            applications[index].NeedHostel,
 				"rating":                 applications[index].Rating,
@@ -223,6 +226,9 @@ func (result *ResultInfo) GetApplicationsByEntrant(idEntrant uint, keys map[stri
 				"code_status":            applications[index].Status.Code,
 				"registration_date":      applications[index].RegistrationDate,
 				"agreed":                 applications[index].Agreed,
+				"agreed_date":            applications[index].AgreedDate,
+				"disagreed":              applications[index].Disagreed,
+				"disagreed_date":         applications[index].DisagreedDate,
 				"original":               applications[index].Original,
 				"rating":                 applications[index].Rating,
 				"uid_epgu":               applications[index].UidEpgu,
@@ -1982,7 +1988,7 @@ func GetApplicationStatusByCode(code string) (*digest.ApplicationStatuses, error
 	var item digest.ApplicationStatuses
 	db := conn.Where(`code=?`, code).Find(&item)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			return nil, errors.New(`Статус не найден. `)
 		}
 		return nil, errors.New(`Ошибка подключения к БД. `)

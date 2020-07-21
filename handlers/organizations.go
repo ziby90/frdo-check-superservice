@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ func (result *ResultInfo) GetInfoOrganization() {
 	idOrganization := result.User.CurrentOrganization.Id
 	db := conn.Find(&organization, idOrganization)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Организация не найдены.`
 			result.Message = &message
@@ -81,7 +82,7 @@ func (result *ResultInfo) AddOrganizationDirection(directions IdsDirectionOrgani
 	var organization digest.Organization
 	db := conn.Find(&organization, result.User.CurrentOrganization.Id)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Организация не найдена.`
 			result.Message = &message
@@ -152,7 +153,7 @@ func (result *ResultInfo) RemoveOrganizationDirection(directions IdsDirectionOrg
 	var organization digest.Organization
 	db := conn.Find(&organization, result.User.CurrentOrganization.Id)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Организация не найдена.`
 			result.Message = &message
@@ -241,7 +242,7 @@ func (result *Result) GetDirectionsByOrganization(keys map[string][]string) {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(`code_parent asc`).Find(&orgDirections)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Направления не найдены.`
 			result.Message = &message
@@ -301,7 +302,7 @@ func (result *ResultList) GetDirectionsSelectListByOrg(keys map[string][]string)
 	db = db.Select(`id, (code || ' ' || name) as name`).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Направления не найдены.`
 			result.Message = &message
@@ -349,7 +350,7 @@ func (result *ResultList) GetDirectionsParentsSelectListByOrg(keys map[string][]
 	db = db.Select(`id_parent as id, (code_parent || ' ' || name_parent) as name`).Group(`id_parent, code_parent, name_parent`).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Направления не найдены.`
 			result.Message = &message
@@ -421,7 +422,7 @@ func (result *ResultInfo) SetIsOOVOOrganization(isOOVO bool) {
 	var organization digest.Organization
 	db := conn.Where(`id=?`, result.User.CurrentOrganization.Id).Find(&organization)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Организация не найдена.`
 			result.Message = &message

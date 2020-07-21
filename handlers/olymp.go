@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"persons/config"
 	"persons/digest"
+	"persons/service"
 )
 
 func (result *Result) GetListOlympics() {
@@ -14,7 +15,7 @@ func (result *Result) GetListOlympics() {
 	db := conn.Order(`created desc`).Find(&olympics)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Олимпиады не найдены.`
 			result.Message = &message

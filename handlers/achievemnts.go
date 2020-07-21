@@ -65,7 +65,7 @@ func (result *Result) GetListAchievement() {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&achievements)
 	var achievementResponse []AchievementResponse
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижения не найдены.`
 			result.Message = &message
@@ -119,7 +119,7 @@ func (result *Result) GetAchievementsByApplicationId(idApplication uint) {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(`id asc`).Preload(`IndividualAchievement`).Preload(`AchievementCategory`).Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижения не найдены.`
 			result.Message = &message
@@ -215,7 +215,7 @@ func (result *Result) GetListAchievementByCompanyId(idCampaign uint) {
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&achievements)
 	var achievementResponse []AchievementResponse
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижения не найдены.`
 			result.Message = &message
@@ -258,7 +258,7 @@ func (result *ResultInfo) GetInfoAchievement(ID uint) {
 	var achievement digest.IndividualAchievements
 	db := conn.Find(&achievement, ID)
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижение не найдено.`
 			result.Message = &message
@@ -470,7 +470,7 @@ func (result *ResultList) GetAchievementsSelectListByCompetitive(idCompetitive u
 	db = db.Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижения не найдены.`
 			result.Message = &message
@@ -517,7 +517,7 @@ func (result *ResultList) GetAchievementsSelectListByCampaign(idCampaign uint) {
 	db = db.Find(&items)
 	var responses []interface{}
 	if db.Error != nil {
-		if db.Error.Error() == `record not found` {
+		if db.Error.Error() == service.ErrorDbNotFound {
 			result.Done = true
 			message := `Достижения не найдены.`
 			result.Message = &message
