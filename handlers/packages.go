@@ -268,57 +268,63 @@ func (result *Result) GetRatingApplicationsElements(idPackage uint) {
 	}
 	result.Paginator.Make()
 	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&elements)
+	answer := make(map[string]interface{})
+	answer[`package_info`] = nil
+	answer[`items`] = nil
 	var response []interface{}
 	if db.RowsAffected > 0 {
+		answer[`package_info`] = map[string]interface{}{
+			"id_competitive_group": elements[0].IdCompetitiveGroup,
+			"competitive_group":    elements[0].CompetitiveGroup,
+			"id_organization":      elements[0].IdOrganization,
+			"organization":         elements[0].Organization,
+			"admission_volume":     elements[0].AdmissionVolume,
+			"count_first_step":     elements[0].CountFirstStep,
+			"count_second_step":    elements[0].CountSecondStep,
+			"changed":              elements[0].Changed,
+		}
 		for index, _ := range elements {
 			response = append(response, map[string]interface{}{
-				"id":                   elements[index].Id,
-				"id_competitive_group": elements[index].IdCompetitiveGroup,
-				"competitive_group":    elements[index].CompetitiveGroup,
-				"id_organization":      elements[index].IdOrganization,
-				"organization":         elements[index].Organization,
-				"admission_volume":     elements[index].AdmissionVolume,
-				"count_first_step":     elements[index].CountFirstStep,
-				"count_second_step":    elements[index].CountSecondStep,
-				"changed":              elements[index].Changed,
-				"orderid":              elements[index].Orderid,
-				"fio":                  elements[index].Fio,
-				"rating":               elements[index].Rating,
-				"without_tests":        elements[index].WithoutTests,
-				"reason_without_tests": elements[index].ReasonWithoutTests,
-				"entrance_test1":       elements[index].EntranceTest1,
-				"result1":              elements[index].Result1,
-				"entrance_test2":       elements[index].EntranceTest2,
-				"result2":              elements[index].Result2,
-				"entrance_test3":       elements[index].EntranceTest3,
-				"result3":              elements[index].Result3,
-				"entrance_test4":       elements[index].EntranceTest4,
-				"result4":              elements[index].Result4,
-				"entrance_test5":       elements[index].EntranceTest5,
-				"result5":              elements[index].Result5,
-				"mark":                 elements[index].Mark,
-				"benefit":              elements[index].Benefit,
-				"reason_benefit":       elements[index].ReasonBenefit,
-				"sum_mark":             elements[index].SumMark,
-				"agreed":               elements[index].Agreed,
-				"original":             elements[index].Original,
-				"addition":             elements[index].Addition,
-				"enlisted":             elements[index].Enlisted,
-				"IdPackage":            elements[index].IdPackage,
-				"Checked":              elements[index].Checked,
-				"Error":                elements[index].Error,
-				"Created":              elements[index].Created,
-				"IdRatingApplication":  elements[index].IdRatingApplication,
+				"id":                    elements[index].Id,
+				"orderid":               elements[index].Orderid,
+				"fio":                   elements[index].Fio,
+				"rating":                elements[index].Rating,
+				"without_tests":         elements[index].WithoutTests,
+				"reason_without_tests":  elements[index].ReasonWithoutTests,
+				"entrance_test1":        elements[index].EntranceTest1,
+				"result1":               elements[index].Result1,
+				"entrance_test2":        elements[index].EntranceTest2,
+				"result2":               elements[index].Result2,
+				"entrance_test3":        elements[index].EntranceTest3,
+				"result3":               elements[index].Result3,
+				"entrance_test4":        elements[index].EntranceTest4,
+				"result4":               elements[index].Result4,
+				"entrance_test5":        elements[index].EntranceTest5,
+				"result5":               elements[index].Result5,
+				"mark":                  elements[index].Mark,
+				"benefit":               elements[index].Benefit,
+				"reason_benefit":        elements[index].ReasonBenefit,
+				"sum_mark":              elements[index].SumMark,
+				"agreed":                elements[index].Agreed,
+				"original":              elements[index].Original,
+				"addition":              elements[index].Addition,
+				"enlisted":              elements[index].Enlisted,
+				"id_package":            elements[index].IdPackage,
+				"checked":               elements[index].Checked,
+				"error":                 elements[index].Error,
+				"created":               elements[index].Created,
+				"id_rating_application": elements[index].IdRatingApplication,
 			})
 		}
+		answer[`items`] = response
 		result.Done = true
-		result.Items = response
+		result.Items = answer
 		return
 	} else {
 		result.Done = true
 		message := `Элементы не найдены.`
 		result.Message = &message
-		result.Items = []digest.RatingApplicationsElement{}
+		result.Items = answer
 		return
 	}
 

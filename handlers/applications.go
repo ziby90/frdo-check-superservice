@@ -786,7 +786,7 @@ func (result *ResultInfo) GetApplicationEntranceTestsById(idApplication uint) {
 				"is_ege":                  value.IsEge,
 			}
 			var entranceTestCalendarAgreed digest.AppEntranceTestAgreed
-			db = conn.Where(`id_entrance_test=?`, value.Id).Find(&entranceTestCalendarAgreed)
+			db = conn.Where(`id_entrance_test=? AND id_application=?`, value.Id, idApplication).Find(&entranceTestCalendarAgreed)
 			if entranceTestCalendarAgreed.Id <= 0 {
 				test[`choose_entrance_test_date`] = nil
 			}
