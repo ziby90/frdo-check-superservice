@@ -40,6 +40,25 @@ func GetParamKeyFilterUintArray(key []string) []uint {
 	return filter
 }
 
+func GetParamKeyFilterUintString(key string, values ...string) []string {
+	var filter []string
+
+	var defaultValues = []string{
+		`true`, `false`,
+	}
+
+	if len(values) <= 0 {
+		values = defaultValues
+	}
+
+	if SearchStringInSliceString(key, values) >= 0 {
+		filter = append(filter, key)
+	}
+
+	return filter
+
+}
+
 //
 //func ConvertInterfaceToUint(v interface{}) (uint, error) {
 //	u, err := strconv.ParseUint(fmt.Sprintf(`%v`, v), 10, 32)

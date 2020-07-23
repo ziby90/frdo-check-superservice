@@ -110,9 +110,9 @@ func (result *ResultInfo) AddNews(data digest.News, files []*multipart.FileHeade
 	return
 }
 
-func (result *Result) GetListNews() {
+func (result *Result) GetListNews(keys map[string][]string) {
 	result.Done = false
-	conn := config.Db.ConnGORM
+	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var news []digest.News
 	sortField := `date_news`
@@ -122,14 +122,27 @@ func (result *Result) GetListNews() {
 	} else {
 		result.Sort.Field = sortField
 	}
-
 	fmt.Print(result.Sort.Field, sortField)
-	db := conn.Where(`id > 0`)
+	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = conn.Where(`id > 0`)
 	for _, search := range result.Search {
 		if service.SearchStringInSliceString(search[0], NewsSearchArray) >= 0 {
 			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
 		}
 	}
+	if len(keys[`filter_published`]) > 0 {
+		filter := service.GetParamKeyFilterUintString(keys[`filter_published`][0])
+		if len(filter) > 0 {
+			db = db.Where(`published IN (?)`, filter)
+		}
+	}
+	if len(keys[`filter_deleted`]) > 0 {
+		filter := service.GetParamKeyFilterUintString(keys[`filter_deleted`][0])
+		if len(filter) > 0 {
+			db = db.Where(`deleted IN (?)`, filter)
+		}
+	}
+
 	dbCount := db.Model(&news).Count(&result.Paginator.TotalCount)
 	if dbCount.Error != nil {
 
@@ -447,5 +460,45 @@ func (result *ResultInfo) EditNew(data digest.News) {
 	}
 	tx.Commit()
 	return
+
+}
+
+func (result *ResultInfo) RemoveNew(ID uint, deleted bool) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var new digest.News
+	db := conn.Where(`id=?`, ID).Find(&new)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Новость не найдена."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+
+	if new.Deleted == deleted {
+		var message string
+		if deleted {
+			message = "Новость уже удалена."
+		} else {
+			message = "Новость уже актуальна."
+		}
+		result.Message = &message
+		return
+	} else {
+		db := conn.Table(new.TableName()).Where(`id=?`, ID).Updates(map[string]interface{}{"deleted": deleted})
+		if db.Error != nil {
+			result.SetErrorResult(db.Error.Error())
+			return
+		}
+		result.Done = true
+		return
+	}
 
 }

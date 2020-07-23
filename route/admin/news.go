@@ -56,7 +56,7 @@ func AddNewHandler(r *mux.Router) {
 		res.MakeUrlParams(keys)
 		res.MakeUrlParamsSearch(keys, handlers_admin.NewsSearchArray)
 		res.User = *handlers.CheckAuthCookie(r)
-		res.GetListNews()
+		res.GetListNews(keys)
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
@@ -158,5 +158,30 @@ func AddNewHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, &res)
 	}).Methods("Post")
+
+	//удалить|восстановить новость
+	r.HandleFunc("/new/{id:[0-9]+}/deleted", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers_admin.ResultInfo{}
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			res.SetError(`Неверный параметр id.`)
+			service.ReturnJSON(w, &res)
+			return
+		}
+		var cmp struct {
+			Deleted bool
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		err = json.Unmarshal(b, &cmp)
+		if err != nil {
+			res.SetError(err.Error())
+			service.ReturnJSON(w, &res)
+			return
+		}
+
+		res.RemoveNew(uint(id), cmp.Deleted)
+		service.ReturnJSON(w, &res)
+	}).Methods("POST")
 
 }
