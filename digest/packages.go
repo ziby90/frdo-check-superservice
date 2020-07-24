@@ -81,30 +81,30 @@ type RatingRequest struct {
 }
 
 type RatingApplication struct {
-	IdApplication      uint     `json:"admission_volume" xml:"admission_volume"`
-	Orderid            *int64   `json:"orderid" xml:"orderid"`
-	Fio                string   `json:"fio" xml:"fio"`
-	Rating             int64    `json:"rating" xml:"rating"`
-	WithoutTests       bool     `json:"without_tests" xml:"without_tests"`
-	ReasonWithoutTests *string  `json:"reason_without_tests" xml:"reason_without_tests"`
-	EntranceTest1      string   `json:"entrance_test1" xml:"entrance_test1"`
-	Result1            float64  `json:"result1" xml:"result1"`
-	EntranceTest2      string   `json:"entrance_test2" xml:"entrance_test2"`
-	Result2            float64  `json:"result2" xml:"result2"`
-	EntranceTest3      string   `json:"entrance_test3" xml:"entrance_test3"`
-	Result3            float64  `json:"result3" xml:"result3"`
-	EntranceTest4      *string  `json:"entrance_test4" xml:"entrance_test4"`
-	Result4            *float64 `json:"result4" xml:"result4"`
-	EntranceTest5      *string  `json:"entrance_test5" xml:"entrance_test5"`
-	Result5            *float64 `json:"result5" xml:"result5"`
-	Mark               float64  `json:"mark" xml:"mark"`
-	Benefit            bool     `json:"benefit" xml:"benefit"`
-	ReasonBenefit      *string  `json:"reason_benefit" xml:"reason_benefit"`
-	SumMark            float64  `json:"sum_mark" xml:"sum_mark"`
-	Agreed             bool     `json:"agreed" xml:"agreed"`
-	Original           bool     `json:"original" xml:"original"`
-	Addition           *string  `json:"addition" xml:"addition"`
-	Enlisted           *uint    `json:"enlisted" xml:"enlisted"`
+	IdApplication      uint        `json:"admission_volume" xml:"admission_volume"`
+	Orderid            interface{} `json:"orderid" xml:"orderid"`
+	Fio                string      `json:"fio" xml:"fio"`
+	Rating             int64       `json:"rating" xml:"rating"`
+	WithoutTests       bool        `json:"without_tests" xml:"without_tests"`
+	ReasonWithoutTests *string     `json:"reason_without_tests" xml:"reason_without_tests"`
+	EntranceTest1      string      `json:"entrance_test1" xml:"entrance_test1"`
+	Result1            float64     `json:"result1" xml:"result1"`
+	EntranceTest2      string      `json:"entrance_test2" xml:"entrance_test2"`
+	Result2            float64     `json:"result2" xml:"result2"`
+	EntranceTest3      string      `json:"entrance_test3" xml:"entrance_test3"`
+	Result3            float64     `json:"result3" xml:"result3"`
+	EntranceTest4      *string     `json:"entrance_test4" xml:"entrance_test4"`
+	Result4            *float64    `json:"result4" xml:"result4"`
+	EntranceTest5      *string     `json:"entrance_test5" xml:"entrance_test5"`
+	Result5            *float64    `json:"result5" xml:"result5"`
+	Mark               float64     `json:"mark" xml:"mark"`
+	Benefit            bool        `json:"benefit" xml:"benefit"`
+	ReasonBenefit      *string     `json:"reason_benefit" xml:"reason_benefit"`
+	SumMark            float64     `json:"sum_mark" xml:"sum_mark"`
+	Agreed             bool        `json:"agreed" xml:"agreed"`
+	Original           bool        `json:"original" xml:"original"`
+	Addition           *string     `json:"addition" xml:"addition"`
+	Enlisted           *uint       `json:"enlisted" xml:"enlisted"`
 }
 
 func (RatingApplicationsElement) TableName() string {

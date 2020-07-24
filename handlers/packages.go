@@ -145,7 +145,7 @@ func (result *ResultInfo) AddFileMarkEgePackage(packageName string, f *digest.Fi
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.MarkEgePackages
-	path := getPath(0, doc.TableName(), time.Now())
+	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
 	ext := filepath.Ext(path + `/` + f.Header.Filename)
 	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
 	name := hex.EncodeToString(sha1FileName[:]) + ext
@@ -334,7 +334,7 @@ func (result *ResultInfo) AddFileRatingApplicationsPackage(packageName string, f
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.RatingApplicationsPackages
-	path := getPath(0, doc.TableName(), time.Now())
+	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
 	ext := filepath.Ext(path + `/` + f.Header.Filename)
 	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
 	name := hex.EncodeToString(sha1FileName[:]) + ext
