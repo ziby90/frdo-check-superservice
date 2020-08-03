@@ -181,6 +181,7 @@ func (result *Result) GetApplications(keys map[string][]string) {
 				"rating":                 applications[index].Rating,
 				"created":                applications[index].Created,
 				"uid_epgu":               applications[index].UidEpgu,
+				"changed":                applications[index].Changed,
 			})
 		}
 		result.Done = true
@@ -279,6 +280,7 @@ func (result *ResultInfo) GetApplicationById(idApplication uint) {
 			"registration_date": application.RegistrationDate,
 			"status_comment":    application.StatusComment,
 			"uid_epgu":          application.UidEpgu,
+			"changed":           application.Changed,
 		}
 		response = map[string]interface{}{
 			"application": info,

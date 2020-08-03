@@ -435,6 +435,29 @@ func AddCompetitiveGroupsHandler(r *mux.Router) {
 		res.GetEntranceTestsSelectListByCompetitive(uint(id))
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
+	// интеграция дат вступительных испытаний с ЕПГУ
+	r.HandleFunc("/competitive/{id:[0-9]+}/sync-test-calendar", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, &res)
+			return
+		}
+		res.User = *handlers.CheckAuthCookie(r)
+		err = handlers.CheckCompetitiveGroupByUser(uint(id), res.User)
+		if err != nil {
+			message := err.Error()
+			res.Message = &message
+			service.ReturnJSON(w, &res)
+			return
+		}
+		res.SyncEntranceTestCalendar(uint(id))
+		service.ReturnJSON(w, &res)
+	}).Methods("Post")
 
 	// добавление дат вступительных испытаний
 	r.HandleFunc("/competitive/entrance/{id:[0-9]+}/date/add", func(w http.ResponseWriter, r *http.Request) {

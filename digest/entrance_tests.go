@@ -46,6 +46,14 @@ type EntranceTestCalendar struct {
 	CountC           *int64       `json:"count_c"`
 }
 
+type SendEntrantTest struct {
+	Id                 uint `gorm:"primary_key" json:"id"`
+	IdAuthor           uint
+	IdOrganization     uint
+	IdCompetitiveGroup uint
+	LastTimeSend       time.Time
+}
+
 func GetEntranceTest(id uint) (*EntranceTest, error) {
 	conn := config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
@@ -138,4 +146,8 @@ func (EntranceTest) TableName() string {
 }
 func (EntranceTestCalendar) TableName() string {
 	return "cmp.entrance_test_calendar"
+}
+
+func (SendEntrantTest) TableName() string {
+	return "cmp.send_entrant_test"
 }

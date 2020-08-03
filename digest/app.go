@@ -45,7 +45,7 @@ type Application struct {
 	Uid                      *string             `json:"uid" schema:"uid"`
 	UidEpgu                  *int64              `json:"uid_epgu" schema:"uid_epgu"`
 	Created                  time.Time           `json:"created"` // Дата создания
-	Changed                  *time.Time          `json:"changed"` // Дата создания
+	Changed                  *time.Time          `json:"changed"` // Дата изменения
 	StatusComment            *string             `json:"status_comment" schema:"status_comment"`
 	Actual                   bool                `xml:"actual" json:"actual"`
 }
@@ -122,6 +122,7 @@ type VApplications struct {
 	Actual               bool       `xml:"actual" json:"actual"`
 	AgreedDate           *time.Time `json:"agreed_date" schema:"agreed_date"`
 	DisagreedDate        *time.Time `json:"disagreed_date" schema:"disagreed_date"`
+	Changed              *time.Time `json:"changed" schema:"changed"`
 }
 type AppAchievements struct {
 	Id                      uint                   `json:"id" schema:"id"` // Идентификатор
@@ -130,7 +131,7 @@ type AppAchievements struct {
 	AchievementCategory     AchievementCategory    `gorm:"foreignkey:IdCategory" json:"category"`
 	IdCategory              uint                   `json:"id_category"` // Идентификатор наименования категории индивидуального достижения
 	IndividualAchievement   IndividualAchievements `gorm:"foreignkey:IdIndividualAchievement"`
-	IdIndividualAchievement *uint                  `json:"id_achievement"`
+	IdIndividualAchievement *uint                  `gorm:"column:id_achievement" json:"id_achievement"`
 	Document                VDocuments             `gorm:"foreignkey:IdDocument"`
 	IdDocument              *uint                  `json:"id_document"`
 	Name                    string                 `json:"name"`

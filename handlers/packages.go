@@ -374,3 +374,168 @@ func (result *ResultInfo) AddFileRatingApplicationsPackage(packageName string, f
 	result.Done = true
 	return
 }
+
+func (result *ResultInfo) AddFileRatingCompetitivePackage(packageName string, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.RatingCompetitivePackages
+	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	doc.Name = packageName
+	doc.PathFile = name
+	doc.Created = time.Now()
+	doc.IdStatus = 1
+	doc.IdAuthor = result.User.Id
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+
+	db := conn.Create(&doc)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_package`: doc.Id,
+	}
+	result.Done = true
+	return
+}
+func (result *Result) GetRatingCompetitivePackages() {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var packages []digest.RatingCompetitivePackages
+	if result.Sort.Field == `` {
+		result.Sort.Field = `created`
+	}
+	if result.Sort.Order == `` {
+		result.Sort.Order = `asc`
+	}
+
+	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = db.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], PackageSearchArray) >= 0 {
+			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
+	}
+	dbCount := db.Model(&packages).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Preload(`Status`).Find(&packages)
+	var response []interface{}
+	if db.RowsAffected > 0 {
+		for index, _ := range packages {
+			response = append(response, map[string]interface{}{
+				"id":              packages[index].Id,
+				"name":            packages[index].Name,
+				"id_organization": packages[index].IdOrganization,
+				"error":           packages[index].Error,
+				"id_author":       packages[index].IdAuthor,
+				"id_status":       packages[index].IdStatus,
+				"name_status":     packages[index].Status.Name,
+				"code_status":     packages[index].Status.Code,
+				"created":         packages[index].Created,
+				"count_all":       packages[index].CountAll,
+				"count_add":       packages[index].CountAdd,
+			})
+		}
+		result.Done = true
+		result.Items = response
+		return
+	} else {
+		result.Done = true
+		message := `Пакеты не найдены.`
+		result.Message = &message
+		result.Items = []digest.RatingCompetitivePackages{}
+		return
+	}
+
+}
+func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var pack digest.RatingCompetitivePackages
+	db := conn.Where(`id=?`, idPackage).Find(&pack)
+	if pack.Id <= 0 {
+		result.Done = false
+		m := `Пакет не найден`
+		result.Message = &m
+		return
+	}
+	var elements []digest.RatingCompetitiveElement
+	if result.Sort.Field == `` {
+		result.Sort.Field = `created`
+	}
+	if result.Sort.Order == `` {
+		result.Sort.Order = `asc`
+	}
+	db = conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = db.Where(`id_package=?`, idPackage)
+
+	dbCount := db.Model(&elements).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&elements)
+	var response []interface{}
+	if db.RowsAffected > 0 {
+		for index, _ := range elements {
+			response = append(response, map[string]interface{}{
+				"id":                                 elements[index].Id,
+				"id_organization":                    elements[index].IdOrganization,
+				"id_competitive_group":               elements[index].IdCompetitiveGroup,
+				"id_application":                     elements[index].IdApplication,
+				"admission_volume":                   elements[index].AdmissionVolume,
+				"common_rating":                      elements[index].CommonRating,
+				"first_rating":                       elements[index].FirstRating,
+				"agreed_rating":                      elements[index].AgreedRating,
+				"change_rating":                      elements[index].ChangeRating,
+				"count_first_step":                   elements[index].CountFirstStep,
+				"count_second_step":                  elements[index].CountSecondStep,
+				"count_application":                  elements[index].CountApplication,
+				"count_agreed":                       elements[index].CountAgreed,
+				"changed":                            elements[index].Changed,
+				"id_package":                         elements[index].IdPackage,
+				"checked":                            elements[index].Checked,
+				"error":                              elements[index].Error,
+				"created":                            elements[index].Created,
+				"id_competitive_groups_applications": elements[index].IdCompetitiveGroupsApplication,
+			})
+		}
+		result.Done = true
+		result.Items = response
+		return
+	} else {
+		result.Done = true
+		message := `Элементы не найдены.`
+		result.Message = &message
+		result.Items = []digest.RatingCompetitiveElement{}
+		return
+	}
+
+}

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
+	sendToEpgu "gitlab.com/unkal/sendtoepgu/send_to_epgu_xml"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -1965,4 +1967,50 @@ func (result *ResultList) GetEntranceTestsSelectListByCompetitive(idCompetitive 
 		result.Items = []digest.IndividualAchievements{}
 		return
 	}
+}
+
+func (result *ResultInfo) SyncEntranceTestCalendar(idCompetitive uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	tx := conn.Begin()
+	defer func() {
+		tx.Rollback()
+	}()
+	conn.LogMode(config.Conf.Dblog)
+
+	var competitive digest.CompetitiveGroup
+	db := tx.Where(`actual IS TRUE`).Find(&competitive, idCompetitive)
+	if competitive.Id == 0 || db.Error != nil {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		tx.Rollback()
+		return
+	}
+
+	var syncData digest.SendEntrantTest
+	syncData.IdCompetitiveGroup = idCompetitive
+	syncData.IdOrganization = result.User.CurrentOrganization.Id
+	syncData.IdAuthor = result.User.Id
+	syncData.LastTimeSend = time.Now()
+
+	sendToEpgu.InitConnect(config.Db.ConnGORM, config.Db.ConnSmevGorm)
+	err := sendToEpgu.PrepareSendExtraTestResponse(idCompetitive)
+	if err != nil {
+		fmt.Println(err)
+		result.SetErrorResult(err.Error())
+		tx.Rollback()
+		return
+	}
+
+	db = tx.Save(&syncData)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		tx.Rollback()
+		return
+	}
+	result.Done = true
+	tx.Commit()
+
+	return
+	//idsPrograms = append(idsPrograms, program.Id)
 }

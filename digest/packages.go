@@ -107,6 +107,50 @@ type RatingApplication struct {
 	Enlisted           *uint       `json:"enlisted" xml:"enlisted"`
 }
 
+type RatingCompetitivePackages struct {
+	Id             uint             `json:"id"`
+	Status         PackagesStatuses `gorm:"foreignkey:id_status"`
+	IdStatus       uint             `json:"id_status" schema:"id_status"`
+	IdAuthor       uint             `json:"id_author"`
+	IdOrganization uint             `json:"id_organization"`
+	Name           string           `json:"name"`
+	PathFile       string           `json:"path_file"`
+	Error          *string          `json:"error"`
+	Created        time.Time        `json:"created"`
+	CountAll       int64            `json:"count_all"`
+	CountAdd       int64            `json:"count_add"`
+}
+
+type RatingCompetitiveElement struct {
+	Id                             uint      `json:"id" xml:"id"`
+	IdOrganization                 uint      `json:"id_organization" xml:"id_organization"`
+	IdCompetitiveGroup             uint      `json:"id_competitive_group" xml:"id_competitive_group"`
+	IdApplication                  uint      `json:"id_application" xml:"id_application"`
+	AdmissionVolume                uint      `json:"admission_volume" xml:"admission_volume"`
+	CommonRating                   uint      `json:"common_rating" xml:"common_rating"`
+	FirstRating                    uint      `json:"first_rating" xml:"first_rating"`
+	AgreedRating                   uint      `json:"agreed_rating" xml:"agreed_rating"`
+	ChangeRating                   uint      `json:"change_rating" xml:"change_rating"`
+	CountFirstStep                 uint      `json:"count_first_step" xml:"count_second_step"`
+	CountSecondStep                uint      `json:"count_second_step" xml:"count_second_step"`
+	CountApplication               uint      `json:"count_application" xml:"count_application"`
+	CountAgreed                    uint      `json:"count_agreed" xml:"count_agreed"`
+	Changed                        time.Time `json:"changed" xml:"changed"`
+	IdPackage                      uint      `json:"id_package" xml:"id_package"`
+	Checked                        bool      `json:"checked" xml:"checked"`
+	Error                          *string   `json:"error" xml:"error"`
+	Created                        time.Time `json:"created" xml:"created"`
+	IdCompetitiveGroupsApplication *uint     `json:"id_competitive_groups_applications"`
+}
+
+func (RatingCompetitiveElement) TableName() string {
+	return "packages.rating_competitive_applications_element"
+}
+
+func (RatingCompetitivePackages) TableName() string {
+	return "packages.rating_competitive_applications_packages"
+}
+
 func (RatingApplicationsElement) TableName() string {
 	return "packages.rating_applications_elements"
 }
