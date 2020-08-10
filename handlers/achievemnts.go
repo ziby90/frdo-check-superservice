@@ -553,7 +553,35 @@ func (result *ResultInfo) GetFileAppAchievement(ID uint) {
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.AchievementFiles
-	db := conn.Preload(`Application`).Preload(`Achievement`).Where(`id=?`, ID).Find(&doc)
+	db := conn.Where(`id=?`, ID).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+
+	conn.Where(`id=?`, *doc.IdAchievement).Find(&doc.Achievement)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+
+	conn.Where(`id=?`, *doc.IdApplication).Find(&doc.Application)
 	if db.Error != nil {
 		if db.Error.Error() == "record not found" {
 			result.Done = false
@@ -569,6 +597,7 @@ func (result *ResultInfo) GetFileAppAchievement(ID uint) {
 	if doc.PathFile != nil {
 		filename := *doc.PathFile
 		path := getPath(doc.Application.EntrantsId, `app.achievements`, doc.Achievement.Created) + filename
+		//fmt.Println("Test Test Test", doc.Achievement);
 		//f, err := os.Open(path)
 		//if err != nil {
 		//	result.SetErrorResult(err.Error())
