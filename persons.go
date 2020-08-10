@@ -1,10 +1,10 @@
 package main
 
 import (
+	"10.10.11.55/sendtoepgu/sendtoepgu.git/config_sendtoepgu"
 	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	"gitlab.com/unkal/sendtoepgu/config_sendtoepgu"
 	"net/http"
 	"persons/config"
 	"persons/digest"

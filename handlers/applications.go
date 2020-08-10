@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	sendToEpgu "10.10.11.55/sendtoepgu/sendtoepgu.git/send_to_epgu_xml"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
-	sendToEpgu "gitlab.com/unkal/sendtoepgu/send_to_epgu_xml"
 	"persons/config"
 	"persons/digest"
 	"persons/service"

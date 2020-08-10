@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	sendToEpguPath "10.10.11.55/sendtoepgu/sendtoepgu.git/path_files"
 	"crypto/sha1"
 	"encoding/hex"
 	"github.com/jinzhu/gorm"
-	sendToEpguPath "gitlab.com/unkal/sendtoepgu/path_files"
 	"io"
 	"os"
 	"path/filepath"
