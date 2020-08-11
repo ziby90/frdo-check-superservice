@@ -43,6 +43,7 @@ func CheckAuthCookie(r *http.Request) *digest.User {
 	if err == nil {
 		pass = cookiePass.Value
 	}
+
 	if login != `` && pass != `` {
 		var user digest.User
 		conn := config.Db.ConnGORM

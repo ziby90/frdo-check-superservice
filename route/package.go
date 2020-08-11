@@ -1,8 +1,10 @@
 package route
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
+	"io/ioutil"
 	"net/http"
 	"persons/digest"
 	"persons/handlers"
@@ -81,6 +83,35 @@ func AddPackageHandler(r *mux.Router) {
 		res.GetMarkEgeElements(uint(id))
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
+	// получаем файл пакета с баллами егэ
+	r.HandleFunc("/packages/mark-ege/{id:[0-9]+}/file/get", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		res.GetMarkEgePackageFile(uint(id))
+		if !res.Done {
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		path := fmt.Sprintf(`%v`, res.Items)
+		file, err := ioutil.ReadFile(path)
+		if err != nil {
+			res.Done = false
+			m := "Can't open file: " + path
+			res.Message = &m
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		w.Write(file)
+		return
+	}).Methods("GET")
 
 	// добавляем файл с рейтинговыми списками заявлений
 	r.HandleFunc("/packages/rating-applications/file/add", func(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +183,35 @@ func AddPackageHandler(r *mux.Router) {
 		res.GetRatingApplicationsElements(uint(id))
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
+	// получаем файл пакета с рейтинговыми списками заявлений
+	r.HandleFunc("/packages/rating-applications/{id:[0-9]+}/file/get", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		res.User = *handlers.CheckAuthCookie(r)
+		vars := mux.Vars(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		res.GetRatingApplicationsPackageFile(uint(id))
+		if !res.Done {
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		path := fmt.Sprintf(`%v`, res.Items)
+		file, err := ioutil.ReadFile(path)
+		if err != nil {
+			res.Done = false
+			m := "Can't open file: " + path
+			res.Message = &m
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		w.Write(file)
+		return
+	}).Methods("GET")
 
 	//добавляем файл с рейтингами по конкурсу
 	r.HandleFunc("/packages/rating-competitive/file/add", func(w http.ResponseWriter, r *http.Request) {
@@ -222,6 +282,35 @@ func AddPackageHandler(r *mux.Router) {
 		}
 		res.GetRatingCompetitiveElements(uint(id))
 		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+	// получаем файл пакета с рейтингами по конкурсу
+	r.HandleFunc("/packages/rating-competitive/{id:[0-9]+}/file/get", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.ResultInfo{}
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		res.GetRatingCompetitivePackageFile(uint(id))
+		if !res.Done {
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		path := fmt.Sprintf(`%v`, res.Items)
+		file, err := ioutil.ReadFile(path)
+		if err != nil {
+			res.Done = false
+			m := "Can't open file: " + path
+			res.Message = &m
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		w.Write(file)
+		return
 	}).Methods("GET")
 
 }

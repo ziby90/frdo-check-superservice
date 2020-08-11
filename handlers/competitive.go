@@ -1128,6 +1128,7 @@ func (result *ResultInfo) EditNumberCompetitive(data EditNumberCompetitive) {
 	}
 	t := time.Now()
 	competitive.Changed = &t
+	competitive.IdAuthor = result.User.Id
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&competitive)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())

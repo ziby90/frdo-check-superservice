@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"persons/config"
+	"time"
 )
 
 // записи
@@ -20,6 +21,32 @@ type CountPackage struct {
 	CountAllRemove  int64  `json:"count_all_remove"  gorm:"column:count_all_remove"`
 	CountTrueAdd    int64  `json:"count_true_add"  gorm:"column:count_true_add"`
 	CountTrueRemove int64  `json:"count_true_remove"  gorm:"column:count_true_remove"`
+}
+
+// список заявлений
+type AnalApplications struct { // analytics applications, конечно же
+	AppNumber            string    `json:"app_number" gorm:"column:app_number"`
+	RegistrationDate     time.Time `json:"registration_date"  gorm:"column:registration_date"`
+	Surname              string    `json:"surname"  gorm:"column:surname"`
+	Name                 string    `json:"name"  gorm:"column:name"`
+	Patronymic           string    `json:"patronymic"  gorm:"column:patronymic"`
+	DocSeries            string    `json:"doc_series"  gorm:"column:doc_series"`
+	DocNumber            string    `json:"doc_number"  gorm:"column:doc_number"`
+	CompetitiveGroupName string    `json:"competitive_group_name"  gorm:"column:competitive_group_name"`
+	CompetitiveGroupUid  string    `json:"competitive_group_uid"  gorm:"column:competitive_group_uid"`
+	UidEpgu              string    `json:"uid_epgu"  gorm:"column:uid_epgu"`
+	Uid                  string    `json:"uid"  gorm:"column:uid"`
+}
+
+// список конкурсных групп
+type AnalCompetitiveGroups struct { // analytics competitive groups, конечно же
+	CompetitiveGroupName string `json:"competitive_group_name" gorm:"column:competitive_group_name"`
+	Uid                  string `json:"uid"  gorm:"column:uid"`
+	CampaignName         string `json:"campaign_name" gorm:"column:campaign_name"`
+	EducationForm        string `json:"education_form" gorm:"column:education_form"`
+	EducationSource      string `json:"education_source" gorm:"column:education_source"`
+	EducationLevel       string `json:"education_level" gorm:"column:education_level"`
+	LevelBudget          string `json:"level_budget" gorm:"column:level_budget"`
 }
 
 //заявления и абитуриенты по организациям
@@ -220,6 +247,160 @@ select * from a union all select * from a1;`
 
 	// Save xlsx file by the given path.
 	path := `uploads/Book1.xlsx`
+	if err := f.SaveAs(path); err != nil {
+		m := err.Error()
+		result.Message = &m
+		return
+	}
+	result.Done = true
+	result.Items = path
+	return
+
+}
+func (result *ResultInfo) GetAnalyticsListApplications() {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	f := excelize.NewFile()
+	// Количество записей 1 запрос
+	var items []AnalApplications
+	cmd := `SELECT a.app_number
+			, a.registration_date
+			, a.uid
+			,i.surname
+			, i.name
+			, i.patronymic
+			, i.doc_series
+			, i.doc_number
+			, a.uid_epgu
+			, cg.name as competitive_group_name
+			, cg.uid as competitive_group_uid
+			FROM app.applications a
+			JOIN documents.identification i ON i.id_entrant = a.id
+			JOIN cmp.competitive_groups cg ON cg.id = a.id_competitive_group
+			WHERE  a.id_organization = ? and cg.actual IS true AND a.actual IS true
+			ORDER BY a.registration_date;`
+	db := conn.Raw(cmd, result.User.CurrentOrganization.Id).Scan(&items)
+	if db.Error != nil {
+		m := db.Error.Error()
+		result.Message = &m
+	} else {
+		// Create a new sheet.
+		sheet := "Список заявлений"
+		index := f.NewSheet(sheet)
+		styleTitle, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["#CCFFFF"],"pattern":1}}`)
+
+		f.SetColWidth(sheet, "A", "K", 50)
+		// Set title
+		f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", 1), fmt.Sprintf(`%v%d`, "K", 1), styleTitle)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", 1), `Номер заявления`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "B", 1), `Дата регистрации`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "C", 1), `Фамилия`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "D", 1), `Имя`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "E", 1), `Отчество`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "F", 1), `Серия документа`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "G", 1), `Номер документа`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "H", 1), `UID ЕПГУ заявления`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "I", 1), `UID заявления`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "J", 1), `Название конкурсной группы`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "K", 1), `UID конкурсной группы`)
+		for i, value := range items {
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", i+2), value.AppNumber)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "B", i+2), value.RegistrationDate)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "C", i+2), value.Surname)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "D", i+2), value.Name)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "E", i+2), value.Patronymic)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "F", i+2), value.DocSeries)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "G", i+2), value.DocNumber)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "H", i+2), value.UidEpgu)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "I", i+2), value.Uid)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "J", i+2), value.CompetitiveGroupName)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "K", i+2), value.CompetitiveGroupUid)
+			//if i+1 == len(applications) {
+			//	styleSum, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["##C1F0B6"],"pattern":1}}`)
+			//	f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", i+2), fmt.Sprintf(`%v%d`, "I", i+2), styleSum)
+			//}
+		}
+		// Set active sheet of the workbook.
+		f.SetActiveSheet(index)
+	}
+
+	// Save xlsx file by the given path.
+
+	path := fmt.Sprintf(`uploads/%v_anal_applications.xlsx`, result.User.CurrentOrganization.Id)
+	if err := f.SaveAs(path); err != nil {
+		m := err.Error()
+		result.Message = &m
+		return
+	}
+	result.Done = true
+	result.Items = path
+	return
+
+}
+func (result *ResultInfo) GetAnalyticsListCompetitiveGroup() {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	f := excelize.NewFile()
+	// Количество записей 1 запрос
+	var items []AnalCompetitiveGroups
+	cmd := `SELECT 
+		cg.name as competitive_group_name
+		, ef.name as education_form
+		, cg.uid as uid
+		, el.name as education_level
+		, es.name as education_source
+		, lb.name as level_budget
+		, c.name as campaign_name 
+		FROM cmp.competitive_groups cg
+		JOIN cmp.campaigns c ON c.id = cg.id_campaign
+		join cls.education_forms ef on ef.id= cg.id_education_form 
+		join cls.education_levels el on el.id= cg.id_education_level 
+		join cls.education_sources es on es.id= cg.id_education_source 
+		join cls.level_budget lb on lb.id= cg.id_level_budget 
+		 WHERE cg.id_organization = ?
+		AND cg.actual is true AND c.actual IS true ORDER BY cg.name, c.name`
+	db := conn.Raw(cmd, result.User.CurrentOrganization.Id).Scan(&items)
+	if db.Error != nil {
+		m := db.Error.Error()
+		result.Message = &m
+	} else {
+		// Create a new sheet.
+		sheet := "Список конкурсных групп"
+		index := f.NewSheet(sheet)
+		styleTitle, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["#CCFFFF"],"pattern":1}}`)
+
+		f.SetColWidth(sheet, "A", "F", 50)
+		// Set title
+		f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", 1), fmt.Sprintf(`%v%d`, "F", 1), styleTitle)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", 1), `Название конкурсной группы`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "D", 1), `UID`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "C", 1), `Название приемной компании`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "D", 1), `Уровень образования`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "E", 1), `Источник финансирования`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "F", 1), `Форма образования`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "G", 1), `Уроовень бюджета`)
+		for i, value := range items {
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", i+2), value.CompetitiveGroupName)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "B", i+2), value.Uid)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "C", i+2), value.CampaignName)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "D", i+2), value.EducationLevel)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "E", i+2), value.EducationSource)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "F", i+2), value.EducationForm)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "G", i+2), value.LevelBudget)
+			//if i+1 == len(applications) {
+			//	styleSum, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["##C1F0B6"],"pattern":1}}`)
+			//	f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", i+2), fmt.Sprintf(`%v%d`, "I", i+2), styleSum)
+			//}
+		}
+		// Set active sheet of the workbook.
+		f.SetActiveSheet(index)
+	}
+
+	// Save xlsx file by the given path.
+
+	path := fmt.Sprintf(`uploads/%v_anal_competitive_groups.xlsx`, result.User.CurrentOrganization.Id)
 	if err := f.SaveAs(path); err != nil {
 		m := err.Error()
 		result.Message = &m

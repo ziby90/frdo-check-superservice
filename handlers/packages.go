@@ -71,6 +71,30 @@ func (result *Result) GetMarkEgePackages() {
 	}
 
 }
+func (result *ResultInfo) GetMarkEgePackageFile(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.MarkEgePackages
+	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idPackage).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	filename := doc.PathFile
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	result.Items = path
+	result.Done = true
+	return
+}
 func (result *Result) GetMarkEgeElements(idPackage uint) {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -374,6 +398,30 @@ func (result *ResultInfo) AddFileRatingApplicationsPackage(packageName string, f
 	result.Done = true
 	return
 }
+func (result *ResultInfo) GetRatingApplicationsPackageFile(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.RatingApplicationsPackages
+	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idPackage).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	filename := doc.PathFile
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	result.Items = path
+	result.Done = true
+	return
+}
 
 func (result *ResultInfo) AddFileRatingCompetitivePackage(packageName string, f *digest.File) {
 	result.Done = false
@@ -538,4 +586,28 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 		return
 	}
 
+}
+func (result *ResultInfo) GetRatingCompetitivePackageFile(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.RatingCompetitivePackages
+	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idPackage).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	filename := doc.PathFile
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	result.Items = path
+	result.Done = true
+	return
 }
