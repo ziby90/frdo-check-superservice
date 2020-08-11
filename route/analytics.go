@@ -61,10 +61,11 @@ func AddAnalyticsHandler(r *mux.Router) {
 				service.ReturnErrorJSON(w, &res, 400)
 				return
 			} else {
-				filename := "attachment; filename=" + time.Now().Format("2006-01-02 15:04:05") + ".xlsx"
+				filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.xlsx"`
 				w.Header().Set("Content-Disposition", filename)
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 				w.Write(file)
 				return
 			}
@@ -93,10 +94,11 @@ func AddAnalyticsHandler(r *mux.Router) {
 				service.ReturnErrorJSON(w, &res, 400)
 				return
 			} else {
-				filename := "attachment; filename=" + time.Now().Format("2006-01-02 15:04:05") + ".xlsx"
+				filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.xlsx"`
 				w.Header().Set("Content-Disposition", filename)
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 				w.Write(file)
 				return
 			}
@@ -125,10 +127,11 @@ func AddAnalyticsHandler(r *mux.Router) {
 				service.ReturnErrorJSON(w, &res, 400)
 				return
 			} else {
-				filename := "attachment; filename=" + time.Now().Format("2006-01-02 15:04:05") + ".xlsx"
+				filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.xlsx"`
 				w.Header().Set("Content-Disposition", filename)
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 				w.Write(file)
 				return
 			}
@@ -158,10 +161,11 @@ func AddAnalyticsHandler(r *mux.Router) {
 				service.ReturnErrorJSON(w, &res, 400)
 				return
 			} else {
-				filename := "attachment; filename=" + time.Now().Format("2006-01-02 15:04:05") + ".xlsx"
+				filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.xlsx"`
 				w.Header().Set("Content-Disposition", filename)
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 				w.Write(file)
 				return
 			}
