@@ -553,7 +553,7 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range elements {
-			response = append(response, map[string]interface{}{
+			element := map[string]interface{}{
 				"id":                                 elements[index].Id,
 				"id_organization":                    elements[index].IdOrganization,
 				"id_competitive_group":               elements[index].IdCompetitiveGroup,
@@ -573,7 +573,13 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 				"error":                              elements[index].Error,
 				"created":                            elements[index].Created,
 				"id_competitive_groups_applications": elements[index].IdCompetitiveGroupsApplication,
-			})
+			}
+			if elements[index].IdCompetitiveGroup > 0 {
+				var competitiveGroup CompetitiveGroup
+				conn.Where(`id=?`, elements[index].IdCompetitiveGroup).Find(&competitiveGroup)
+				element[`name_competitive_group`] = competitiveGroup.Name
+			}
+			response = append(response, element)
 		}
 		result.Done = true
 		result.Items = response
@@ -608,6 +614,63 @@ func (result *ResultInfo) GetRatingCompetitivePackageFile(idPackage uint) {
 	filename := doc.PathFile
 	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
 	result.Items = path
+	result.Done = true
+	return
+}
+
+func (result *ResultInfo) GetSyncRatingCompetitiveGroupPackage(idCompetitiveGroup uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.SyncRatingCompetitiveGroupApplications
+	response := make(map[string]interface{})
+	conn.Preload(`Status`).Where(`id_organization=? and id_competitive_group=?`, result.User.CurrentOrganization.Id, idCompetitiveGroup).Find(&doc)
+	if doc.Id <= 0 {
+		response[`id`] = nil
+	} else {
+		response = map[string]interface{}{
+			`id_competitive_group`: doc.IdCompetitiveGroup,
+			"id":                   doc.Id,
+			"id_organization":      doc.IdOrganization,
+			"id_author":            doc.IdAuthor,
+			"id_status":            doc.IdStatus,
+			"name_status":          doc.Status.Name,
+			"code_status":          doc.Status.Code,
+			"created":              doc.Created,
+			"count_all":            doc.CountAll,
+			"count_add":            doc.CountAdd,
+		}
+	}
+	result.Items = response
+	result.Done = true
+	return
+
+}
+func (result *ResultInfo) AddSyncRatingCompetitiveGroupPackage(idCompetitiveGroup uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.SyncRatingCompetitiveGroupApplications
+	db := conn.Where(`id_organization=? and id_competitive_group=?`, result.User.CurrentOrganization.Id, idCompetitiveGroup).Find(&doc)
+	doc.IdCompetitiveGroup = idCompetitiveGroup
+	doc.Created = time.Now()
+	doc.IdStatus = 1
+	doc.CountAll = 0
+	doc.CountAdd = 0
+	doc.IdAuthor = result.User.Id
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	if doc.Id <= 0 {
+		db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&doc)
+	} else {
+		db = conn.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&doc)
+	}
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_sync`: doc.Id,
+	}
 	result.Done = true
 	return
 }

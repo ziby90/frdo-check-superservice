@@ -448,6 +448,60 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		service.ReturnJSON(w, &res)
 	}).Methods("Post")
+	//// генерация файла пдф заявления
+	//r.HandleFunc("/applications/{id:[0-9]+}/generate/pdf", func(w http.ResponseWriter, r *http.Request) {
+	//	var res handlers.ResultInfo
+	//	var data handlers.PDFApplicationParams
+	//	res.User = *handlers.CheckAuthCookie(r)
+	//	vars := mux.Vars(r)
+	//	id, err := strconv.ParseInt(vars[`id`], 10, 32)
+	//	if err != nil {
+	//		res.SetErrorResult(`Неверный параметр id.`)
+	//		service.ReturnJSON(w, &res)
+	//		return
+	//	}
+	//
+	//	err = handlers.CheckApplicationByUser(uint(id), res.User)
+	//	if err !=	nil {
+	//		res.SetErrorResult(err.Error())
+	//		service.ReturnJSON(w, &res)
+	//		return
+	//	}
+	//	b, _ := ioutil.ReadAll(r.Body)
+	//	err = json.Unmarshal(b, &data)
+	//	data.IdApplication = uint(id)
+	//	if err != nil {
+	//		res.SetErrorResult(err.Error())
+	//		service.ReturnJSON(w, &res)
+	//		return
+	//	}
+	//	res.GeneratePDFApplication(data)
+	//	if res.Done {
+	//		path := fmt.Sprintf(`%v`, res.Items)
+	//		file, err := ioutil.ReadFile(path)
+	//		if err != nil {
+	//			res.Done = false
+	//			m := "Can't open file: " + path
+	//			res.Message = &m
+	//			service.ReturnErrorJSON(w, &res, 400)
+	//			return
+	//		} else {
+	//			filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.xlsx"`
+	//			w.Header().Set("Content-Disposition", filename)
+	//			w.Header().Set("Access-Control-Allow-Origin", "*")
+	//			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	//			w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	//			w.Write(file)
+	//			return
+	//		}
+	//	}
+	//}).Methods("Post")
+	//// генерация файла пдф заявления
+	//r.HandleFunc("/applications/{id:[0-9]+}/generate/pdf", func(w http.ResponseWriter, r *http.Request) {
+	//	var res handlers.ResultInfo
+	//	var data handlers.PDFApplicationParams
+	//	res.GeneratePDFApplication(data)
+	//}).Methods("GET")
 	// удаление вступительного теста к заявлению
 	r.HandleFunc("/applications/tests/{id:[0-9]+}/remove", func(w http.ResponseWriter, r *http.Request) {
 		res := handlers.ResultInfo{

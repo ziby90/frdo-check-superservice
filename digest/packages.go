@@ -120,6 +120,17 @@ type RatingCompetitivePackages struct {
 	CountAll       int64            `json:"count_all"`
 	CountAdd       int64            `json:"count_add"`
 }
+type SyncRatingCompetitiveGroupApplications struct {
+	Id                 uint             `json:"id"`
+	IdCompetitiveGroup uint             `json:"id_competitive_group"`
+	Status             PackagesStatuses `gorm:"foreignkey:id_status"`
+	IdStatus           uint             `json:"id_status" schema:"id_status"`
+	IdAuthor           uint             `json:"id_author"`
+	IdOrganization     uint             `json:"id_organization"`
+	CountAll           int64            `json:"count_all"`
+	CountAdd           int64            `json:"count_add"`
+	Created            time.Time        `json:"created"`
+}
 
 type RatingCompetitiveElement struct {
 	Id                             uint      `json:"id" xml:"id"`
@@ -156,6 +167,9 @@ func (RatingApplicationsElement) TableName() string {
 }
 func (RatingApplicationsPackages) TableName() string {
 	return "packages.rating_applications_packages"
+}
+func (SyncRatingCompetitiveGroupApplications) TableName() string {
+	return "packages.sync_rating_competitive_group_applications"
 }
 func (MarkEgeElement) TableName() string {
 	return "packages.mark_ege_elements"

@@ -10,6 +10,7 @@ import (
 	"persons/handlers"
 	"persons/service"
 	"strconv"
+	"strings"
 )
 
 func AddPackageHandler(r *mux.Router) {
@@ -100,17 +101,25 @@ func AddPackageHandler(r *mux.Router) {
 			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
-		path := fmt.Sprintf(`%v`, res.Items)
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			res.Done = false
-			m := "Can't open file: " + path
-			res.Message = &m
-			service.ReturnErrorJSON(w, &res, 400)
-			return
+		if res.Done {
+			path := fmt.Sprintf(`%v`, res.Items)
+			file, err := ioutil.ReadFile(path)
+			if err != nil {
+				res.Done = false
+				m := "Can't open file: " + path
+				res.Message = &m
+				service.ReturnErrorJSON(w, &res, 400)
+				return
+			} else {
+				names := strings.Split(path, `/`)
+				filename := `attachment; filename="` + names[len(names)-1] + `"`
+				w.Header().Set("Content-Disposition", filename)
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Write(file)
+				return
+			}
 		}
-		w.Write(file)
-		return
 	}).Methods("GET")
 
 	// добавляем файл с рейтинговыми списками заявлений
@@ -196,21 +205,25 @@ func AddPackageHandler(r *mux.Router) {
 			return
 		}
 		res.GetRatingApplicationsPackageFile(uint(id))
-		if !res.Done {
-			service.ReturnErrorJSON(w, &res, 400)
-			return
+		if res.Done {
+			path := fmt.Sprintf(`%v`, res.Items)
+			file, err := ioutil.ReadFile(path)
+			if err != nil {
+				res.Done = false
+				m := "Can't open file: " + path
+				res.Message = &m
+				service.ReturnErrorJSON(w, &res, 400)
+				return
+			} else {
+				names := strings.Split(path, `/`)
+				filename := `attachment; filename="` + names[len(names)-1] + `"`
+				w.Header().Set("Content-Disposition", filename)
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Write(file)
+				return
+			}
 		}
-		path := fmt.Sprintf(`%v`, res.Items)
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			res.Done = false
-			m := "Can't open file: " + path
-			res.Message = &m
-			service.ReturnErrorJSON(w, &res, 400)
-			return
-		}
-		w.Write(file)
-		return
 	}).Methods("GET")
 
 	//добавляем файл с рейтингами по конкурсу
@@ -296,21 +309,25 @@ func AddPackageHandler(r *mux.Router) {
 			return
 		}
 		res.GetRatingCompetitivePackageFile(uint(id))
-		if !res.Done {
-			service.ReturnErrorJSON(w, &res, 400)
-			return
+		if res.Done {
+			path := fmt.Sprintf(`%v`, res.Items)
+			file, err := ioutil.ReadFile(path)
+			if err != nil {
+				res.Done = false
+				m := "Can't open file: " + path
+				res.Message = &m
+				service.ReturnErrorJSON(w, &res, 400)
+				return
+			} else {
+				names := strings.Split(path, `/`)
+				filename := `attachment; filename="` + names[len(names)-1] + `"`
+				w.Header().Set("Content-Disposition", filename)
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+				w.Write(file)
+				return
+			}
 		}
-		path := fmt.Sprintf(`%v`, res.Items)
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			res.Done = false
-			m := "Can't open file: " + path
-			res.Message = &m
-			service.ReturnErrorJSON(w, &res, 400)
-			return
-		}
-		w.Write(file)
-		return
 	}).Methods("GET")
 
 }

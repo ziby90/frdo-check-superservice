@@ -38,10 +38,10 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 		var rows *sql.Rows
 		var err error
 		if user.Role.Code == `administrator` {
-			rows, err = conn.Table(`admin.organizations`).Select(`id, short_title, ogrn, kpp`).Where(`actual`).Rows()
+			rows, err = conn.Table(`admin.organizations`).Select(`id, short_title, ogrn, kpp, id_eiis, is_oovo`).Where(`actual`).Rows()
 		} else {
 			rows, err = conn.Table(`admin.organizations_users ou`).Where(`id_user=? AND id_status=2`, user.Id).
-				Select(`id_organization as id, short_title, ogrn, kpp`).
+				Select(`id_organization as id, short_title, ogrn, kpp, org.id_eiis, org.is_oovo`).
 				Joins(`right join admin.organizations org ON org.id=ou.id_organization`).
 				Rows()
 		}
@@ -51,13 +51,15 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 			}()
 			for rows.Next() {
 				var organization struct {
+					IdEiis     string `json:"id_eiis"`
+					IsOOVO     bool   `json:"is_oovo"`
 					Id         uint   `json:"id"`
 					ShortTitle string `json:"short_title"`
 					Ogrn       string `json:"ogrn"`
 					Kpp        string `json:"kpp"`
 				}
 				//var idOrganization uint
-				err := rows.Scan(&organization.Id, &organization.ShortTitle, &organization.Ogrn, &organization.Kpp)
+				err := rows.Scan(&organization.Id, &organization.ShortTitle, &organization.Ogrn, &organization.Kpp, &organization.IdEiis, &organization.IsOOVO)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -68,6 +70,8 @@ func GetOrganizationsLinks(user *digest.User) interface{} {
 					`short_title`: organization.ShortTitle,
 					`ogrn`:        organization.Ogrn,
 					`kpp`:         organization.Kpp,
+					`id_eiis`:     organization.IdEiis,
+					`is_oovo`:     organization.IsOOVO,
 				})
 			}
 		}

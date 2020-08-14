@@ -1,0 +1,535 @@
+<!DOCTYPE HTML>
+
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Заявление абитуриента</title>
+	<style>
+		*{
+
+			-webkit-print-color-adjust: exact;
+		}
+
+		div.header {
+			display: block; text-align: center;
+			position: running(header);
+		}
+		div.footer {
+			display: block; text-align: center;
+			position: running(footer);
+		}
+		@page {
+			@top-center { content: element(header) }
+		}
+		@page {
+			@bottom-center { content: element(footer) }
+		}
+
+		body {
+			padding: 35px 20px 35px 50px;
+			font-size: 14px;
+		}
+
+		table {
+			border-spacing: 0px;
+		}
+
+		table td, table th {
+			padding-bottom: 1px;
+			vertical-align: top;
+		}
+		table th {
+			padding: 2px 3px;
+		}
+
+		table tr td:not(:last-of-type){
+			padding-right: 8px;
+		}
+
+		h1 {
+			font-size: 23px;
+			margin: 15px 0 3px 0;
+		}
+
+		h3 {
+			font-size: 17px;
+			margin: 10px 0 3px 0;
+		}
+
+		.center {
+			text-align: center;
+		}
+
+		.application__main table {
+
+		}
+
+		.application__text_text {
+			text-indent: 40px;
+			text-align: justify;
+			margin-bottom: 10px;
+		}
+
+		table.bordered {
+			border-collapse: collapse;
+		}
+
+		table.bordered th, table.bordered td {
+			border: 1px solid black;
+			padding: 8px;
+		}
+
+
+
+		.application__tests, .application__achievements {
+			page-break-inside: avoid;
+		}
+
+
+
+
+	</style>
+</head>
+
+<body>
+
+<div class="header"></div>
+<div class="footer"></div>
+
+<main class="application"  >
+
+	<div class="application__main">
+		<table class="">
+			<tr>
+				<td>
+					<b>Регистрационный номер заявления: </b>
+				</td>
+				<td colspan="3">
+					123456
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<b>UID ЕПГУ: </b>
+				</td>
+				<td colspan="3">
+					897654321
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>UID ВУЗа: </b>
+				</td>
+				<td colspan="3">
+					50c9c685-d7b3-11ea-b52b
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Дата и время регистрации: </b>
+				</td>
+				<td colspan="3">
+					13.08.2020 11:00, (GMT+03:00)
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Ф.И.О. абитуриента: </b>
+				</td>
+				<td style="width: 30%">
+					Иванов Иван Иванович
+				</td>
+				<td>
+					<b>Пол: </b>
+				</td>
+				<td>
+					мужской
+				</td>
+			</tr>
+
+			<tr>
+				<td>
+					<b>Дата рождения: </b>
+				</td>
+				<td>
+					20.05.2003
+				</td>
+				<td>
+					<b>Гражданство: </b>
+				</td>
+				<td>
+					РОССИЯ
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Телефон: </b>
+				</td>
+				<td>
+					+7-903-123-45-67
+				</td>
+				<td>
+					<b>Электронная почта: </b>
+				</td>
+				<td>
+					1234567@mail.ru
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<b>СНИЛС: </b>
+				</td>
+				<td colspan="3">
+					00000000977
+				</td>
+			</tr>
+		</table>
+	</div>
+
+
+	<div class="application__ident-doc">
+		<h3> Документ, удостоверяющий личность: </h3>
+		<table class="">
+			<tr>
+				<td>
+					<b>Тип документа: </b>
+				</td>
+				<td colspan="3">
+					Паспорт граданина Российской федерации
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Серия: </b>
+				</td>
+				<td >
+					5536
+				</td>
+				<td>
+					<b>Номер: </b>
+				</td>
+				<td>
+					01383232
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Место выдачи: </b>
+				</td>
+				<td colspan="3">
+					ТП №1 по г. Москве в ЮЗАО
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Дата выдачи: </b>
+				</td>
+				<td >
+					11.05.2020
+				</td>
+				<td>
+					<b>Код подразделения: </b>
+				</td>
+				<td>
+					056-984
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div class="application__edu-doc">
+		<h3> Документ об образовании: </h3>
+		<table class="">
+			<tr>
+				<td>
+					<b>Тип документа: </b>
+				</td>
+				<td colspan="3">
+					Аттестат о среднем (полном) общем образовании
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Наименование документа: </b>
+				</td>
+				<td colspan="3">
+					Аттестат о среднем (полном) общем образовании
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Уровень образования: </b>
+				</td>
+				<td style="width: 35%">
+					Основное общее образование
+				</td>
+				<td>
+					<b>Специальность по ОКСО: </b>
+				</td>
+				<td>
+					-
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Серия: </b>
+				</td>
+				<td >
+					5536
+				</td>
+				<td>
+					<b>Номер: </b>
+				</td>
+				<td>
+					01383232
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Место выдачи: </b>
+				</td>
+				<td colspan="3">
+					Школа № 1 г. Москва
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Дата выдачи: </b>
+				</td>
+				<td >
+					11.05.2020
+				</td>
+				<td>
+					<b>Регистрационный номер: </b>
+				</td>
+				<td>
+					-
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div class="application__text">
+		<div class="application__text_name" style="text-align: center">
+			<h1> Заявление </h1>
+		</div>
+		<div class="application__text_text">
+			Для участия в конкурсе для зачисления на 1 курс в
+			ФГАОУ ВО «Уральский федеральный университет имени первого Президента России Б.Н. Ельцина» (УРФУ)
+			по следующим условиям поступления и основаниям приема:
+		</div>
+	</div>
+	<div class="application__competitive">
+		<table class="">
+			<tr>
+				<td style="width: 180px">
+					<b>Конкурсная група: </b>
+				</td>
+				<td colspan="3">
+					2020 УрФУ, 22.03.01 Материаловедение и технологии материалов
+					(Программа: Материаловедение и технологии металлических материалов), Очная, Бюджет
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Направление подготовки: </b>
+				</td>
+				<td colspan="3">
+					22.03.01 Материаловедение и технологии материалов
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<b>Уровень образования: </b>
+				</td>
+				<td style="width: 173px">
+					Бакалавриат
+				</td>
+				<td style="width: 120px">
+					<b>Форма обучения: </b>
+				</td>
+				<td>
+					Очная форма обучения
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Источник финансирования: </b>
+				</td>
+				<td >
+					Бюджетные места
+				</td>
+				<td>
+					<b>Уровень бюджета: </b>
+				</td>
+				<td>
+					Федеральный
+				</td>
+			</tr>
+		</table>
+
+	</div>
+
+	<div class="application__info">
+
+		<table>
+			<tr>
+				<td style="width: 242px">
+					<b>Первое высшее образование: </b>
+				</td>
+				<td colspan="3">
+					Да
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<b>Оригинал документа об образовании: </b>
+				</td>
+				<td style="width: 110px">
+					Да
+				</td>
+				<td style="width: 155px">
+					<b>Дата подачи оригинала: </b>
+				</td>
+				<td>
+					05.08.2020
+				</td>
+			</tr>
+
+			<tr>
+				<td>
+					<b>Согласие на зачисление: </b>
+				</td>
+				<td>
+					Да
+				</td>
+				<td>
+					<b>Дата подачи согласия: </b>
+				</td>
+				<td>
+					05.08.2020
+				</td>
+			</tr>
+
+			<tr>
+				<td>
+					<b>Отзыв согласия на зачисление: </b>
+				</td>
+				<td>
+					Нет
+				</td>
+				<td>
+					<b>Дата отзыва согласия: </b>
+				</td>
+				<td>
+					-
+				</td>
+			</tr>
+
+			<tr>
+				<td>
+					<b>Необходимость общежития: </b>
+				</td>
+				<td colspan="3">
+					Нет
+				</td>
+			</tr>
+		</table>
+		<table>
+			<tr>
+				<td >
+					<b>Проведение вступительных испытаний с использованием дистанционных технологий: </b>
+				</td>
+				<td>
+					Нет
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<b>Место проведения вступительных испытаний с использованием дистанционных технилогий: </b>
+				</td>
+				<td >
+					-
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<b>Проведение ВИ с созданием специальных условий: </b>
+				</td>
+				<td >
+					Нет
+				</td>
+			</tr>
+		</table>
+
+	</div>
+
+	<div class="application__tests">
+		<h3> Вступительные испытания </h3>
+
+		<table class="bordered">
+			<tr>
+				<th> Тип вступительного испытания </th>
+				<th> Предмет </th>
+				<th> Тип </th>
+				<th> Дата проведения </th>
+				<th> Полученный балл </th>
+				<th> Подтверждающий документ </th>
+			</tr>
+
+			<tr>
+				<td> Вступительные испытания творческой и (или) профессиональной направленности </td>
+				<td> Композиционный рисунок </td>
+				<td> Не ЕГЭ </td>
+				<td> 05.08.2020 08:00, (GMT+03:00) </td>
+				<td class="center"> 50 </td>
+				<td> ??? </td>
+			</tr>
+			<tr>
+				<td> Вступительные испытания </td>
+				<td> Обществознание </td>
+				<td> ЕГЭ </td>
+				<td> - </td>
+				<td class="center"> 50 </td>
+				<td> ??? </td>
+			</tr>
+			<tr>
+				<td> Вступительные испытания </td>
+				<td> Русский язык </td>
+				<td> ЕГЭ </td>
+				<td> - </td>
+				<td class="center"> 50 </td>
+				<td> ??? </td>
+			</tr>
+		</table>
+
+	</div>
+
+	<div  class="application__achievements">
+		<h3> Индивидуальные достижения </h3>
+
+		<table class="bordered">
+			<tr>
+				<th> Наименование </th>
+				<th> Категория </th>
+				<th> Полученный балл </th>
+				<th> Подтверждающий документ </th>
+			</tr>
+
+			<tr>
+				<td> Аттестат о среднем общем образовании с отличием </td>
+				<td> Аттестат о среднем общем образовании с отличием </td>
+				<td class="center"> 1 </td>
+				<td> ??? </td>
+			</tr>
+		</table>
+
+	</div>
+
+</main>
+
+</body>
+
+</html>
+

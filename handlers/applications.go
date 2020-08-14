@@ -4,7 +4,9 @@ import (
 	sendToEpgu "10.10.11.55/sendtoepgu/sendtoepgu.git/send_to_epgu_xml"
 	"errors"
 	"fmt"
+	wkhtml "github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/jinzhu/gorm"
+	"log"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -105,6 +107,12 @@ type ChooseCalendar struct {
 	IdApplication          uint
 	IdEntranceTest         uint `json:"id_entrance_test"`
 	IdEntranceTestCalendar uint `json:"id_entrance_calendar"`
+}
+
+type PDFApplicationParams struct {
+	IdApplication            uint `json:"id_application" schema:"id_application"`
+	IdIdentificationDocument uint `json:"id_document_identification" schema:"id_document_identification"`
+	IdEducationDocument      uint `json:"id_document_education" schema:"id_document_education"`
 }
 
 func (result *Result) GetApplications(keys map[string][]string) {
@@ -1999,4 +2007,39 @@ func GetApplicationStatusByCode(code string) (*digest.ApplicationStatuses, error
 		return nil, errors.New(`Статус не найден. `)
 	}
 	return &item, nil
+}
+
+func (result *ResultInfo) GeneratePDFApplication(data PDFApplicationParams) {
+	//conn := config.Db.ConnGORM
+	//application, err := digest.GetApplication(data.IdApplication)
+	//if err != nil {
+	//	result.SetErrorResult(err.Error())
+	//	return
+	//}
+	fmt.Println(`11111111111111111111111111111`)
+	pdfg, err := wkhtml.NewPDFGenerator()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	htmlStr := `<html><body><h1 style="color:red;">This is an html
+ from pdf to test color<h1><img src="http://api.qrserver.com/v1/create-qr-
+code/?data=HelloWorld" alt="img" height="42" width="42"></img></body></html>`
+	fmt.Println(`333333333333333`)
+	pdfg.AddPage(wkhtml.NewPageReader(strings.NewReader(htmlStr)))
+
+	fmt.Println(`222222222222222222222222`)
+	// Create PDF document in internal buffer
+	err = pdfg.Create()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(`3333333333333333333`)
+	//Your Pdf Name
+	err = pdfg.WriteFile("./Your_pdfname.pdf")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Done")
 }

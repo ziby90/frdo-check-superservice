@@ -192,7 +192,7 @@ count(ap.id) filter (where ap.id_status = 4) as count_4, -- Доставлено
 count(ap.id) filter (where ap.id_status = 5) as count_5, -- Заявление принято в ООВО
 count(ap.id) filter (where ap.id_status = 10) as count_10 -- Заявление отклонено
  from admin.organizations o
-join app.applications ap ON ap.id_organization = o.id
+join app.applications ap ON ap.id_organization = o.id WHERE ap.uid_epgu IS NOT NULL
 group by o.full_title order by o.full_title),
 a1 as (select 'Общее количество'::text AS full_title,
 count(distinct id_entrant),
@@ -202,7 +202,7 @@ count(ap.id) filter (where ap.id_status = 4) as count_4, -- Доставлено
 count(ap.id) filter (where ap.id_status = 5) as count_5, -- Заявление принято в ООВО
 count(ap.id) filter (where ap.id_status = 10) as count_10 -- Заявление отклонено
  from admin.organizations o
-join app.applications ap ON ap.id_organization = o.id)
+join app.applications ap ON ap.id_organization = o.id WHERE ap.uid_epgu IS NOT NULL)
 select * from a union all select * from a1;`
 	db3 := conn.Raw(cmdCountApps).Scan(&countApps)
 	if db3.Error != nil {
@@ -267,7 +267,7 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 	cmd := `SELECT a.app_number
 			, a.registration_date
 			, a.uid
-			,i.surname
+			, a.id ,i.surname
 			, i.name
 			, i.patronymic
 			, i.doc_series
@@ -276,7 +276,7 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 			, cg.name as competitive_group_name
 			, cg.uid as competitive_group_uid
 			FROM app.applications a
-			JOIN documents.identification i ON i.id_entrant = a.id
+			JOIN documents.identification i ON i.id_entrant = a.id_entrant
 			JOIN cmp.competitive_groups cg ON cg.id = a.id_competitive_group
 			WHERE  a.id_organization = ? and cg.actual IS true AND a.actual IS true
 			ORDER BY a.registration_date;`
