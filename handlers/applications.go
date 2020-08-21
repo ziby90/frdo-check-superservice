@@ -4,9 +4,7 @@ import (
 	sendToEpgu "10.10.11.55/sendtoepgu/sendtoepgu.git/send_to_epgu_xml"
 	"errors"
 	"fmt"
-	wkhtml "github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/jinzhu/gorm"
-	"log"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
@@ -110,9 +108,113 @@ type ChooseCalendar struct {
 }
 
 type PDFApplicationParams struct {
-	IdApplication            uint `json:"id_application" schema:"id_application"`
-	IdIdentificationDocument uint `json:"id_document_identification" schema:"id_document_identification"`
-	IdEducationDocument      uint `json:"id_document_education" schema:"id_document_education"`
+	IdApplication uint              `json:"id_application" schema:"id_application"`
+	Docs          []DocsApplication `json:"docs" schema:"docs"`
+}
+
+type GenerateApplicationAgreedData struct {
+	Agreed        *bool
+	TmplPath      *string
+	AgreedHistory struct {
+		Date    string
+		UidSmev string
+	}
+	Entrant struct {
+		Fio      string
+		Birthday string
+		Gender   string
+		Okcm     string
+		Phone    string
+		Email    string
+		Snils    string
+	}
+	DocIdentification struct {
+		Type         string
+		Series       string
+		Number       string
+		Organization string
+		IssueDate    string
+		Subdivision  string
+	}
+	DocEducation struct {
+		Type         string
+		Name         string
+		Level        string
+		Direction    string
+		Series       string
+		Number       string
+		Organization string
+		IssueDate    string
+		Registration string
+	}
+	Organization struct {
+		Name string
+	}
+	Application struct {
+		Uid       string
+		UidEpgu   string
+		AppNumber string
+	}
+	CompetitiveGroup struct {
+		Name      string
+		Direction string
+		Level     string
+		Source    string
+		Form      string
+		Budget    string
+	}
+}
+type GenerateApplicationData struct {
+	Agreed        *bool
+	TmplPath      *string
+	AgreedHistory struct {
+		Date    string
+		UidSmev string
+	}
+	Entrant struct {
+		Fio      string
+		Birthday string
+		Gender   string
+		Okcm     string
+		Phone    string
+		Email    string
+		Snils    string
+	}
+	DocIdentification struct {
+		Type         string
+		Series       string
+		Number       string
+		Organization string
+		IssueDate    string
+		Subdivision  string
+	}
+	DocEducation struct {
+		Type         string
+		Name         string
+		Level        string
+		Direction    string
+		Series       string
+		Number       string
+		Organization string
+		IssueDate    string
+		Registration string
+	}
+	Organization struct {
+		Name string
+	}
+	Application struct {
+		Uid       string
+		UidEpgu   string
+		AppNumber string
+	}
+	CompetitiveGroup struct {
+		Name      string
+		Direction string
+		Level     string
+		Source    string
+		Form      string
+		Budget    string
+	}
 }
 
 func (result *Result) GetApplications(keys map[string][]string) {
@@ -554,6 +656,8 @@ func (result *ResultInfo) EditApplicationInfoById(data EditApplicationInfo) {
 			new.IdReturnType = data.IdReturnType
 			new.ReturnDate = data.ReturnDate
 		}
+		t := time.Now()
+		new.Changed = &t
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&new)
 		if db.Error != nil {
 			result.SetErrorResult(`Ошибка при обновлении данных заявления ` + db.Error.Error())
@@ -1187,6 +1291,28 @@ func (result *ResultInfo) GetApplicationsById() {
 	}
 
 }
+func (result *ResultInfo) GetAgreedApplicationsById(idApplication uint) {
+	result.Done = false
+	application, err := digest.GetApplication(idApplication)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	var agreed *bool
+	if application.Agreed != nil && *application.Agreed {
+		b := true
+		agreed = &b
+	}
+	if application.Disagreed != nil && *application.Disagreed {
+		b := false
+		agreed = &b
+	}
+	result.Done = true
+	result.Items = map[string]interface{}{
+		`agreed`: agreed,
+	}
+
+}
 func (result *ResultInfo) AddApplication(data AddApplication) {
 	conn := &config.Db.ConnGORM
 	tx := conn.Begin()
@@ -1742,6 +1868,8 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 	}
 	application.IdStatus = status.Id
 	application.StatusComment = data.StatusComment
+	t := time.Now()
+	application.Changed = &t
 	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&application)
 	if db.Error != nil {
 		result.SetErrorResult(`Ошибка при изменении статуса заявления ` + db.Error.Error())
@@ -2009,37 +2137,262 @@ func GetApplicationStatusByCode(code string) (*digest.ApplicationStatuses, error
 	return &item, nil
 }
 
-func (result *ResultInfo) GeneratePDFApplication(data PDFApplicationParams) {
-	//conn := config.Db.ConnGORM
-	//application, err := digest.GetApplication(data.IdApplication)
-	//if err != nil {
-	//	result.SetErrorResult(err.Error())
-	//	return
-	//}
-	fmt.Println(`11111111111111111111111111111`)
-	pdfg, err := wkhtml.NewPDFGenerator()
+func (result *ResultInfo) GeneratePDFApplicationAgreedData(params PDFApplicationParams) (resultData GenerateApplicationAgreedData) {
+	conn := config.Db.ConnGORM
+	application, err := digest.GetApplication(params.IdApplication)
 	if err != nil {
-		fmt.Println(err)
+		result.SetErrorResult(err.Error())
 		return
 	}
-	htmlStr := `<html><body><h1 style="color:red;">This is an html
- from pdf to test color<h1><img src="http://api.qrserver.com/v1/create-qr-
-code/?data=HelloWorld" alt="img" height="42" width="42"></img></body></html>`
-	fmt.Println(`333333333333333`)
-	pdfg.AddPage(wkhtml.NewPageReader(strings.NewReader(htmlStr)))
 
-	fmt.Println(`222222222222222222222222`)
-	// Create PDF document in internal buffer
-	err = pdfg.Create()
-	if err != nil {
-		log.Fatal(err)
+	if application.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Нет доступа к данному заявлению.`)
+		return
 	}
-	fmt.Println(`3333333333333333333`)
-	//Your Pdf Name
-	err = pdfg.WriteFile("./Your_pdfname.pdf")
-	if err != nil {
-		log.Fatal(err)
+	resultData.Application.AppNumber = checkEmptyPdfValueString(&application.AppNumber)
+	resultData.Application.Uid = checkEmptyPdfValueString(application.Uid)
+	if application.UidEpgu != nil {
+		resultData.Application.UidEpgu = fmt.Sprintf(`%d`, *application.UidEpgu)
+	} else {
+		resultData.Application.UidEpgu = `-`
 	}
 
-	fmt.Println("Done")
+	var tmplPath string
+	if application.Agreed != nil && *application.Agreed {
+		tmplPath = "./tmpl/application_agreed.html"
+		agreed := true
+		resultData.Agreed = &agreed
+	}
+	if application.Disagreed != nil && *application.Disagreed {
+		tmplPath = "./tmpl/application_disagreed.html"
+		agreed := false
+		resultData.Agreed = &agreed
+	}
+	if tmplPath == `` || resultData.Agreed == nil {
+		result.SetErrorResult(`Абитуриент не давал согласия`)
+		return
+	}
+	resultData.TmplPath = &tmplPath
+	var agreedHistory digest.ApplicationsAgreedHistory
+	conn.Where(`id_application=? AND agreed = ?`, application.Id, resultData.Agreed).Limit(`1`).Order(`created desc`).Find(&agreedHistory)
+	if agreedHistory.Id <= 0 {
+		result.SetErrorResult(`История согласия не найдена`)
+		return
+	}
+	resultData.AgreedHistory.Date = checkEmptyPdfValueTime(&agreedHistory.Date, `02.01.2006 15:04`, `(GMT+03:00)`)
+	resultData.AgreedHistory.UidSmev = checkEmptyPdfValueString(agreedHistory.UidSmev)
+
+	var entrant digest.Entrants
+	conn.Preload(`Gender`).Preload(`Okcm`).Where(`id=?`, application.EntrantsId).Find(&entrant)
+	if entrant.Id <= 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		return
+	}
+	resultData.Entrant.Fio = entrant.Surname + ` ` + entrant.Name
+	if entrant.Patronymic != nil {
+		resultData.Entrant.Fio += ` ` + *entrant.Patronymic
+	}
+	resultData.Entrant.Phone = checkEmptyPdfValueString(entrant.Phone)
+	resultData.Entrant.Email = checkEmptyPdfValueString(entrant.Email)
+	resultData.Entrant.Birthday = checkEmptyPdfValueTime(&entrant.Birthday, `02.01.2006`, ``)
+	resultData.Entrant.Snils = checkEmptyPdfValueString(&entrant.Snils)
+	resultData.Entrant.Okcm = entrant.Okcm.FullName
+	resultData.Entrant.Gender = entrant.Gender.Name
+	for _, doc := range params.Docs {
+		if doc.Type == `identification` {
+			var identification digest.Identifications
+			conn.Preload(`DocumentType`).Preload(`Okcm`).Where(`id=? AND id_entrant=?`, doc.Id, entrant.Id).Find(&identification)
+			if identification.Id <= 0 {
+				result.SetErrorResult(`Удостоверяющий документ не найден`)
+				return
+			}
+			resultData.DocIdentification.Type = identification.DocumentType.Name
+			resultData.DocIdentification.Series = checkEmptyPdfValueString(identification.DocSeries)
+			resultData.DocIdentification.Number = checkEmptyPdfValueString(&identification.DocNumber)
+			resultData.DocIdentification.Organization = checkEmptyPdfValueString(&identification.DocOrganization)
+			resultData.DocIdentification.Subdivision = checkEmptyPdfValueString(identification.SubdivisionCode)
+			resultData.DocIdentification.IssueDate = checkEmptyPdfValueTime(&identification.IssueDate, `02.01.2006`, ``)
+		}
+		if doc.Type == `educations` {
+			var educations digest.Educations
+			conn.Preload(`EducationLevel`).Preload(`Direction`).Preload(`DocumentType`).Where(`id=? AND id_entrant=?`, doc.Id, entrant.Id).Find(&educations)
+			if educations.Id <= 0 {
+				result.SetErrorResult(`Документ об образовании не найден`)
+				return
+			}
+			resultData.DocEducation.Type = checkEmptyPdfValueString(&educations.DocumentType.Name)
+			resultData.DocEducation.Name = checkEmptyPdfValueString(&educations.DocName)
+			resultData.DocEducation.Level = checkEmptyPdfValueString(&educations.EducationLevel.Name)
+			resultData.DocEducation.Direction = checkEmptyPdfValueString(&educations.Direction.Name)
+			resultData.DocEducation.Series = checkEmptyPdfValueString(&educations.DocSeries)
+			resultData.DocEducation.Number = checkEmptyPdfValueString(&educations.DocNumber)
+			resultData.DocEducation.Organization = checkEmptyPdfValueString(educations.DocOrg)
+			resultData.DocEducation.Registration = checkEmptyPdfValueString(educations.RegisterNumber)
+			resultData.DocEducation.IssueDate = checkEmptyPdfValueTime(&educations.IssueDate, `02.01.2006`, ``)
+		}
+	}
+	var organization digest.Organization
+	conn.Where(`id=?`, application.IdOrganization).Find(&organization)
+	if organization.Id <= 0 {
+		result.SetErrorResult(`Организация не найдена`)
+		return
+	}
+	resultData.Organization.Name = checkEmptyPdfValueString(&organization.FullTitle)
+
+	var competitive digest.CompetitiveGroup
+	conn.Preload(`Direction`).Preload(`EducationLevel`).Preload(`EducationForm`).Preload(`EducationSource`).Preload(`LevelBudget`).Where(`id=?`, application.IdCompetitiveGroup).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		return
+	}
+	resultData.CompetitiveGroup.Name = checkEmptyPdfValueString(&competitive.Name)
+	direction := competitive.Direction.Code + ` ` + competitive.Direction.Name
+	resultData.CompetitiveGroup.Direction = checkEmptyPdfValueString(&direction)
+	resultData.CompetitiveGroup.Level = checkEmptyPdfValueString(&competitive.EducationLevel.Name)
+	resultData.CompetitiveGroup.Source = checkEmptyPdfValueString(&competitive.EducationSource.Name)
+	resultData.CompetitiveGroup.Form = checkEmptyPdfValueString(&competitive.EducationForm.Name)
+	resultData.CompetitiveGroup.Budget = checkEmptyPdfValueString(&competitive.LevelBudget.Name)
+
+	result.Done = true
+	return
+}
+
+func (result *ResultInfo) GeneratePDFApplicationData(params PDFApplicationParams) (resultData GenerateApplicationAgreedData) {
+	conn := config.Db.ConnGORM
+	application, err := digest.GetApplication(params.IdApplication)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+
+	if application.IdOrganization != result.User.CurrentOrganization.Id {
+		result.SetErrorResult(`Нет доступа к данному заявлению.`)
+		return
+	}
+	resultData.Application.AppNumber = checkEmptyPdfValueString(&application.AppNumber)
+	resultData.Application.Uid = checkEmptyPdfValueString(application.Uid)
+	if application.UidEpgu != nil {
+		resultData.Application.UidEpgu = fmt.Sprintf(`%d`, *application.UidEpgu)
+	} else {
+		resultData.Application.UidEpgu = `-`
+	}
+
+	var tmplPath string
+	if application.Agreed != nil && *application.Agreed {
+		tmplPath = "./tmpl/application_agreed.html"
+		agreed := true
+		resultData.Agreed = &agreed
+	}
+	if application.Disagreed != nil && *application.Disagreed {
+		tmplPath = "./tmpl/application_disagreed.html"
+		agreed := false
+		resultData.Agreed = &agreed
+	}
+	if tmplPath == `` || resultData.Agreed == nil {
+		result.SetErrorResult(`Абитуриент не давал согласия`)
+		return
+	}
+	resultData.TmplPath = &tmplPath
+	var agreedHistory digest.ApplicationsAgreedHistory
+	conn.Where(`id_application=? AND agreed = ?`, application.Id, resultData.Agreed).Limit(`1`).Order(`created desc`).Find(&agreedHistory)
+	if agreedHistory.Id <= 0 {
+		result.SetErrorResult(`История согласия не найдена`)
+		return
+	}
+	resultData.AgreedHistory.Date = checkEmptyPdfValueTime(&agreedHistory.Date, `02.01.2006 15:04`, `(GMT+03:00)`)
+	resultData.AgreedHistory.UidSmev = checkEmptyPdfValueString(agreedHistory.UidSmev)
+
+	var entrant digest.Entrants
+	conn.Preload(`Gender`).Preload(`Okcm`).Where(`id=?`, application.EntrantsId).Find(&entrant)
+	if entrant.Id <= 0 {
+		result.SetErrorResult(`Абитуриент не найден`)
+		return
+	}
+	resultData.Entrant.Fio = entrant.Surname + ` ` + entrant.Name
+	if entrant.Patronymic != nil {
+		resultData.Entrant.Fio += ` ` + *entrant.Patronymic
+	}
+	resultData.Entrant.Phone = checkEmptyPdfValueString(entrant.Phone)
+	resultData.Entrant.Email = checkEmptyPdfValueString(entrant.Email)
+	resultData.Entrant.Birthday = checkEmptyPdfValueTime(&entrant.Birthday, `02.01.2006`, ``)
+	resultData.Entrant.Snils = checkEmptyPdfValueString(&entrant.Snils)
+	resultData.Entrant.Okcm = entrant.Okcm.FullName
+	resultData.Entrant.Gender = entrant.Gender.Name
+	for _, doc := range params.Docs {
+		if doc.Type == `identification` {
+			var identification digest.Identifications
+			conn.Preload(`DocumentType`).Preload(`Okcm`).Where(`id=? AND id_entrant=?`, doc.Id, entrant.Id).Find(&identification)
+			if identification.Id <= 0 {
+				result.SetErrorResult(`Удостоверяющий документ не найден`)
+				return
+			}
+			resultData.DocIdentification.Type = identification.DocumentType.Name
+			resultData.DocIdentification.Series = checkEmptyPdfValueString(identification.DocSeries)
+			resultData.DocIdentification.Number = checkEmptyPdfValueString(&identification.DocNumber)
+			resultData.DocIdentification.Organization = checkEmptyPdfValueString(&identification.DocOrganization)
+			resultData.DocIdentification.Subdivision = checkEmptyPdfValueString(identification.SubdivisionCode)
+			resultData.DocIdentification.IssueDate = checkEmptyPdfValueTime(&identification.IssueDate, `02.01.2006`, ``)
+		}
+		if doc.Type == `educations` {
+			var educations digest.Educations
+			conn.Preload(`EducationLevel`).Preload(`Direction`).Preload(`DocumentType`).Where(`id=? AND id_entrant=?`, doc.Id, entrant.Id).Find(&educations)
+			if educations.Id <= 0 {
+				result.SetErrorResult(`Документ об образовании не найден`)
+				return
+			}
+			resultData.DocEducation.Type = checkEmptyPdfValueString(&educations.DocumentType.Name)
+			resultData.DocEducation.Name = checkEmptyPdfValueString(&educations.DocName)
+			resultData.DocEducation.Level = checkEmptyPdfValueString(&educations.EducationLevel.Name)
+			resultData.DocEducation.Direction = checkEmptyPdfValueString(&educations.Direction.Name)
+			resultData.DocEducation.Series = checkEmptyPdfValueString(&educations.DocSeries)
+			resultData.DocEducation.Number = checkEmptyPdfValueString(&educations.DocNumber)
+			resultData.DocEducation.Organization = checkEmptyPdfValueString(educations.DocOrg)
+			resultData.DocEducation.Registration = checkEmptyPdfValueString(educations.RegisterNumber)
+			resultData.DocEducation.IssueDate = checkEmptyPdfValueTime(&educations.IssueDate, `02.01.2006`, ``)
+		}
+	}
+	var organization digest.Organization
+	conn.Where(`id=?`, application.IdOrganization).Find(&organization)
+	if organization.Id <= 0 {
+		result.SetErrorResult(`Организация не найдена`)
+		return
+	}
+	resultData.Organization.Name = checkEmptyPdfValueString(&organization.FullTitle)
+
+	var competitive digest.CompetitiveGroup
+	conn.Preload(`Direction`).Preload(`EducationLevel`).Preload(`EducationForm`).Preload(`EducationSource`).Preload(`LevelBudget`).Where(`id=?`, application.IdCompetitiveGroup).Find(&competitive)
+	if competitive.Id <= 0 {
+		result.SetErrorResult(`Конкурсная группа не найдена`)
+		return
+	}
+	resultData.CompetitiveGroup.Name = checkEmptyPdfValueString(&competitive.Name)
+	direction := competitive.Direction.Code + ` ` + competitive.Direction.Name
+	resultData.CompetitiveGroup.Direction = checkEmptyPdfValueString(&direction)
+	resultData.CompetitiveGroup.Level = checkEmptyPdfValueString(&competitive.EducationLevel.Name)
+	resultData.CompetitiveGroup.Source = checkEmptyPdfValueString(&competitive.EducationSource.Name)
+	resultData.CompetitiveGroup.Form = checkEmptyPdfValueString(&competitive.EducationForm.Name)
+	resultData.CompetitiveGroup.Budget = checkEmptyPdfValueString(&competitive.LevelBudget.Name)
+
+	result.Done = true
+	return
+}
+
+func checkEmptyPdfValueString(value *string) string {
+	if value == nil {
+		return `-`
+	} else {
+		if strings.TrimSpace(*value) == `` {
+			return `-`
+		}
+		return fmt.Sprintf(`%v`, *value)
+	}
+}
+
+func checkEmptyPdfValueTime(value *time.Time, format string, loc string) string {
+	if value == nil {
+		return `-`
+	} else {
+		t := *value
+		return fmt.Sprintf(`%v `+loc, t.Format(format))
+	}
 }

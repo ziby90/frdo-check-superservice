@@ -36,6 +36,8 @@ type AnalApplications struct { // analytics applications, конечно же
 	CompetitiveGroupUid  string    `json:"competitive_group_uid"  gorm:"column:competitive_group_uid"`
 	UidEpgu              string    `json:"uid_epgu"  gorm:"column:uid_epgu"`
 	Uid                  string    `json:"uid"  gorm:"column:uid"`
+	NameStatus           string    `json:"name_status"  gorm:"column:name_status"`
+	IdStatus             string    `json:"id_status"  gorm:"column:id_status"`
 }
 
 // список конкурсных групп
@@ -275,9 +277,12 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 			, a.uid_epgu
 			, cg.name as competitive_group_name
 			, cg.uid as competitive_group_uid
+			, status.name as name_status
+			, status.id		as id_status
 			FROM app.applications a
 			JOIN documents.identification i ON i.id_entrant = a.id_entrant
 			JOIN cmp.competitive_groups cg ON cg.id = a.id_competitive_group
+			JOIN cls.application_statuses status ON status.id= a.id_status
 			WHERE  a.id_organization = ? and cg.actual IS true AND a.actual IS true
 			ORDER BY a.registration_date;`
 	db := conn.Raw(cmd, result.User.CurrentOrganization.Id).Scan(&items)
@@ -290,9 +295,9 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 		index := f.NewSheet(sheet)
 		styleTitle, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["#CCFFFF"],"pattern":1}}`)
 
-		f.SetColWidth(sheet, "A", "K", 50)
+		f.SetColWidth(sheet, "A", "M", 50)
 		// Set title
-		f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", 1), fmt.Sprintf(`%v%d`, "K", 1), styleTitle)
+		f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", 1), fmt.Sprintf(`%v%d`, "M", 1), styleTitle)
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", 1), `Номер заявления`)
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "B", 1), `Дата регистрации`)
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "C", 1), `Фамилия`)
@@ -304,6 +309,8 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "I", 1), `UID заявления`)
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "J", 1), `Название конкурсной группы`)
 		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "K", 1), `UID конкурсной группы`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "L", 1), `ID статуса`)
+		f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "M", 1), `Название статуса`)
 		for i, value := range items {
 			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "A", i+2), value.AppNumber)
 			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "B", i+2), value.RegistrationDate)
@@ -316,6 +323,8 @@ func (result *ResultInfo) GetAnalyticsListApplications() {
 			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "I", i+2), value.Uid)
 			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "J", i+2), value.CompetitiveGroupName)
 			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "K", i+2), value.CompetitiveGroupUid)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "L", i+2), value.IdStatus)
+			f.SetCellValue(sheet, fmt.Sprintf(`%v%d`, "M", i+2), value.NameStatus)
 			//if i+1 == len(applications) {
 			//	styleSum, _ := f.NewStyle(`{"fill":{"type":"pattern","color":["##C1F0B6"],"pattern":1}}`)
 			//	f.SetCellStyle(sheet, fmt.Sprintf(`%v%d`, "A", i+2), fmt.Sprintf(`%v%d`, "I", i+2), styleSum)

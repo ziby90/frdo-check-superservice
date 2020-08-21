@@ -57,6 +57,7 @@ type ApplicationsAgreedHistory struct {
 	Date           time.Time `json:"date"`
 	IdOrganization *uint     `json:"id_organization"`
 	Created        time.Time `json:"created"` // Дата создания
+	UidSmev        *string
 }
 
 type Documents struct {

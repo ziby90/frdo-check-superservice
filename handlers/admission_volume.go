@@ -674,7 +674,7 @@ func (result *ResultInfo) EditAdmission(IdAdmission uint, admData digest.Admissi
 		oldAdmission.TargetZ = admData.TargetZ
 		if admData.Uid != nil {
 			var exist digest.AdmissionVolume
-			db = tx.Where(`upper(uid)=upper(?) AND id_organization=?`, admData.Uid, result.User.CurrentOrganization.Id).Find(&exist)
+			db = tx.Where(`upper(uid)=upper(?) AND id_organization=? AND id!=?`, admData.Uid, result.User.CurrentOrganization.Id, oldAdmission.Id).Find(&exist)
 			if exist.Id > 0 {
 				result.SetErrorResult(`Кцп с данным uid уже существуют`)
 				tx.Rollback()

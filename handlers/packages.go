@@ -17,6 +17,11 @@ var PackageSearchArray = []string{
 	`name`,
 }
 
+func SetDateToPathPackages(path string, time time.Time) string {
+	path += time.Format(`2006-01-02`) + `/`
+	return path
+}
+
 func (result *Result) GetMarkEgePackages() {
 	result.Done = false
 	conn := &config.Db.ConnGORM
@@ -26,7 +31,7 @@ func (result *Result) GetMarkEgePackages() {
 		result.Sort.Field = `created`
 	}
 	if result.Sort.Order == `` {
-		result.Sort.Order = `asc`
+		result.Sort.Order = `desc`
 	}
 
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
@@ -57,6 +62,7 @@ func (result *Result) GetMarkEgePackages() {
 				"created":         packages[index].Created,
 				"count_all":       packages[index].CountAll,
 				"count_add":       packages[index].CountAdd,
+				"duration":        packages[index].Duration,
 			})
 		}
 		result.Done = true
@@ -90,7 +96,9 @@ func (result *ResultInfo) GetMarkEgePackageFile(idPackage uint) {
 		return
 	}
 	filename := doc.PathFile
-	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created)
+	path = SetDateToPathPackages(path, doc.Created)
+	path += filename
 	result.Items = path
 	result.Done = true
 	return
@@ -170,6 +178,7 @@ func (result *ResultInfo) AddFileMarkEgePackage(packageName string, f *digest.Fi
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.MarkEgePackages
 	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
+	path = SetDateToPathPackages(path, time.Now())
 	ext := filepath.Ext(path + `/` + f.Header.Filename)
 	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
 	name := hex.EncodeToString(sha1FileName[:]) + ext
@@ -197,6 +206,8 @@ func (result *ResultInfo) AddFileMarkEgePackage(packageName string, f *digest.Fi
 	doc.IdStatus = 1
 	doc.IdAuthor = result.User.Id
 	doc.IdOrganization = result.User.CurrentOrganization.Id
+	source := `cabinet`
+	doc.Source = &source
 
 	db := conn.Create(&doc)
 	if db.Error != nil {
@@ -219,7 +230,7 @@ func (result *Result) GetRatingApplicationsPackages() {
 		result.Sort.Field = `created`
 	}
 	if result.Sort.Order == `` {
-		result.Sort.Order = `asc`
+		result.Sort.Order = `desc`
 	}
 
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
@@ -250,6 +261,7 @@ func (result *Result) GetRatingApplicationsPackages() {
 				"created":         packages[index].Created,
 				"count_all":       packages[index].CountAll,
 				"count_add":       packages[index].CountAdd,
+				"duration":        packages[index].Duration,
 			})
 		}
 		result.Done = true
@@ -359,6 +371,7 @@ func (result *ResultInfo) AddFileRatingApplicationsPackage(packageName string, f
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.RatingApplicationsPackages
 	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
+	path = SetDateToPathPackages(path, time.Now())
 	ext := filepath.Ext(path + `/` + f.Header.Filename)
 	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
 	name := hex.EncodeToString(sha1FileName[:]) + ext
@@ -386,7 +399,8 @@ func (result *ResultInfo) AddFileRatingApplicationsPackage(packageName string, f
 	doc.IdStatus = 1
 	doc.IdAuthor = result.User.Id
 	doc.IdOrganization = result.User.CurrentOrganization.Id
-
+	source := `cabinet`
+	doc.Source = &source
 	db := conn.Create(&doc)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
@@ -417,7 +431,9 @@ func (result *ResultInfo) GetRatingApplicationsPackageFile(idPackage uint) {
 		return
 	}
 	filename := doc.PathFile
-	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created)
+	path = SetDateToPathPackages(path, doc.Created)
+	path += filename
 	result.Items = path
 	result.Done = true
 	return
@@ -429,6 +445,7 @@ func (result *ResultInfo) AddFileRatingCompetitivePackage(packageName string, f 
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.RatingCompetitivePackages
 	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
+	path = SetDateToPathPackages(path, time.Now())
 	ext := filepath.Ext(path + `/` + f.Header.Filename)
 	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
 	name := hex.EncodeToString(sha1FileName[:]) + ext
@@ -456,7 +473,8 @@ func (result *ResultInfo) AddFileRatingCompetitivePackage(packageName string, f 
 	doc.IdStatus = 1
 	doc.IdAuthor = result.User.Id
 	doc.IdOrganization = result.User.CurrentOrganization.Id
-
+	source := `cabinet`
+	doc.Source = &source
 	db := conn.Create(&doc)
 	if db.Error != nil {
 		result.SetErrorResult(db.Error.Error())
@@ -477,7 +495,7 @@ func (result *Result) GetRatingCompetitivePackages() {
 		result.Sort.Field = `created`
 	}
 	if result.Sort.Order == `` {
-		result.Sort.Order = `asc`
+		result.Sort.Order = `desc`
 	}
 
 	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
@@ -508,6 +526,7 @@ func (result *Result) GetRatingCompetitivePackages() {
 				"created":         packages[index].Created,
 				"count_all":       packages[index].CountAll,
 				"count_add":       packages[index].CountAdd,
+				"duration":        packages[index].Duration,
 			})
 		}
 		result.Done = true
@@ -553,6 +572,7 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range elements {
+
 			element := map[string]interface{}{
 				"id":                                 elements[index].Id,
 				"id_organization":                    elements[index].IdOrganization,
@@ -573,9 +593,10 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 				"error":                              elements[index].Error,
 				"created":                            elements[index].Created,
 				"id_competitive_groups_applications": elements[index].IdCompetitiveGroupsApplication,
+				"name_competitive_group":             nil,
 			}
 			if elements[index].IdCompetitiveGroup > 0 {
-				var competitiveGroup CompetitiveGroup
+				var competitiveGroup digest.CompetitiveGroup
 				conn.Where(`id=?`, elements[index].IdCompetitiveGroup).Find(&competitiveGroup)
 				element[`name_competitive_group`] = competitiveGroup.Name
 			}
@@ -591,7 +612,6 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 		result.Items = []digest.RatingCompetitiveElement{}
 		return
 	}
-
 }
 func (result *ResultInfo) GetRatingCompetitivePackageFile(idPackage uint) {
 	result.Done = false
@@ -612,7 +632,9 @@ func (result *ResultInfo) GetRatingCompetitivePackageFile(idPackage uint) {
 		return
 	}
 	filename := doc.PathFile
-	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created) + filename
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created)
+	path = SetDateToPathPackages(path, doc.Created)
+	path += filename
 	result.Items = path
 	result.Done = true
 	return

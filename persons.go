@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"net/http"
+	"os"
 	"persons/config"
 	"persons/digest"
 	"persons/handlers"
@@ -69,6 +70,8 @@ func organizationMw(next http.Handler) http.Handler {
 }
 
 func main() {
+	os.Setenv("QT_QPA_PLATFORM", "offscreen")
+	os.Setenv("QT_QPA_FONTDIR", "/usr/share/fonts")
 	config.GetDbConnection()
 	config_sendtoepgu.PathToFiles = `uploads/`
 	// общие маршруты

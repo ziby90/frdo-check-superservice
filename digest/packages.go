@@ -42,6 +42,8 @@ type MarkEgePackages struct {
 	Created        time.Time        `json:"created"`
 	CountAll       int64            `json:"count_all"`
 	CountAdd       int64            `json:"count_add"`
+	Source         *string          `json:"source"`
+	Duration       float64          `json:"duration"`
 }
 
 type RatingApplicationsPackages struct {
@@ -56,6 +58,8 @@ type RatingApplicationsPackages struct {
 	Created        time.Time        `json:"created"`
 	CountAll       int64            `json:"count_all"`
 	CountAdd       int64            `json:"count_add"`
+	Source         *string          `json:"source"`
+	Duration       float64          `json:"duration"`
 }
 
 type RatingApplicationsElement struct {
@@ -119,6 +123,8 @@ type RatingCompetitivePackages struct {
 	Created        time.Time        `json:"created"`
 	CountAll       int64            `json:"count_all"`
 	CountAdd       int64            `json:"count_add"`
+	Source         *string          `json:"source"`
+	Duration       float64          `json:"duration"`
 }
 type SyncRatingCompetitiveGroupApplications struct {
 	Id                 uint             `json:"id"`
