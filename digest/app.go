@@ -164,8 +164,32 @@ type AchievementFiles struct {
 	IdAchievement *uint           `json:"id_achievement"`
 	PathFile      *string         `json:"path_file"`
 }
-
 type OrderAdmission struct {
+	Id                     uint `gorm:"primary_key" xml:"-"`
+	IdOrganization         uint
+	IdCampaign             uint
+	IdEducationForm        uint
+	IdEducationSource      uint
+	IDEducationLevel       uint
+	OrderName              string
+	OrderNumber            string
+	OrderDate              time.Time
+	Published              *time.Time
+	IdOrderAdmissionStatus uint
+	IdOrderAdmissionType   uint
+	PreferentialOrder      bool
+	Foreigners             bool
+	Created                time.Time
+	Actual                 bool
+}
+
+type ApplicationsOrderAdmission struct {
+	Id               uint
+	IdOrderAdmission uint
+	IDApplication    uint
+	Created          time.Time
+	Actual           bool
+	UID              *string
 }
 
 func GetApplication(id uint) (*Application, error) {
@@ -205,6 +229,9 @@ func (AppEntranceTestAgreed) TableName() string {
 }
 func (OrderAdmission) TableName() string {
 	return "app.order_admission"
+}
+func (ApplicationsOrderAdmission) TableName() string {
+	return "app.applications_order_admission"
 }
 func (Documents) TableName() string {
 	return "app.documents"

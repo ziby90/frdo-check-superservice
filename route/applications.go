@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"persons/digest"
 	"persons/handlers"
 	"persons/service"
 	"strconv"
@@ -530,7 +531,7 @@ func AddApplicationHandler(r *mux.Router) {
 	// генерация файла пдф заявления
 	r.HandleFunc("/applications/{id:[0-9]+}/generate/pdf", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
-		var data handlers.PDFApplicationParams
+		var data handlers.PDFApplicationParamsApplications
 		res.User = *handlers.CheckAuthCookie(r)
 		vars := mux.Vars(r)
 		id, err := strconv.ParseInt(vars[`id`], 10, 32)
@@ -547,13 +548,16 @@ func AddApplicationHandler(r *mux.Router) {
 		}
 		data.IdApplication = uint(id)
 		//data.Docs = append(data.Docs, handlers.DocsApplication{
-		//	Id:   156,
+		//	Id:   186,
 		//	Type: "identification",
 		//})
 		//data.Docs = append(data.Docs, handlers.DocsApplication{
-		//	Id:   1306,
-		//	Type: "education",
+		//	Id:   407,
+		//	Type: "educations",
 		//})
+		//data.Tests = append(data.Tests, 16)
+		//data.Achievements = append(data.Tests, 21)
+		//data.Achievements = append(data.Tests, 23)
 		b, _ := ioutil.ReadAll(r.Body)
 		err = json.Unmarshal(b, &data)
 
@@ -580,27 +584,25 @@ func AddApplicationHandler(r *mux.Router) {
 			service.ReturnErrorJSON(w, &res, 400)
 			return
 		}
-		//pdfg, err := wkhtml.NewPDFGenerator()
-		//if err != nil {
-		//	res.SetErrorResult(err.Error())
-		//	service.ReturnErrorJSON(w, &res, 400)
-		//	return
-		//}
-		//pdfg.AddPage(wkhtml.NewPageReader(strings.NewReader(tpl.String())))
-		//err = pdfg.Create()
-		//if err != nil {
-		//	res.SetErrorResult(err.Error())
-		//	service.ReturnErrorJSON(w, &res, 400)
-		//	return
-		//}
-		//filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.pdf"`
-		//w.Header().Set("Content-Disposition", filename)
-		//w.Header().Set("Access-Control-Allow-Origin", "*")
-		//w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		//w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-		//
-		//w.Write(pdfg.Bytes())
-	}).Methods("GET")
+		pdfg, err := wkhtml.NewPDFGenerator()
+		if err != nil {
+			res.SetErrorResult(err.Error())
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		pdfg.AddPage(wkhtml.NewPageReader(strings.NewReader(tpl.String())))
+		err = pdfg.Create()
+		if err != nil {
+			res.SetErrorResult(err.Error())
+			service.ReturnErrorJSON(w, &res, 400)
+			return
+		}
+		filename := `attachment; filename="` + time.Now().Format(`2006-01-02 15:04:05`) + `.pdf"`
+		w.Header().Set("Content-Disposition", filename)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	}).Methods("POST")
 	// получение информации о согласии - несогласии
 	r.HandleFunc("/applications/{id:[0-9]+}/info/agreed", func(w http.ResponseWriter, r *http.Request) {
 		var res handlers.ResultInfo
@@ -671,6 +673,96 @@ func AddApplicationHandler(r *mux.Router) {
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
 
+	// список приказов
+	r.HandleFunc("/orders/list", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.NewResult()
+		res.Sort = handlers.Sort{
+			Field: "",
+			Order: "",
+		}
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.OrdersSearchArray)
+		res.User = *handlers.CheckAuthCookie(r)
+		res.GetListOrders()
+		res.PrimaryLogging = digest.PrimaryLogging{
+			TableObject: `app.order_admission`,
+			Action:      "view",
+			Result:      res.Done,
+			OldData:     nil,
+			NewData:     nil,
+			Errors:      res.Errors,
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+			IdAuthor:    res.User.Id,
+		}
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+	// информация по приказу
+	r.HandleFunc("/orders/{id:[0-9]+}/main", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, &res)
+			return
+		}
+		idOrder := uint(id)
+		res.GetOrderInfoById(idOrder)
+		res.PrimaryLogging = digest.PrimaryLogging{
+			IdObject:    &idOrder,
+			TableObject: `app.order_admission`,
+			Action:      "view",
+			Result:      res.Done,
+			OldData:     nil,
+			NewData:     nil,
+			Errors:      res.Errors,
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+			IdAuthor:    res.User.Id,
+			TypeLogging: nil,
+		}
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+	// список заявлений
+	r.HandleFunc("/orders/{id:[0-9]+}/applications", func(w http.ResponseWriter, r *http.Request) {
+		res := handlers.NewResult()
+		vars := mux.Vars(r)
+		res.User = *handlers.CheckAuthCookie(r)
+		id, err := strconv.ParseInt(vars[`id`], 10, 32)
+		keys := r.URL.Query()
+		res.MakeUrlParams(keys)
+		res.MakeUrlParamsSearch(keys, handlers.AppOrderSearchArray)
+		if err != nil {
+			message := `Неверный параметр id.`
+			res.Message = &message
+			service.ReturnJSON(w, &res)
+			return
+		}
+
+		idOrder := uint(id)
+		res.GetOrderApplicationsById(idOrder)
+		res.PrimaryLogging = digest.PrimaryLogging{
+			IdObject:    &idOrder,
+			TableObject: `app.applications_order_admission`,
+			Action:      "view",
+			Result:      res.Done,
+			OldData:     nil,
+			NewData:     nil,
+			Errors:      res.Errors,
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+			IdAuthor:    res.User.Id,
+			TypeLogging: nil,
+		}
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
 	//
 	//r.HandleFunc("/entrants/{id:[0-9]+}/others", func(w http.ResponseWriter, r *http.Request) {
 	//	res := handlers.ResultInfo{}

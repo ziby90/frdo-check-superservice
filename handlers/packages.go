@@ -572,7 +572,6 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 	var response []interface{}
 	if db.RowsAffected > 0 {
 		for index, _ := range elements {
-
 			element := map[string]interface{}{
 				"id":                                 elements[index].Id,
 				"id_organization":                    elements[index].IdOrganization,
@@ -594,11 +593,19 @@ func (result *Result) GetRatingCompetitiveElements(idPackage uint) {
 				"created":                            elements[index].Created,
 				"id_competitive_groups_applications": elements[index].IdCompetitiveGroupsApplication,
 				"name_competitive_group":             nil,
+				"uid_epgu":                           nil,
+				"app_number":                         nil,
 			}
 			if elements[index].IdCompetitiveGroup > 0 {
 				var competitiveGroup digest.CompetitiveGroup
 				conn.Where(`id=?`, elements[index].IdCompetitiveGroup).Find(&competitiveGroup)
 				element[`name_competitive_group`] = competitiveGroup.Name
+			}
+			if elements[index].IdApplication > 0 {
+				var application digest.Application
+				conn.Where(`id=?`, elements[index].IdApplication).Find(&application)
+				element[`uid_epgu`] = application.UidEpgu
+				element[`app_number`] = application.AppNumber
 			}
 			response = append(response, element)
 		}
@@ -618,6 +625,231 @@ func (result *ResultInfo) GetRatingCompetitivePackageFile(idPackage uint) {
 	conn := &config.Db.ConnGORM
 	conn.LogMode(config.Conf.Dblog)
 	var doc digest.RatingCompetitivePackages
+	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idPackage).Find(&doc)
+	if db.Error != nil {
+		if db.Error.Error() == "record not found" {
+			result.Done = false
+			message := "Файл не найден."
+			result.Message = &message
+			result.Items = []interface{}{}
+			return
+		}
+		message := "Ошибка подключения к БД."
+		result.Message = &message
+		return
+	}
+	filename := doc.PathFile
+	path := getPath(doc.IdOrganization, doc.TableName(), doc.Created)
+	path = SetDateToPathPackages(path, doc.Created)
+	path += filename
+	result.Items = path
+	result.Done = true
+	return
+}
+
+func (result *ResultInfo) AddFileOrderPackage(packageName string, f *digest.File) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.OrderPackages
+	path := getPath(result.User.CurrentOrganization.Id, doc.TableName(), time.Now())
+	path = SetDateToPathPackages(path, time.Now())
+	ext := filepath.Ext(path + `/` + f.Header.Filename)
+	sha1FileName := sha1.Sum([]byte(doc.TableName() + time.Now().String()))
+	name := hex.EncodeToString(sha1FileName[:]) + ext
+	if _, err := os.Stat(path); err != nil {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			result.SetErrorResult(err.Error())
+			return
+		}
+	}
+	dst, err := os.Create(filepath.Join(path, name))
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, f.MultFile)
+	if err != nil {
+		result.SetErrorResult(err.Error())
+		return
+	}
+	doc.Name = packageName
+	doc.PathFile = name
+	doc.Created = time.Now()
+	doc.IdStatus = 1
+	doc.IdAuthor = result.User.Id
+	doc.IdOrganization = result.User.CurrentOrganization.Id
+	source := `cabinet`
+	doc.Source = &source
+	db := conn.Create(&doc)
+	if db.Error != nil {
+		result.SetErrorResult(db.Error.Error())
+		return
+	}
+	result.Items = map[string]interface{}{
+		`id_package`: doc.Id,
+	}
+	result.Done = true
+	return
+}
+func (result *Result) GetOrderPackages() {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var packages []digest.OrderPackages
+	if result.Sort.Field == `` {
+		result.Sort.Field = `created`
+	}
+	if result.Sort.Order == `` {
+		result.Sort.Order = `desc`
+	}
+
+	db := conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = db.Where(`id_organization=?`, result.User.CurrentOrganization.Id)
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], PackageSearchArray) >= 0 {
+			db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
+	}
+	dbCount := db.Model(&packages).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Preload(`Status`).Find(&packages)
+	var response []interface{}
+	if db.RowsAffected > 0 {
+		for index, _ := range packages {
+			response = append(response, map[string]interface{}{
+				"id":              packages[index].Id,
+				"name":            packages[index].Name,
+				"id_organization": packages[index].IdOrganization,
+				"error":           packages[index].Error,
+				"id_author":       packages[index].IdAuthor,
+				"id_status":       packages[index].IdStatus,
+				"name_status":     packages[index].Status.Name,
+				"code_status":     packages[index].Status.Code,
+				"created":         packages[index].Created,
+				"count_all":       packages[index].CountAll,
+				"count_add":       packages[index].CountAdd,
+				"duration":        packages[index].Duration,
+			})
+		}
+		result.Done = true
+		result.Items = response
+		return
+	} else {
+		result.Done = true
+		message := `Пакеты не найдены.`
+		result.Message = &message
+		result.Items = []digest.OrderPackages{}
+		return
+	}
+
+}
+func (result *Result) GetOrderElements(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var pack digest.OrderPackages
+	db := conn.Where(`id=?`, idPackage).Find(&pack)
+	if pack.Id <= 0 {
+		result.Done = false
+		m := `Пакет не найден`
+		result.Message = &m
+		return
+	}
+	var elements []digest.OrderElement
+	if result.Sort.Field == `` {
+		result.Sort.Field = `created`
+	}
+	if result.Sort.Order == `` {
+		result.Sort.Order = `asc`
+	}
+	db = conn.Order(result.Sort.Field + ` ` + result.Sort.Order)
+	db = db.Where(`id_package=?`, idPackage)
+
+	dbCount := db.Model(&elements).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Find(&elements)
+	var response []interface{}
+	if db.RowsAffected > 0 {
+		for index, _ := range elements {
+			element := map[string]interface{}{
+				"id":                        elements[index].Id,
+				"id_campaign":               elements[index].IdCampaign,
+				"name_campaign":             elements[index].IdCampaign,
+				"id_application":            elements[index].IdApplication,
+				"app_number":                elements[index].IdApplication,
+				"uid_epgu":                  elements[index].IdApplication,
+				"id_education_form":         elements[index].IdEducationForm,
+				"name_education_form":       elements[index].IdEducationForm,
+				"id_education_level":        elements[index].IdEducationLevel,
+				"name_education_level":      elements[index].IdEducationLevel,
+				"id_education_source":       elements[index].IdEducationSource,
+				"name_education_source":     elements[index].IdEducationSource,
+				"order_name":                elements[index].OrderName,
+				"order_date":                elements[index].OrderDate,
+				"foreigners":                elements[index].Foreigners,
+				"published":                 elements[index].Published,
+				"preferential_order":        elements[index].PreferentialOrder,
+				"id_order_admission_status": elements[index].IdOrderAdmissionStatus,
+				"id_order_admission_type":   elements[index].IdOrderAdmissionType,
+				"id_package":                elements[index].IdPackage,
+				"checked":                   elements[index].Checked,
+				"error":                     elements[index].Error,
+				"created":                   elements[index].Created,
+				"actual":                    elements[index].Actual,
+			}
+			if elements[index].IdCampaign > 0 {
+				var c digest.Campaign
+				conn.Where(`id=?`, elements[index].IdCampaign).Find(&c)
+				element[`name_campaign`] = c.Name
+			}
+			if elements[index].IdEducationForm > 0 {
+				var c digest.EducationForm
+				conn.Where(`id=?`, elements[index].IdEducationForm).Find(&c)
+				element[`name_education_form`] = c.Name
+			}
+			if elements[index].IdEducationLevel > 0 {
+				var c digest.EducationLevel
+				conn.Where(`id=?`, elements[index].IdEducationLevel).Find(&c)
+				element[`name_education_level`] = c.Name
+			}
+			if elements[index].IdEducationSource > 0 {
+				var c digest.EducationSource
+				conn.Where(`id=?`, elements[index].IdEducationSource).Find(&c)
+				element[`name_education_source`] = c.Name
+			}
+			if elements[index].IdApplication != nil {
+				var c digest.Application
+				conn.Where(`id=?`, elements[index].IdApplication).Find(&c)
+				element[`app_number`] = c.AppNumber
+				element[`uid_epgu`] = c.UidEpgu
+			}
+			response = append(response, element)
+		}
+		result.Done = true
+		result.Items = response
+		return
+	} else {
+		result.Done = true
+		message := `Элементы не найдены.`
+		result.Message = &message
+		result.Items = []digest.OrderElement{}
+		return
+	}
+}
+func (result *ResultInfo) GetOrderPackageFile(idPackage uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var doc digest.OrderPackages
 	db := conn.Where(`id_organization=? AND id=?`, result.User.CurrentOrganization.Id, idPackage).Find(&doc)
 	if db.Error != nil {
 		if db.Error.Error() == "record not found" {

@@ -29,6 +29,7 @@
 		body {
 			padding: 35px 20px 35px 50px;
 			font-size: 14px;
+			font-family: "Times New Roman", Times, serif;
 		}
 
 		table {
@@ -86,6 +87,17 @@
 			page-break-inside: avoid;
 		}
 
+		.application__check {
+			margin-top: 50px;
+		}
+
+		.application__check-signature-stamp {
+			border: 1px solid black;
+			padding: 20px;
+			text-transform: uppercase;
+			white-space: nowrap;
+		}
+
 
 
 
@@ -103,10 +115,10 @@
 		<table class="">
 			<tr>
 				<td>
-					<b>Регистрационный номер заявления: </b>
+					<b>Регистрационный номер: </b>
 				</td>
 				<td colspan="3">
-					123456
+					{{.Application.AppNumber}}
 				</td>
 			</tr>
 			<tr>
@@ -114,7 +126,7 @@
 					<b>UID ЕПГУ: </b>
 				</td>
 				<td colspan="3">
-					897654321
+					{{.Application.UidEpgu}}
 				</td>
 			</tr>
 			<tr>
@@ -122,7 +134,7 @@
 					<b>UID ВУЗа: </b>
 				</td>
 				<td colspan="3">
-					50c9c685-d7b3-11ea-b52b
+					{{.Application.Uid}}
 				</td>
 			</tr>
 			<tr>
@@ -130,7 +142,7 @@
 					<b>Дата и время регистрации: </b>
 				</td>
 				<td colspan="3">
-					13.08.2020 11:00, (GMT+03:00)
+					{{.Application.RegistrationDate}}
 				</td>
 			</tr>
 			<tr>
@@ -138,13 +150,13 @@
 					<b>Ф.И.О. абитуриента: </b>
 				</td>
 				<td style="width: 30%">
-					Иванов Иван Иванович
+					{{.Entrant.Fio}}
 				</td>
 				<td>
 					<b>Пол: </b>
 				</td>
 				<td>
-					мужской
+					{{.Entrant.Gender}}
 				</td>
 			</tr>
 
@@ -153,13 +165,13 @@
 					<b>Дата рождения: </b>
 				</td>
 				<td>
-					20.05.2003
+					{{.Entrant.Birthday}}
 				</td>
 				<td>
 					<b>Гражданство: </b>
 				</td>
 				<td>
-					РОССИЯ
+					{{.Entrant.Okcm}}
 				</td>
 			</tr>
 			<tr>
@@ -167,13 +179,13 @@
 					<b>Телефон: </b>
 				</td>
 				<td>
-					+7-903-123-45-67
+					{{.Entrant.Phone}}
 				</td>
 				<td>
 					<b>Электронная почта: </b>
 				</td>
 				<td>
-					1234567@mail.ru
+					{{.Entrant.Email}}
 				</td>
 			</tr>
 			<tr>
@@ -181,14 +193,14 @@
 					<b>СНИЛС: </b>
 				</td>
 				<td colspan="3">
-					00000000977
+					{{.Entrant.Snils}}
 				</td>
 			</tr>
 		</table>
 	</div>
 
 
-	<div class="application__ident-doc">
+	<div class="agreed__ident-doc">
 		<h3> Документ, удостоверяющий личность: </h3>
 		<table class="">
 			<tr>
@@ -196,7 +208,7 @@
 					<b>Тип документа: </b>
 				</td>
 				<td colspan="3">
-					Паспорт граданина Российской федерации
+					{{.DocIdentification.Type}}
 				</td>
 			</tr>
 			<tr>
@@ -204,13 +216,13 @@
 					<b>Серия: </b>
 				</td>
 				<td >
-					5536
+					{{.DocIdentification.Series}}
 				</td>
 				<td>
 					<b>Номер: </b>
 				</td>
 				<td>
-					01383232
+					{{.DocIdentification.Number}}
 				</td>
 			</tr>
 			<tr>
@@ -218,7 +230,7 @@
 					<b>Место выдачи: </b>
 				</td>
 				<td colspan="3">
-					ТП №1 по г. Москве в ЮЗАО
+					{{.DocIdentification.Organization}}
 				</td>
 			</tr>
 			<tr>
@@ -226,13 +238,13 @@
 					<b>Дата выдачи: </b>
 				</td>
 				<td >
-					11.05.2020
+					{{.DocIdentification.IssueDate}}
 				</td>
 				<td>
 					<b>Код подразделения: </b>
 				</td>
 				<td>
-					056-984
+					{{.DocIdentification.Subdivision}}
 				</td>
 			</tr>
 		</table>
@@ -242,11 +254,11 @@
 		<h3> Документ об образовании: </h3>
 		<table class="">
 			<tr>
-				<td>
+				<td style="width: 210px">
 					<b>Тип документа: </b>
 				</td>
 				<td colspan="3">
-					Аттестат о среднем (полном) общем образовании
+					{{.DocEducation.Type}}
 				</td>
 			</tr>
 			<tr>
@@ -254,21 +266,21 @@
 					<b>Наименование документа: </b>
 				</td>
 				<td colspan="3">
-					Аттестат о среднем (полном) общем образовании
+					{{.DocEducation.Name}}
 				</td>
 			</tr>
 			<tr>
 				<td>
 					<b>Уровень образования: </b>
 				</td>
-				<td style="width: 35%">
-					Основное общее образование
-				</td>
 				<td>
+					{{.DocEducation.Level}}
+				</td>
+				<td style="width: 210px">
 					<b>Специальность по ОКСО: </b>
 				</td>
 				<td>
-					-
+					{{.DocEducation.Direction}}
 				</td>
 			</tr>
 			<tr>
@@ -276,13 +288,13 @@
 					<b>Серия: </b>
 				</td>
 				<td >
-					5536
+					{{.DocEducation.Series}}
 				</td>
 				<td>
 					<b>Номер: </b>
 				</td>
 				<td>
-					01383232
+					{{.DocEducation.Number}}
 				</td>
 			</tr>
 			<tr>
@@ -290,7 +302,7 @@
 					<b>Место выдачи: </b>
 				</td>
 				<td colspan="3">
-					Школа № 1 г. Москва
+					{{.DocEducation.Organization}}
 				</td>
 			</tr>
 			<tr>
@@ -298,13 +310,13 @@
 					<b>Дата выдачи: </b>
 				</td>
 				<td >
-					11.05.2020
+					{{.DocEducation.IssueDate}}
 				</td>
 				<td>
 					<b>Регистрационный номер: </b>
 				</td>
 				<td>
-					-
+					{{.DocEducation.Registration}}
 				</td>
 			</tr>
 		</table>
@@ -316,19 +328,18 @@
 		</div>
 		<div class="application__text_text">
 			Для участия в конкурсе для зачисления на 1 курс в
-			ФГАОУ ВО «Уральский федеральный университет имени первого Президента России Б.Н. Ельцина» (УРФУ)
+			{{.Organization.Name}}
 			по следующим условиям поступления и основаниям приема:
 		</div>
 	</div>
 	<div class="application__competitive">
 		<table class="">
 			<tr>
-				<td style="width: 180px">
+				<td style="width: 250px">
 					<b>Конкурсная група: </b>
 				</td>
 				<td colspan="3">
-					2020 УрФУ, 22.03.01 Материаловедение и технологии материалов
-					(Программа: Материаловедение и технологии металлических материалов), Очная, Бюджет
+					{{.CompetitiveGroup.Name}}
 				</td>
 			</tr>
 			<tr>
@@ -336,7 +347,7 @@
 					<b>Направление подготовки: </b>
 				</td>
 				<td colspan="3">
-					22.03.01 Материаловедение и технологии материалов
+					{{.CompetitiveGroup.Direction}}
 				</td>
 			</tr>
 			<tr>
@@ -344,13 +355,13 @@
 					<b>Уровень образования: </b>
 				</td>
 				<td style="width: 173px">
-					Бакалавриат
+					{{.CompetitiveGroup.Level}}
 				</td>
-				<td style="width: 120px">
+				<td style="width: 180px">
 					<b>Форма обучения: </b>
 				</td>
 				<td>
-					Очная форма обучения
+					{{.CompetitiveGroup.Form}}
 				</td>
 			</tr>
 			<tr>
@@ -358,13 +369,13 @@
 					<b>Источник финансирования: </b>
 				</td>
 				<td >
-					Бюджетные места
+					{{.CompetitiveGroup.Source}}
 				</td>
 				<td>
 					<b>Уровень бюджета: </b>
 				</td>
 				<td>
-					Федеральный
+					{{.CompetitiveGroup.Budget}}
 				</td>
 			</tr>
 		</table>
@@ -375,11 +386,11 @@
 
 		<table>
 			<tr>
-				<td style="width: 242px">
+				<td style="width: 260px">
 					<b>Первое высшее образование: </b>
 				</td>
 				<td colspan="3">
-					Да
+					{{.Application.FirstHigherEducation}}
 				</td>
 			</tr>
 			<tr>
@@ -387,13 +398,13 @@
 					<b>Оригинал документа об образовании: </b>
 				</td>
 				<td style="width: 110px">
-					Да
+					{{.Application.Original}}
 				</td>
 				<td style="width: 155px">
 					<b>Дата подачи оригинала: </b>
 				</td>
 				<td>
-					05.08.2020
+					{{.Application.OriginalDoc}}
 				</td>
 			</tr>
 
@@ -402,13 +413,13 @@
 					<b>Согласие на зачисление: </b>
 				</td>
 				<td>
-					Да
+					{{.Application.Agreed}}
 				</td>
 				<td>
 					<b>Дата подачи согласия: </b>
 				</td>
 				<td>
-					05.08.2020
+					{{.Application.AgreedDate}}
 				</td>
 			</tr>
 
@@ -417,13 +428,13 @@
 					<b>Отзыв согласия на зачисление: </b>
 				</td>
 				<td>
-					Нет
+					{{.Application.Disagreed}}
 				</td>
 				<td>
 					<b>Дата отзыва согласия: </b>
 				</td>
 				<td>
-					-
+					{{.Application.DisagreedDate}}
 				</td>
 			</tr>
 
@@ -432,7 +443,7 @@
 					<b>Необходимость общежития: </b>
 				</td>
 				<td colspan="3">
-					Нет
+					{{.Application.NeedHostel}}
 				</td>
 			</tr>
 		</table>
@@ -442,7 +453,7 @@
 					<b>Проведение вступительных испытаний с использованием дистанционных технологий: </b>
 				</td>
 				<td>
-					Нет
+					{{.Application.DistanceTest}}
 				</td>
 			</tr>
 			<tr>
@@ -450,7 +461,7 @@
 					<b>Место проведения вступительных испытаний с использованием дистанционных технилогий: </b>
 				</td>
 				<td >
-					-
+					{{.Application.DistancePlace}}
 				</td>
 			</tr>
 			<tr>
@@ -458,7 +469,7 @@
 					<b>Проведение ВИ с созданием специальных условий: </b>
 				</td>
 				<td >
-					Нет
+					{{.Application.SpecialConditions}}
 				</td>
 			</tr>
 		</table>
@@ -467,7 +478,9 @@
 
 	<div class="application__tests">
 		<h3> Вступительные испытания </h3>
-
+		{{ if eq (len .EntranceTests) 0 }}
+			<h1>Нету</h1>
+		{{ else }}
 		<table class="bordered">
 			<tr>
 				<th> Тип вступительного испытания </th>
@@ -477,38 +490,26 @@
 				<th> Полученный балл </th>
 				<th> Подтверждающий документ </th>
 			</tr>
-
-			<tr>
-				<td> Вступительные испытания творческой и (или) профессиональной направленности </td>
-				<td> Композиционный рисунок </td>
-				<td> Не ЕГЭ </td>
-				<td> 05.08.2020 08:00, (GMT+03:00) </td>
-				<td class="center"> 50 </td>
-				<td> ??? </td>
-			</tr>
-			<tr>
-				<td> Вступительные испытания </td>
-				<td> Обществознание </td>
-				<td> ЕГЭ </td>
-				<td> - </td>
-				<td class="center"> 50 </td>
-				<td> ??? </td>
-			</tr>
-			<tr>
-				<td> Вступительные испытания </td>
-				<td> Русский язык </td>
-				<td> ЕГЭ </td>
-				<td> - </td>
-				<td class="center"> 50 </td>
-				<td> ??? </td>
-			</tr>
+			{{range .EntranceTests}}
+				<tr>
+					<td> {{ .Type }} </td>
+					<td> {{ .Subject }} </td>
+					<td> {{ .Ege }} </td>
+					<td> {{ .Date }} </td>
+					<td class="center"> 50 </td>
+					<td> {{ .Doc }} </td>
+				</tr>
+			{{end}}
 		</table>
+		{{ end }}
 
 	</div>
 
 	<div  class="application__achievements">
 		<h3> Индивидуальные достижения </h3>
-
+		{{ if eq (len .Achievements) 0 }}
+		<h1>Нету</h1>
+		{{ else }}
 		<table class="bordered">
 			<tr>
 				<th> Наименование </th>
@@ -516,14 +517,29 @@
 				<th> Полученный балл </th>
 				<th> Подтверждающий документ </th>
 			</tr>
-
-			<tr>
-				<td> Аттестат о среднем общем образовании с отличием </td>
-				<td> Аттестат о среднем общем образовании с отличием </td>
-				<td class="center"> 1 </td>
-				<td> ??? </td>
-			</tr>
+			{{range .Achievements}}
+				<tr>
+					<td> {{ .Category }} </td>
+					<td> {{ .Name }}  </td>
+					<td class="center">  {{ .Mark }}  </td>
+					<td>  {{ .Doc }}  </td>
+				</tr>
+			{{end}}
 		</table>
+		{{ end }}
+
+	</div>
+
+	<div class="application__check">
+		<div class="application__check-signature">
+			<table width="100%">
+				<tr>
+					<td style="width:100%"></td>
+					<td class="application__check-signature-stamp"> Подписано простой электронной подписью </td>
+				</tr>
+
+			</table>
+		</div>
 
 	</div>
 

@@ -2,18 +2,89 @@ package handlers
 
 import (
 	sendToEpgu "10.10.11.55/sendtoepgu/sendtoepgu.git/send_to_epgu_xml"
+	ssloger "10.10.11.55/ssloger/ssloger.git"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"persons/config"
 	"persons/digest"
 	"persons/service"
+	"strconv"
 	"strings"
 	"time"
 )
 
 var ApplicationSearchArray = []string{
 	`hz`,
+}
+var OrdersSearchArray = []string{
+	`name_campaign`,
+	`name_education_form`,
+	`name_education_level`,
+	`name_education_form`,
+	`name_education_source`,
+	`uid`,
+}
+var AppOrderSearchArray = []string{
+	`name_competitive_group`,
+	`name_status`,
+	`id_status`,
+	`uid`,
+	`uid_epgu`,
+	`app_number`,
+	`entrant_fullname`,
+	`entrant_snils`,
+}
+
+type Order struct {
+	Id                       uint       `json:"id"`
+	IdCampaign               uint       `json:"id_campaign"`
+	NameCampaign             string     `json:"name_campaign"`
+	IdEducationForm          uint       `json:"id_education_form"`
+	NameEducationForm        string     `json:"name_education_form"`
+	IdEducationLevel         uint       `json:"id_education_level"`
+	NameEducationLevel       string     `json:"name_education_level"`
+	IdEducationSource        uint       `json:"id_education_source"`
+	NameEducationSource      string     `json:"name_education_source"`
+	OrderName                string     `json:"order_name"`
+	OrderDate                time.Time  `json:"order_date"`
+	Published                *time.Time `json:"published"`
+	Foreigners               bool       `json:"foreigners"`
+	PreferentialOrder        bool       `json:"preferential_order"`
+	IdOrderAdmissionStatus   uint       `json:"id_order_admission_status"`
+	NameOrderAdmissionStatus string     `json:"name_order_admission_status"`
+	IdOrderAdmissionType     uint       `json:"id_order_admission_type"`
+	NameOrderAdmissionType   string     `json:"name_order_admission_type"`
+	Actual                   bool       `json:"actual"`
+	Created                  time.Time  `json:"created"`
+	Uid                      *string    `json:"uid"`
+}
+type AppOrder struct {
+	Id                       uint       `json:"id" schema:"id"` // Идентификатор
+	IdEntrant                uint       `json:"id_entrant"`
+	EntrantFullname          string     `json:"entrant_fullname"`
+	EntrantSnils             string     `json:"entrant_snils"`
+	IdCompetitiveGroup       uint       `json:"id_competitive_group"`
+	NameCompetitiveGroup     string     `json:"name_competitive_group"`
+	AppNumber                string     `json:"app_number"`
+	RegistrationDate         time.Time  `json:"registration_date" schema:"registration_date"`
+	Rating                   float32    `json:"rating" schema:"rating"`
+	IdStatus                 uint       `json:"id_status" schema:"id_status"`
+	NameStatus               string     `json:"name_status" schema:"name_status"`
+	Agreed                   *bool      `json:"agreed" schema:"agreed"`
+	Disagreed                *bool      `json:"disagreed" schema:"disagreed"`
+	AgreedDate               *time.Time `json:"agreed_date" schema:"agreed_date"`
+	DisagreedDate            *time.Time `json:"disagreed_date" schema:"disagreed_date"`
+	IdOrderAdmission         *uint      `json:"id_order_admission" schema:"id_order_admission"`
+	OrderAdmissionDate       *time.Time `json:"order_admission_date" schema:"order_admission_date"`
+	AppOrderAdmissionActual  bool       `json:"app_order_admission_actual" schema:"app_order_admission_actual"`
+	AppOrderAdmissionCreated time.Time  `json:"app_order_admission_created" schema:"app_order_admission_created"`
+	Uid                      *string    `json:"uid" schema:"uid"`
+	UidEpgu                  *int64     `json:"uid_epgu" schema:"uid_epgu"`
+	Created                  time.Time  `json:"created"` // Дата создания
+	Changed                  *time.Time `json:"changed"` // Дата изменения
+	StatusComment            *string    `json:"status_comment" schema:"status_comment"`
+	Actual                   bool       `xml:"actual" json:"actual"`
 }
 
 type ChangeStatusApplication struct {
@@ -111,109 +182,361 @@ type PDFApplicationParams struct {
 	IdApplication uint              `json:"id_application" schema:"id_application"`
 	Docs          []DocsApplication `json:"docs" schema:"docs"`
 }
+type PDFApplicationParamsApplications struct {
+	IdApplication uint              `json:"id_application" schema:"id_application"`
+	Docs          []DocsApplication `json:"docs" schema:"docs"`
+	Tests         []uint            `json:"tests" schema:"tests"`
+	Achievements  []uint            `json:"achievements" schema:"achievements"`
+}
 
 type GenerateApplicationAgreedData struct {
-	Agreed        *bool
-	TmplPath      *string
-	AgreedHistory struct {
-		Date    string
-		UidSmev string
-	}
-	Entrant struct {
-		Fio      string
-		Birthday string
-		Gender   string
-		Okcm     string
-		Phone    string
-		Email    string
-		Snils    string
-	}
-	DocIdentification struct {
-		Type         string
-		Series       string
-		Number       string
-		Organization string
-		IssueDate    string
-		Subdivision  string
-	}
-	DocEducation struct {
-		Type         string
-		Name         string
-		Level        string
-		Direction    string
-		Series       string
-		Number       string
-		Organization string
-		IssueDate    string
-		Registration string
-	}
-	Organization struct {
-		Name string
-	}
-	Application struct {
-		Uid       string
-		UidEpgu   string
-		AppNumber string
-	}
-	CompetitiveGroup struct {
-		Name      string
-		Direction string
-		Level     string
-		Source    string
-		Form      string
-		Budget    string
-	}
+	Agreed            *bool
+	TmplPath          *string
+	AgreedHistory     AgreedHistoryPdf
+	Entrant           EntrantPdf
+	DocIdentification DocIdentificationPdf
+	DocEducation      DocEducationPdf
+	Organization      OrganizationPdf
+	Application       ApplicationPdf
+	CompetitiveGroup  CompetitiveGroupPdf
 }
 type GenerateApplicationData struct {
-	Agreed        *bool
-	TmplPath      *string
-	AgreedHistory struct {
-		Date    string
-		UidSmev string
+	TmplPath          *string
+	Entrant           EntrantPdf
+	DocIdentification DocIdentificationPdf
+	DocEducation      DocEducationPdf
+	Organization      OrganizationPdf
+	Application       ApplicationPdf
+	CompetitiveGroup  CompetitiveGroupPdf
+	EntranceTests     []EntranceTestPdf
+	Achievements      []AchievementPdf
+}
+type AgreedHistoryPdf struct {
+	Date    string
+	UidSmev string
+}
+type EntrantPdf struct {
+	Fio      string
+	Birthday string
+	Gender   string
+	Okcm     string
+	Phone    string
+	Email    string
+	Snils    string
+}
+type DocIdentificationPdf struct {
+	Type         string
+	Series       string
+	Number       string
+	Organization string
+	IssueDate    string
+	Subdivision  string
+}
+type DocEducationPdf struct {
+	Type         string
+	Name         string
+	Level        string
+	Direction    string
+	Series       string
+	Number       string
+	Organization string
+	IssueDate    string
+	Registration string
+}
+type OrganizationPdf struct {
+	Name string
+}
+type CompetitiveGroupPdf struct {
+	Name      string
+	Direction string
+	Level     string
+	Source    string
+	Form      string
+	Budget    string
+}
+type ApplicationPdf struct {
+	Uid                  string
+	UidEpgu              string
+	AppNumber            string
+	Created              string
+	RegistrationDate     string
+	Priority             string
+	FirstHigherEducation string
+	NeedHostel           string
+	IdDisabledDocument   string
+	SpecialConditions    string
+	DistanceTest         string
+	DistancePlace        string
+	EgeCheck             string
+	Agreed               string
+	Disagreed            string
+	AgreedDate           string
+	DisagreedDate        string
+	IdOrderAdmission     string
+	OrderAdmissionDate   string
+	ReturnDate           string
+	Original             string
+	OriginalDoc          string
+}
+type EntranceTestPdf struct {
+	Type    string
+	Subject string
+	Ege     string
+	Date    string
+	Mark    string
+	Doc     string
+}
+type AchievementPdf struct {
+	Name     string
+	Category string
+	Mark     string
+	Doc      string
+}
+
+func (result *Result) GetListOrders() {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var orders []Order
+	sortField := `created`
+	sortOrder := `desc`
+	if result.Sort.Field != `` {
+		sortField = result.Sort.Field
+	} else {
+		result.Sort.Field = sortField
 	}
-	Entrant struct {
-		Fio      string
-		Birthday string
-		Gender   string
-		Okcm     string
-		Phone    string
-		Email    string
-		Snils    string
+	db := conn.Table(`app.order_admission o`).Select(`
+		o.id
+		, c.id as id_campaign
+		, c.name as name_campaign
+		, ef.id as id_education_form
+		, ef.name as name_education_form
+		, el.id as id_education_level
+		, el.name as name_education_level
+		, es.id as id_education_source
+		, es.name as name_education_source
+		, o.order_name
+		, o.order_date
+		, o.published
+		, o.foreigners
+		, o.preferential_order
+		, oas.id as id_order_admission_status
+		, oas.name as name_order_admission_status
+		, oat.id as id_order_admission_type
+		, oat.name as name_order_admission_type
+		, o.actual
+		, o.created
+		, o.uid`).
+		Joins(`join cmp.campaigns c on c.id =  o.id_campaign `).
+		Joins(`join cls.education_forms ef on ef.id =  o.id_education_form `).
+		Joins(`join cls.education_levels el on el.id =  o.id_education_level `).
+		Joins(`join cls.education_sources es on es.id= o.id_education_source `).
+		Joins(`join cls.order_admission_statuses oas on oas.id =  o.id_order_admission_status `).
+		Joins(`join cls.order_admission_types oat on oat.id =  o.id_order_admission_type `).Where(`o.id_organization=?`, result.User.CurrentOrganization.Id)
+	//valueArgs := []interface{}{}
+	//valueArgs = append(valueArgs, result.User.Id)
+
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], OrdersSearchArray) >= 0 {
+			switch search[0] {
+			case `name_campaign`:
+				db = db.Where(`UPPER(c.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `name_education_form`:
+				db = db.Where(`UPPER(ef.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `name_education_level`:
+				db = db.Where(`UPPER(el.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `name_education_source`:
+				db = db.Where(`UPPER(es.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `uid`:
+				db = db.Where(`UPPER(o.uid) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			}
+			//db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
 	}
-	DocIdentification struct {
-		Type         string
-		Series       string
-		Number       string
-		Organization string
-		IssueDate    string
-		Subdivision  string
+	dbCount := db.Model(&orders).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
 	}
-	DocEducation struct {
-		Type         string
-		Name         string
-		Level        string
-		Direction    string
-		Series       string
-		Number       string
-		Organization string
-		IssueDate    string
-		Registration string
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Find(&orders)
+	if db.Error != nil {
+		if db.Error.Error() == service.ErrorDbNotFound {
+			result.Done = true
+			message := `Приказы не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
 	}
-	Organization struct {
-		Name string
+	if db.RowsAffected > 0 {
+		result.Done = true
+		result.Items = orders
+		return
+	} else {
+		result.Done = true
+		message := `Приказы не найдены.`
+		result.Message = &message
+		result.Items = []digest.Campaign{}
+		return
 	}
-	Application struct {
-		Uid       string
-		UidEpgu   string
-		AppNumber string
+}
+func (result *Result) GetOrderApplicationsById(idOrder uint) {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var appOrder []AppOrder
+	sortField := `a.created`
+	sortOrder := `desc`
+	if result.Sort.Field != `` {
+		sortField = result.Sort.Field
+	} else {
+		result.Sort.Field = sortField
 	}
-	CompetitiveGroup struct {
-		Name      string
-		Direction string
-		Level     string
-		Source    string
-		Form      string
-		Budget    string
+	db := conn.Table(`app.applications_order_admission aoa`).Select(`
+		distinct a.id
+		, a.id_entrant 
+		, (((COALESCE(e.surname, ''::character varying)::text || ' '::text) || COALESCE(e.name, ''::character varying)::text) || ' '::text) || COALESCE(e.patronymic, ''::character varying)::text AS entrant_fullname
+    	, e.snils AS entrant_snils
+		, cg.id as id_competitive_group
+		, cg.name as name_competitive_group
+		, a.app_number 
+		, a.registration_date 
+		, a.rating 
+		, st.id as id_status 
+		, st."name" as name_status 
+		, a.agreed
+		, a.agreed_date 
+		, a.disagreed 
+		, a.disagreed_date 
+		, a.id_order_admission 
+		, a.order_admission_date 
+		, a.uid 
+		, a.uid_epgu 
+		, a.created 
+		, a.changed 
+		, a.status_comment 
+		, a.actual 
+		, aoa.actual as app_order_admission_actual
+		, aoa.created as app_order_admission_created`).
+		Joins(`join app.applications a on a.id = aoa.id_application `).
+		Joins(`join app.order_admission o on o.id = aoa.id_order_admission `).
+		Joins(`join persons.entrants e on e.id = a.id_entrant `).
+		Joins(`join cmp.competitive_groups cg on a.id_competitive_group  = cg.id `).
+		Joins(`join cls.application_statuses st on st.id = a.id_status `).Where(`o.id_organization=? and aoa.id_order_admission=?`, result.User.CurrentOrganization.Id, idOrder)
+
+	for _, search := range result.Search {
+		if service.SearchStringInSliceString(search[0], AppOrderSearchArray) >= 0 {
+			switch search[0] {
+			case `name_competitive_group`:
+				db = db.Where(`UPPER(cg.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `name_status`:
+				db = db.Where(`UPPER(st.name) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `id_status`:
+				if value, err := strconv.Atoi(search[1]); err == nil {
+					db = db.Where(`st.id=?`, value)
+				}
+				break
+			case `uid`:
+				db = db.Where(`UPPER(o.uid) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `uid_epgu`:
+				if value, err := strconv.Atoi(search[1]); err == nil {
+					db = db.Where(`o.uid_epgu = ?`, value)
+				}
+				break
+			case `app_number`:
+				db = db.Where(`UPPER(o.app_number) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `entrant_snils`:
+				db = db.Where(`UPPER(e.snils) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			case `entrant_fullname`:
+				db = db.Where(`UPPER( (((COALESCE(e.surname, ''::character varying)::text || ' '::text) || COALESCE(e.name, ''::character varying)::text) || ' '::text) || COALESCE(e.patronymic, ''::character varying)::text) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+				break
+			}
+			//db = db.Where(`UPPER(`+search[0]+`) LIKE ?`, `%`+strings.ToUpper(search[1])+`%`)
+		}
+	}
+	dbCount := db.Model(&appOrder).Count(&result.Paginator.TotalCount)
+	if dbCount.Error != nil {
+
+	}
+	result.Paginator.Make()
+	db = db.Limit(result.Paginator.Limit).Offset(result.Paginator.Offset).Order(sortField + ` ` + sortOrder).Scan(&appOrder)
+	if db.Error != nil {
+		if db.Error.Error() == service.ErrorDbNotFound {
+			result.Done = true
+			message := `Заявления не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		result.Done = true
+		result.Items = appOrder
+		return
+	} else {
+		result.Done = true
+		message := `Заявления не найдены.`
+		result.Message = &message
+		result.Items = []AppOrder{}
+		return
+	}
+}
+func (result *ResultInfo) GetOrderInfoById(idOrder uint) {
+	result.Done = false
+	conn := &config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var order Order
+	db := conn.Table(`app.order_admission o`).Select(`
+		o.id
+		, c.id as id_campaign
+		, c.name as name_campaign
+		, ef.id as id_education_form
+		, ef.name as name_education_form
+		, el.id as id_education_level
+		, el.name as name_education_level
+		, es.id as id_education_source
+		, es.name as name_education_source
+		, o.order_name
+		, o.order_date
+		, o.published
+		, o.foreigners
+		, o.preferential_order
+		, oas.id as id_order_admission_status
+		, oas.name as name_order_admission_status
+		, oat.id as id_order_admission_type
+		, oat.name as name_order_admission_type
+		, o.actual
+		, o.created
+		, o.uid`).
+		Joins(`join cmp.campaigns c on c.id =  o.id_campaign `).
+		Joins(`join cls.education_forms ef on ef.id =  o.id_education_form `).
+		Joins(`join cls.education_levels el on el.id =  o.id_education_level `).
+		Joins(`join cls.education_sources es on es.id= o.id_education_source `).
+		Joins(`join cls.order_admission_statuses oas on oas.id =  o.id_order_admission_status `).
+		Joins(`join cls.order_admission_types oat on oat.id =  o.id_order_admission_type `).Where(`o.id_organization=? and o.id=?`, result.User.CurrentOrganization.Id, idOrder).Find(&order)
+	if db.RowsAffected > 0 {
+		result.Done = true
+		result.Items = order
+		return
+	} else {
+		result.Done = false
+		message := `Приказ не найден.`
+		result.Message = &message
+		return
 	}
 }
 
@@ -1412,6 +1735,16 @@ func (result *ResultInfo) AddApplication(data AddApplication) {
 		tx.Rollback()
 		return
 	}
+	var comment string
+	if application.StatusComment != nil {
+		comment = *application.StatusComment
+	}
+	err := ssloger.LogNewAppStatus(tx, 3, result.User.Id, 1, application.Id, comment)
+	if err != nil {
+		result.SetErrorResult(`Ошибка при логировании статуса заявления ` + err.Error())
+		tx.Rollback()
+		return
+	}
 	var idsDocs []uint
 	ident := false
 	educ := false
@@ -1870,6 +2203,16 @@ func (result *ResultInfo) SetStatusApplication(data ChangeStatusApplication) {
 	application.StatusComment = data.StatusComment
 	t := time.Now()
 	application.Changed = &t
+	var comment string
+	if application.StatusComment != nil {
+		comment = *application.StatusComment
+	}
+	err = ssloger.LogNewAppStatus(tx, 3, result.User.Id, status.Id, application.Id, comment)
+	if err != nil {
+		result.SetErrorResult(`Ошибка при логировании статуса заявления ` + err.Error())
+		tx.Rollback()
+		return
+	}
 	db := tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Save(&application)
 	if db.Error != nil {
 		result.SetErrorResult(`Ошибка при изменении статуса заявления ` + db.Error.Error())
@@ -2257,7 +2600,7 @@ func (result *ResultInfo) GeneratePDFApplicationAgreedData(params PDFApplication
 	return
 }
 
-func (result *ResultInfo) GeneratePDFApplicationData(params PDFApplicationParams) (resultData GenerateApplicationAgreedData) {
+func (result *ResultInfo) GeneratePDFApplicationData(params PDFApplicationParamsApplications) (resultData GenerateApplicationData) {
 	conn := config.Db.ConnGORM
 	application, err := digest.GetApplication(params.IdApplication)
 	if err != nil {
@@ -2271,36 +2614,26 @@ func (result *ResultInfo) GeneratePDFApplicationData(params PDFApplicationParams
 	}
 	resultData.Application.AppNumber = checkEmptyPdfValueString(&application.AppNumber)
 	resultData.Application.Uid = checkEmptyPdfValueString(application.Uid)
+	resultData.Application.RegistrationDate = checkEmptyPdfValueTime(&application.RegistrationDate, `02.01.2006 15:04`, `(GMT+03:00)`)
+	resultData.Application.FirstHigherEducation = checkEmptyPdfValueBool(&application.FirstHigherEducation)
+	resultData.Application.Original = checkEmptyPdfValueBool(&application.Original)
+	resultData.Application.OriginalDoc = checkEmptyPdfValueTime(application.OriginalDoc, `02.01.2006`, ``)
+	resultData.Application.Agreed = checkEmptyPdfValueBool(application.Agreed)
+	resultData.Application.AgreedDate = checkEmptyPdfValueTime(application.AgreedDate, `02.01.2006`, ``)
+	resultData.Application.Disagreed = checkEmptyPdfValueBool(application.Disagreed)
+	resultData.Application.DisagreedDate = checkEmptyPdfValueTime(application.DisagreedDate, `02.01.2006`, ``)
+	resultData.Application.NeedHostel = checkEmptyPdfValueBool(&application.NeedHostel)
+	resultData.Application.DistanceTest = checkEmptyPdfValueBool(&application.DistanceTest)
+	resultData.Application.DistancePlace = checkEmptyPdfValueString(application.DistancePlace)
+	resultData.Application.SpecialConditions = checkEmptyPdfValueBool(&application.SpecialConditions)
 	if application.UidEpgu != nil {
 		resultData.Application.UidEpgu = fmt.Sprintf(`%d`, *application.UidEpgu)
 	} else {
 		resultData.Application.UidEpgu = `-`
 	}
 
-	var tmplPath string
-	if application.Agreed != nil && *application.Agreed {
-		tmplPath = "./tmpl/application_agreed.html"
-		agreed := true
-		resultData.Agreed = &agreed
-	}
-	if application.Disagreed != nil && *application.Disagreed {
-		tmplPath = "./tmpl/application_disagreed.html"
-		agreed := false
-		resultData.Agreed = &agreed
-	}
-	if tmplPath == `` || resultData.Agreed == nil {
-		result.SetErrorResult(`Абитуриент не давал согласия`)
-		return
-	}
+	var tmplPath = "./tmpl/application.html"
 	resultData.TmplPath = &tmplPath
-	var agreedHistory digest.ApplicationsAgreedHistory
-	conn.Where(`id_application=? AND agreed = ?`, application.Id, resultData.Agreed).Limit(`1`).Order(`created desc`).Find(&agreedHistory)
-	if agreedHistory.Id <= 0 {
-		result.SetErrorResult(`История согласия не найдена`)
-		return
-	}
-	resultData.AgreedHistory.Date = checkEmptyPdfValueTime(&agreedHistory.Date, `02.01.2006 15:04`, `(GMT+03:00)`)
-	resultData.AgreedHistory.UidSmev = checkEmptyPdfValueString(agreedHistory.UidSmev)
 
 	var entrant digest.Entrants
 	conn.Preload(`Gender`).Preload(`Okcm`).Where(`id=?`, application.EntrantsId).Find(&entrant)
@@ -2359,6 +2692,50 @@ func (result *ResultInfo) GeneratePDFApplicationData(params PDFApplicationParams
 	}
 	resultData.Organization.Name = checkEmptyPdfValueString(&organization.FullTitle)
 
+	for _, idTest := range params.Tests {
+		var appTest digest.AppEntranceTest
+		conn.Where(`id =?`, idTest).Find(&appTest)
+		if appTest.Id > 0 {
+			var test digest.EntranceTest
+			conn.Preload(`Subject`).Preload(`EntranceTestType`).Where(`id =?`, appTest.IdEntranceTest).Find(&test)
+			en := EntranceTestPdf{
+				Type:    checkEmptyPdfValueString(&test.EntranceTestType.Name),
+				Subject: checkEmptyPdfValueString(&test.Subject.Name),
+				Ege:     checkEmptyPdfValueBool(&test.IsEge),
+				Date:    checkEmptyPdfValueTime(&appTest.IssueDate, `02.01.2006 15:04`, `(GMT+03:00)`),
+				Mark:    fmt.Sprintf(`%d`, appTest.ResultValue),
+			}
+			hasDoc := false
+			if appTest.IdDocument != nil {
+				hasDoc = true
+			}
+			en.Doc = checkEmptyPdfValueBool(&hasDoc)
+			resultData.EntranceTests = append(resultData.EntranceTests, en)
+		}
+	}
+	for _, idAchievement := range params.Achievements {
+		var appAchievements digest.AppAchievements
+		conn.Preload(`AchievementCategory`).Where(`id =?`, idAchievement).Find(&appAchievements)
+		if appAchievements.Id > 0 {
+			var achievement digest.IndividualAchievements
+			ac := AchievementPdf{
+				Name:     `-`,
+				Category: checkEmptyPdfValueString(&appAchievements.AchievementCategory.Name),
+				Mark:     fmt.Sprintf(`%d`, appAchievements.Mark),
+			}
+			if appAchievements.IdIndividualAchievement != nil {
+				conn.Where(`id =?`, appAchievements.IdIndividualAchievement).Find(&achievement)
+				ac.Name = checkEmptyPdfValueString(&achievement.Name)
+			}
+			hasDoc := false
+			if appAchievements.IdDocument != nil {
+				hasDoc = true
+			}
+			ac.Doc = checkEmptyPdfValueBool(&hasDoc)
+			resultData.Achievements = append(resultData.Achievements, ac)
+		}
+	}
+
 	var competitive digest.CompetitiveGroup
 	conn.Preload(`Direction`).Preload(`EducationLevel`).Preload(`EducationForm`).Preload(`EducationSource`).Preload(`LevelBudget`).Where(`id=?`, application.IdCompetitiveGroup).Find(&competitive)
 	if competitive.Id <= 0 {
@@ -2385,6 +2762,17 @@ func checkEmptyPdfValueString(value *string) string {
 			return `-`
 		}
 		return fmt.Sprintf(`%v`, *value)
+	}
+}
+func checkEmptyPdfValueBool(value *bool) string {
+	if value == nil {
+		return `Не указано`
+	} else {
+		if *value {
+			return `Да`
+		} else {
+			return `Нет`
+		}
 	}
 }
 

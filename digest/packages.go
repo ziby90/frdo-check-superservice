@@ -45,6 +45,44 @@ type MarkEgePackages struct {
 	Source         *string          `json:"source"`
 	Duration       float64          `json:"duration"`
 }
+type OrderPackages struct {
+	Id             uint             `json:"id"`
+	Status         PackagesStatuses `gorm:"foreignkey:id_status"`
+	IdStatus       uint             `json:"id_status" schema:"id_status"`
+	IdAuthor       uint             `json:"id_author"`
+	IdOrganization uint             `json:"id_organization"`
+	Name           string           `json:"name"`
+	PathFile       string           `json:"path_file"`
+	Error          *string          `json:"error"`
+	Created        time.Time        `json:"created"`
+	CountAll       int64            `json:"count_all"`
+	CountAdd       int64            `json:"count_add"`
+	Source         *string          `json:"source"`
+	Duration       float64          `json:"duration"`
+}
+
+type OrderElement struct {
+	Id                     uint `json:"id"`
+	IdApplication          *uint
+	IdCampaign             uint
+	IdEducationForm        uint
+	IdEducationSource      uint
+	IdEducationLevel       uint
+	OrderName              string
+	OrderNumber            string
+	OrderDate              time.Time
+	Published              *time.Time
+	IdOrderAdmissionStatus uint
+	IdOrderAdmissionType   uint
+	PreferentialOrder      bool
+	Foreigners             bool
+	Removed                bool
+	IdPackage              uint      `json:"id_package"`
+	Checked                bool      `json:"checked"`
+	Actual                 bool      `json:"actual"`
+	Error                  *string   `json:"error"`
+	Created                time.Time `json:"created"`
+}
 
 type RatingApplicationsPackages struct {
 	Id             uint             `json:"id"`
@@ -160,10 +198,23 @@ type RatingCompetitiveElement struct {
 	IdCompetitiveGroupsApplication *uint     `json:"id_competitive_groups_applications"`
 }
 
+func (MarkEgeElement) TableName() string {
+	return "packages.mark_ege_elements"
+}
+func (MarkEgePackages) TableName() string {
+	return "packages.mark_ege_packages"
+}
+
+func (OrderElement) TableName() string {
+	return "packages.order_elements"
+}
+func (OrderPackages) TableName() string {
+	return "packages.order_packages"
+}
+
 func (RatingCompetitiveElement) TableName() string {
 	return "packages.rating_competitive_applications_element"
 }
-
 func (RatingCompetitivePackages) TableName() string {
 	return "packages.rating_competitive_applications_packages"
 }
@@ -174,12 +225,7 @@ func (RatingApplicationsElement) TableName() string {
 func (RatingApplicationsPackages) TableName() string {
 	return "packages.rating_applications_packages"
 }
+
 func (SyncRatingCompetitiveGroupApplications) TableName() string {
 	return "packages.sync_rating_competitive_group_applications"
-}
-func (MarkEgeElement) TableName() string {
-	return "packages.mark_ege_elements"
-}
-func (MarkEgePackages) TableName() string {
-	return "packages.mark_ege_packages"
 }
