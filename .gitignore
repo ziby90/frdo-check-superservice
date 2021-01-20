@@ -1,8 +1,0 @@
-conf.json
-/super-service-frontend
-/.idea
-/uploads
-go.mod
-go.sum
-persons
-persons.exe
