@@ -22,7 +22,7 @@ type User struct {
 	Email               *string              `json:"email"`
 	IdAuthor            *uint                `json:"id_Author"`
 	Actual              bool                 `json:"actual"` // Актуальность
-	Changed             *time.Time           `json:"changed"`
+	UpdatedAt           *time.Time           `json:"update_at"`
 	Snils               *string              `json:"snils"`
 }
 

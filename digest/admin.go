@@ -18,25 +18,34 @@ type Organization struct {
 	Address    string     `xml:"address" json:"address"`
 	Phone      string     `xml:"phone" json:"phone"`
 	IdEiis     string     `json:"id_eiis"`
-	Created    time.Time  `xml:"created" json:"created"`
+	CreatedAt  time.Time  `xml:"created_at" json:"created_at"`
 	Actual     bool       `xml:"actual" json:"actual"`
 	Filial     bool       `xml:"filial" json:"filial"`
 	IsOOVO     bool       `json:"is_oovo"`
 	Changed    *time.Time `json:"changed"`
 }
 type OrganizationsUsers struct {
+	Id             uint `json:"id"`
+	IdUser         uint `json:"id_user"`
+	IdOrganization uint `json:"id_organization"`
+	IdLink         uint `json:"id_link"`
+}
+
+type RequestLinks struct {
 	Id                   uint                 `json:"id"`
 	IdUser               uint                 `json:"id_user"`
+	User                 User                 `gorm:"foreignkey:IdUser"`
 	IdOrganization       uint                 `json:"id_organization"`
 	Organization         Organization         `gorm:"foreignkey:IdOrganization"`
 	IdStatus             uint                 `json:"id_status"`
 	OrganizationStatuses OrganizationStatuses `gorm:"foreignkey:IdStatus"`
 	ConfirmingDoc        *string              `json:"confirming_doc"`
-	Created              time.Time            `json:"created"`
-	Changed              *time.Time           `json:"changed"`
+	CreatedAt            time.Time            `xml:"created_at" json:"created_at"`
+	UpdatedAt            *time.Time           `json:"updated_at"`
 	Comment              *string              `json:"comment"`
 	IdAuthor             *uint                `json:"id_author"`
 }
+
 type OrgDirections struct {
 	Id          uint       `json:"id"`
 	Direction   Direction  `json:"direction" gorm:"foreignkey:id_direction"`
@@ -44,7 +53,7 @@ type OrgDirections struct {
 	IdLicense   *uint      `json:"id_license" schema:"id_license"`
 	IdEiis      string     `json:"id_eiis" schema:"id_eiis"`
 	Code        *string    `json:"code" schema:"code"`
-	Created     time.Time  `json:"created"`
+	CreatedAt   time.Time  `xml:"created_at" json:"created_at"`
 	Changed     *time.Time `json:"changed"`
 	Actual      bool       `json:"actual"`
 }
@@ -59,7 +68,7 @@ type VOrganizationsDirections struct {
 	IdParent           uint      `json:"id_parent"`
 	IdEducationLevel   uint      `json:"id_education_level"`
 	NameEducationLevel string    `json:"name_education_level"`
-	Created            time.Time `json:"created"`
+	CreatedAt          time.Time `xml:"created_at" json:"created_at"`
 	Actual             bool      `json:"actual"`
 }
 
@@ -72,6 +81,9 @@ func (OrgDirections) TableName() string {
 }
 func (OrganizationsUsers) TableName() string {
 	return "admin.organizations_users"
+}
+func (RequestLinks) TableName() string {
+	return "admin.request_links"
 }
 func (VOrganizationsDirections) TableName() string {
 	return "admin.v_org_directions"

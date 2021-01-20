@@ -24,11 +24,11 @@ func GetApiHandlerNoOrg(r *mux.Router) {
 	AddOlympHandler(r)
 	AddEntrantHandler(r)
 	AddDocsHandler(r)
-
 }
 
 func GetApiHandlerNoAuth(r *mux.Router) {
 	AddAuthHandler(r)
 	AddNewHandler(r)
 	AddAnalyticsHandler(r)
+	AddOrgsNoAuthHandler(r)
 }

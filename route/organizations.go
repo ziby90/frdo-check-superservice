@@ -9,6 +9,14 @@ import (
 	"persons/service"
 )
 
+func AddOrgsNoAuthHandler(r *mux.Router) {
+	r.HandleFunc("/api/organizations/short", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		res.GetListOrganizationShort()
+		service.ReturnJSON(w, &res)
+	}).Methods("GET")
+}
+
 func AddOrgsHandler(r *mux.Router) {
 	// инфа по организации
 	r.HandleFunc("/organizations/info", func(w http.ResponseWriter, r *http.Request) {

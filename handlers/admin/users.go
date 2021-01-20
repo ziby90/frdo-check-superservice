@@ -138,7 +138,7 @@ func (result *ResultInfo) GetInfoUser(idUser uint) {
 			`email`:             item.Email,
 			`snils`:             item.Snils,
 			`id_author`:         item.IdAuthor,
-			`changed`:           item.Changed,
+			`updated_at`:        item.UpdatedAt,
 			`id_role`:           item.Role.Id,
 			`name_role`:         item.Role.Name,
 			`code_role`:         item.Role.Code,
@@ -270,21 +270,7 @@ func (result *Result) GetLinksUser(idUser uint) {
 			return
 		}
 		var c []interface{}
-		for _, value := range links {
-			hasFile := false
-			if value.ConfirmingDoc != nil {
-				hasFile = true
-			}
-			c = append(c, map[string]interface{}{
-				`id`:              value.Id,
-				`has_file`:        hasFile,
-				`file`:            value.ConfirmingDoc,
-				`id_organization`: value.Organization.Id,
-				`ogrn`:            value.Organization.Ogrn,
-				`kpp`:             value.Organization.Kpp,
-				`short_title`:     value.Organization.ShortTitle,
-			})
-		}
+
 		result.Done = true
 		result.Items = c
 		return
@@ -324,9 +310,9 @@ func (result *ResultInfo) AddLinksToUser(idUser uint, idOrganization uint, f *di
 		result.Message = &message
 		return
 	}
-	var link digest.OrganizationsUsers
+	var link digest.RequestLinks
 	var exist digest.OrganizationsUsers
-	db = tx.Where(`id_user=? AND id_organization=? AND id_status IN (1,2) `, idUser, idOrganization).Find(&exist)
+	db = tx.Where(`id_user=? AND id_organization=? `, idUser, idOrganization).Find(&exist)
 	if exist.Id > 0 {
 		result.SetErrorResult(`Данная связь уже существует или на рассмотрении`)
 		tx.Commit()
@@ -359,7 +345,7 @@ func (result *ResultInfo) AddLinksToUser(idUser uint, idOrganization uint, f *di
 	link.ConfirmingDoc = &name
 	link.IdStatus = 2
 	link.IdAuthor = &result.User.Id
-	link.Created = time.Now()
+	link.CreatedAt = time.Now()
 	link.Comment = comment
 	result.PrimaryLogging.SetNewData(link)
 	db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&link)
@@ -420,7 +406,7 @@ func (result *ResultInfo) CreateUser(data AddUser, f *digest.File) {
 			result.SetErrorResult("Организация не найдена")
 			return
 		}
-		var link digest.OrganizationsUsers
+		var link digest.RequestLinks
 		path := getPath(user.Id, link.TableName(), time.Now())
 		ext := filepath.Ext(path + `/` + f.Header.Filename)
 		sha1FileName := sha1.Sum([]byte(link.TableName() + time.Now().String()))
@@ -448,7 +434,7 @@ func (result *ResultInfo) CreateUser(data AddUser, f *digest.File) {
 		link.ConfirmingDoc = &name
 		link.IdStatus = 2
 		link.IdAuthor = &result.User.Id
-		link.Created = time.Now()
+		link.CreatedAt = time.Now()
 		link.Comment = data.Comment
 		db = tx.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false).Create(&link)
 		if db.Error != nil {
@@ -546,14 +532,6 @@ func (result *ResultInfo) GetFileLink(idLink uint) {
 			return
 		}
 		result.SetErrorResult("Ошибка подключения к БД.")
-		return
-	}
-	if doc.ConfirmingDoc != nil && *doc.ConfirmingDoc != `` {
-		filename := *doc.ConfirmingDoc
-		path := getPath(doc.IdUser, doc.TableName(), doc.Created) + filename
-		result.Items = path
-	} else {
-		result.SetErrorResult("Файл не найден.")
 		return
 	}
 	result.Done = true

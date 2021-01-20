@@ -90,7 +90,7 @@ func NewResult() Result {
 			Limit:       10,
 		},
 		Sort: Sort{
-			Field: "created",
+			Field: "created_at",
 			Order: "asc",
 		},
 		Search: [][]string{},

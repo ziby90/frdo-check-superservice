@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"net/http"
 	"persons/digest"
 	"persons/handlers"
@@ -152,4 +153,47 @@ func AddAuthHandler(r *mux.Router) {
 		res.PrimaryLogging.Result = true
 		service.ReturnJSON(w, &res)
 	}).Methods("GET")
+	// регистрация пользователя
+	r.HandleFunc("/api/registration", func(w http.ResponseWriter, r *http.Request) {
+		var res handlers.ResultInfo
+		var cmp handlers.AddUser
+		res.PrimaryLogging = digest.PrimaryLogging{
+			TableObject: `admin.users`,
+			Action:      "registration",
+			Created:     time.Now(),
+			Source:      "cabinet",
+			Route:       &r.URL.Path,
+			IdAuthor:    res.User.Id,
+		}
+		err := r.ParseMultipartForm(0)
+		if err != nil {
+			res.SetErrorResult(err.Error())
+			service.ReturnJSON(w, &res)
+			return
+		}
+		decoder := schema.NewDecoder()
+		err = decoder.Decode(&cmp, r.Form)
+		if err != nil {
+			res.SetErrorResult(err.Error())
+			service.ReturnJSON(w, &res)
+			return
+		}
+		file, header, fileErr := r.FormFile("file")
+		if fileErr != nil && fileErr.Error() != "http: no such file" {
+			res.SetErrorResult(fileErr.Error())
+			service.ReturnJSON(w, &res)
+			return
+		}
+		var f *digest.File
+		if fileErr == nil {
+			f = &digest.File{
+				MultFile: file,
+				Header:   *header,
+			}
+		}
+		res.RegistrationUser(cmp, f)
+		res.PrimaryLogging.Result = res.Done
+		res.PrimaryLogging.Errors = res.Message
+		service.ReturnJSON(w, &res)
+	}).Methods("POST")
 }

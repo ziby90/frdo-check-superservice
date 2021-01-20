@@ -52,7 +52,7 @@ func (result *ResultInfo) GetInfoOrganization() {
 		c := map[string]interface{}{
 			`id`:          organization.Id,
 			`short_title`: organization.ShortTitle,
-			`created`:     organization.Created,
+			`created_at`:  organization.CreatedAt,
 			`is_oovo`:     organization.IsOOVO,
 			`ogrn`:        organization.Ogrn,
 			`kpp`:         organization.Kpp,
@@ -116,7 +116,7 @@ func (result *ResultInfo) AddOrganizationDirection(directions IdsDirectionOrgani
 				IdDirection: value,
 				IdEiis:      organization.IdEiis,
 				Code:        &r.Code,
-				Created:     time.Now(),
+				CreatedAt:   time.Now(),
 				Actual:      true,
 			}
 
@@ -448,4 +448,46 @@ func (result *ResultInfo) SetIsOOVOOrganization(isOOVO bool) {
 	result.Done = true
 	tx.Commit()
 	return
+}
+
+func (result *ResultInfo) GetListOrganizationShort() {
+	result.Done = false
+	conn := config.Db.ConnGORM
+	conn.LogMode(config.Conf.Dblog)
+	var organizations []digest.Organization
+	db := conn.Where(`actual is true`).Find(&organizations)
+	var orgs []interface{}
+	if db.Error != nil {
+		if db.Error.Error() == service.ErrorDbNotFound {
+			result.Done = true
+			message := `Организации не найдены.`
+			result.Message = &message
+			return
+		}
+		message := `Ошибка подключения к БД.`
+		result.Message = &message
+		return
+	}
+	if db.RowsAffected > 0 {
+		for _, organization := range organizations {
+			c := map[string]interface{}{
+				`id`:          organization.Id,
+				`short_title`: organization.ShortTitle,
+				`created_at`:  organization.CreatedAt,
+				`is_oovo`:     organization.IsOOVO,
+				`ogrn`:        organization.Ogrn,
+				`kpp`:         organization.Kpp,
+			}
+			orgs = append(orgs, c)
+		}
+		result.Done = true
+		result.Items = orgs
+		return
+	} else {
+		result.Done = true
+		message := `Организации не найдены.`
+		result.Message = &message
+		result.Items = []digest.Organization{}
+		return
+	}
 }
