@@ -1,0 +1,6 @@
+.env
+/uploads
+/logs
+/.idea
+go.mod
+go .sum
