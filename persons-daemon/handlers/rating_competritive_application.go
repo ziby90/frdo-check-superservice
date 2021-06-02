@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -40,7 +41,7 @@ func RatingCompetitiveApplicationJob(id uint) {
 	Conn.Exec(`DELETE FROM packages.rating_competitive_applications_element WHERE id_package=?`, id)
 	pathFile := RestorePath(p.PathFile, p.IdAuthor, p.TableName(), p.CreatedAt)
 	ext := strings.Split(p.PathFile, ".")
-	p.NewLog(pathFile, `LOG-`+p.PathFile+`.txt`)
+	p.NewLog(pathFile)
 	file, err := os.Open(pathFile)
 	fmt.Println(pathFile)
 	defer file.Close()
@@ -91,6 +92,15 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 	idCompetitiveGroup, nameCompetitiveGroup = FindCompetitiveGroup(ratings.CompetitiveGroupApplicationsList.UIDCompetitiveGroup)
 	nameOrganization := FindOrganization(p.IdOrganization)
 	idOrganization := p.IdOrganization
+
+	if idCompetitiveGroup != nil {
+		errLink := CheckOrganizationCompetitive(*idCompetitiveGroup, p.IdOrganization)
+		if errLink != nil {
+			Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"count_all": 0, "count_add": 0, "error": errLink.Error(), "id_status": 4})
+			return
+		}
+	}
+
 	ratingRequest := model.RatingCompetitiveRequest{
 		IdCompetitiveGroup: idCompetitiveGroup,
 		CompetitiveGroup:   nameCompetitiveGroup,
@@ -182,12 +192,19 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 					IdApplication:      element.RatingCompetitiveApplication.IdApplication,
 				},
 			}
-			publicElements = append(publicElements, publicElem)
-
-			element.Checked = true
-			if element.IdApplication != nil {
-				Conn.Exec(`UPDATE app.applications SET rating=?, updated_at=? WHERE id=?`, element.Rating, time.Now(), element.IdApplication)
+			if idApplication != nil {
+				errLink := CheckOrganizationApplication(*idApplication, p.IdOrganization)
+				if errLink != nil {
+					m := errLink.Error()
+					element.Error = &m
+					element.Checked = false
+				} else {
+					publicElements = append(publicElements, publicElem)
+					element.Checked = true
+					Conn.Exec(`UPDATE app.applications SET rating=?, updated_at=? WHERE id=?`, element.Rating, time.Now(), element.IdApplication)
+				}
 			}
+
 		}
 
 		if idCompetitiveGroup == nil {
@@ -244,17 +261,48 @@ func FindCompetitiveGroup(uid string) (id *uint, name *string) {
 	}
 	db := Conn.Where(`uid=? AND actual is true`, uid).Table(`cmp.competitive_groups`).Limit(1).Scan(&item)
 	if db.Error != nil && db.Error.Error() != `record not found` {
-		panic(db.Error.Error())
+		//panic(db.Error.Error())
+		return nil, nil
 	}
 	return item.Id, item.Name
 }
+func CheckOrganizationCompetitive(idCompetitive uint, idOrganization uint) error {
+	var item struct {
+		Id *uint `json:"id"`
+	}
+	db := Conn.Where(`id=? AND actual is true AND id_organization=?`, idCompetitive, idOrganization).Table(`cmp.competitive_groups`).Limit(1).Scan(&item)
+	if db.Error != nil && db.Error.Error() != `record not found` {
+		//panic(db.Error.Error())
+		return db.Error
+	}
+	if item.Id == nil {
+		return errors.New(`Не найдена связь организации и конкурса `)
+	}
+	return nil
+}
+func CheckOrganizationApplication(idApplication uint, idOrganization uint) error {
+	var item struct {
+		Id *uint `json:"id"`
+	}
+	db := Conn.Where(`id=? AND actual is true AND id_organization=?`, idApplication, idOrganization).Table(`app.applications`).Limit(1).Scan(&item)
+	if db.Error != nil && db.Error.Error() != `record not found` {
+		//panic(db.Error.Error())
+		return db.Error
+	}
+	if item.Id == nil {
+		return errors.New(`Не найдена связь организации и заявления `)
+	}
+	return nil
+}
+
 func FindOrganization(id uint) string {
 	var item struct {
 		ShortTitle string `json:"name"`
 	}
 	db := Conn.Where(`id=? AND actual is true`, id).Table(`admin.organizations`).Scan(&item)
 	if db.Error != nil && db.Error.Error() != `record not found` {
-		panic(db.Error.Error())
+		//panic(db.Error.Error())
+		return ``
 	}
 	return item.ShortTitle
 }
@@ -264,7 +312,8 @@ func FindApplicationsEpgu(uidEpgu int64) *uint {
 	}
 	db := Conn.Where(`uid_epgu=? AND actual is true`, uidEpgu).Table(`app.applications`).Scan(&item)
 	if db.Error != nil && db.Error.Error() != `record not found` {
-		panic(db.Error.Error())
+		//panic(db.Error.Error())
+		return nil
 	}
 	return item.Id
 }
@@ -274,7 +323,8 @@ func FindApplications(uid string) *uint {
 	}
 	db := Conn.Where(`uid=? AND actual is true`, uid).Table(`app.applications`).Scan(&item)
 	if db.Error != nil && db.Error.Error() != `record not found` {
-		panic(db.Error.Error())
+		//panic(db.Error.Error())
+		return nil
 	}
 	return item.Id
 }
