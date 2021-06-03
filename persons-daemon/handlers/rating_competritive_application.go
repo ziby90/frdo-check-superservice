@@ -240,7 +240,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 	}
 	Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": nil, "count_all": countAll, "count_add": countAdd, "id_status": 3})
 
-	if idCompetitiveGroup!=nil && len(publicElements)>0{
+	if idCompetitiveGroup != nil && len(publicElements) > 0 {
 		queryRating := model.Rating{
 			IdPackage:          p.Id,
 			IdCompetitiveGroup: *idCompetitiveGroup,
@@ -253,7 +253,6 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": err.Error(), "count_all": countAll, "count_add": countAdd, "id_status": 5})
 		}
 	}
-
 
 }
 
