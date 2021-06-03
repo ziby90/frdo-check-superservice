@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"persons-daemon/config"
 	"persons-daemon/model"
 	"strings"
 	"time"
@@ -235,6 +239,50 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 		Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": `Данные не обнаружены`, "count_all": countAll, "count_add": countAdd, "id_status": 4})
 	}
 	Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": nil, "count_all": countAll, "count_add": countAdd, "id_status": 3})
+
+	if idCompetitiveGroup!=nil && len(publicElements)>0{
+		queryRating := model.Rating{
+			IdPackage:          p.Id,
+			IdCompetitiveGroup: *idCompetitiveGroup,
+			Type:               "ratingcompetitive",
+			IdAuthor:           p.IdAuthor,
+			Source:             "web",
+		}
+		err = SendRatingToRabbit(queryRating)
+		if err != nil {
+			Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": err.Error(), "count_all": countAll, "count_add": countAdd, "id_status": 5})
+		}
+	}
+
+
+}
+
+func SendRatingToRabbit(rating model.Rating) error {
+	code := config.Conf.Code
+	if code == nil {
+		return errors.New(`not found code in config`)
+	}
+	query := model.AddQueueRating{
+		Code:   *code,
+		Rating: rating,
+	}
+	msg, err := json.Marshal(query)
+	if err != nil {
+		return err
+	}
+	var urlPath string
+	if config.Conf.UrlRabbit != nil {
+		urlPath = *config.Conf.UrlRabbit
+	}
+	resp, err := http.Post(urlPath+"/api/rating/new", "application/json", bytes.NewBuffer(msg))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.New(`nbvnvb`)
+	}
+	return nil
 }
 
 func RatingCompetitiveApplicationParseCsvFile(path string, p model.RatingCompetitiveApplicationPackages) {
