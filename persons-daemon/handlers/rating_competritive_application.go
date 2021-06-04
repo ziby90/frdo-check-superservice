@@ -165,9 +165,13 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			m := `Не найдена конкурсная группа`
 			element.Error = &m
 		}
+		if idApplication == nil {
+			m := `Не найдено заявление`
+			element.Error = &m
+		}
 
 		if element.IdCompetitiveGroup != nil {
-			element.Checked = true
+			//element.Checked = true
 			publicElem := model.RatingCompetitiveApplicationRow{
 				RatingCompetitiveRequest: element.RatingCompetitiveRequest,
 				RatingCompetitiveApplication: model.RatingCompetitiveApplication{
