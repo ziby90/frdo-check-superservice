@@ -240,6 +240,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 	}
 	Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": nil, "count_all": countAll, "count_add": countAdd, "id_status": 3})
 
+	p.SetLog(fmt.Sprintf(`idCOmpetitiveGroup - %v, len(publicElements) - %d`, idCompetitiveGroup, len(publicElements)))
 	if idCompetitiveGroup != nil && len(publicElements) > 0 {
 		queryRating := model.Rating{
 			IdPackage:          p.Id,
@@ -249,8 +250,12 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			Source:             "web",
 		}
 		err = SendRatingToRabbit(queryRating)
+
 		if err != nil {
+			p.SetLog(` error sending to rabbit`)
 			Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": err.Error(), "count_all": countAll, "count_add": countAdd, "id_status": 5})
+		} else {
+			p.SetLog(`sending to rabbit`)
 		}
 	}
 
