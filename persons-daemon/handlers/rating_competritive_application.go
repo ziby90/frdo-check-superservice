@@ -103,6 +103,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"count_all": 0, "count_add": 0, "error": errLink.Error(), "id_status": 4})
 			return
 		}
+		Conn.Exec(`DELETE FROM rating.completitive_groups_applications WHERE id_competitive_group =?`, idCompetitiveGroup)
 	}
 
 	ratingRequest := model.RatingCompetitiveRequest{
@@ -165,10 +166,10 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			m := `Не найдена конкурсная группа`
 			element.Error = &m
 		}
-		if idApplication == nil {
-			m := `Не найдено заявление`
-			element.Error = &m
-		}
+		//if idApplication == nil {
+		//	m := `Не найдено заявление`
+		//	element.Error = &m
+		//}
 
 		if element.IdCompetitiveGroup != nil {
 			//element.Checked = true
@@ -200,19 +201,27 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 					IdApplication:      element.RatingCompetitiveApplication.IdApplication,
 				},
 			}
+
+			publicElements = append(publicElements, publicElem)
+			element.Checked = true
 			if idApplication != nil {
 				errLink := CheckOrganizationApplication(*idApplication, p.IdOrganization)
-				if errLink != nil {
-					m := errLink.Error()
-					element.Error = &m
-					element.Checked = false
-				} else {
-					publicElements = append(publicElements, publicElem)
-					element.Checked = true
+				if errLink==nil{
 					Conn.Exec(`UPDATE app.applications SET rating=?, updated_at=? WHERE id=?`, element.Rating, time.Now(), element.IdApplication)
 				}
 			}
-
+			//if idApplication != nil {
+			//	errLink := CheckOrganizationApplication(*idApplication, p.IdOrganization)
+			//	if errLink != nil {
+			//		m := errLink.Error()
+			//		element.Error = &m
+			//		element.Checked = false
+			//	} else {
+			//		publicElements = append(publicElements, publicElem)
+			//		element.Checked = true
+			//		Conn.Exec(`UPDATE app.applications SET rating=?, updated_at=? WHERE id=?`, element.Rating, time.Now(), element.IdApplication)
+			//	}
+			//}
 		}
 
 		if idCompetitiveGroup == nil {
