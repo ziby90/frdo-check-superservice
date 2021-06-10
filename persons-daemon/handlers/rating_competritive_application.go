@@ -206,7 +206,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 			element.Checked = true
 			if idApplication != nil {
 				errLink := CheckOrganizationApplication(*idApplication, p.IdOrganization)
-				if errLink==nil{
+				if errLink == nil {
 					Conn.Exec(`UPDATE app.applications SET rating=?, updated_at=? WHERE id=?`, element.Rating, time.Now(), element.IdApplication)
 				}
 			}
