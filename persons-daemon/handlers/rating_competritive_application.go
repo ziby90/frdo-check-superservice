@@ -93,7 +93,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 	var publicElements []model.RatingCompetitiveApplicationRow
 	var elements []model.RatingCompetitiveApplicationElement
 	//Conn.Exec(`DELETE FROM rating.applications WHERE id_competitive_group=?`, idCompetitiveGroup)
-	idCompetitiveGroup, nameCompetitiveGroup = FindCompetitiveGroup(ratings.CompetitiveGroupApplicationsList.UIDCompetitiveGroup)
+	idCompetitiveGroup, nameCompetitiveGroup = FindCompetitiveGroup(ratings.CompetitiveGroupApplicationsList.UIDCompetitiveGroup, p.IdOrganization)
 	nameOrganization := FindOrganization(p.IdOrganization)
 	idOrganization := p.IdOrganization
 
@@ -319,12 +319,12 @@ func RatingCompetitiveApplicationParseCsvFile(path string, p model.RatingCompeti
 	//send_to_epgu_xml.PrepareSendRatingCompetitiveFroup(config.Conf.EnvType, idCompetitiveGroup)
 	//Conn.Model(&p).Where(`id=?`, id).Updates(map[string]interface{}{"error": nil, "count_all": countAll, "count_add": countAdd, "id_status": 3})
 }
-func FindCompetitiveGroup(uid string) (id *uint, name *string) {
+func FindCompetitiveGroup(uid string, idOrganization uint) (id *uint, name *string) {
 	var item struct {
 		Name *string `json:"name"`
 		Id   *uint   `json:"id"`
 	}
-	db := Conn.Where(`uid=? AND actual is true`, uid).Table(`cmp.competitive_groups`).Limit(1).Scan(&item)
+	db := Conn.Where(`uid=? AND actual is true ANd id_organization=?`, uid, idOrganization).Table(`cmp.competitive_groups`).Limit(1).Scan(&item)
 	if db.Error != nil && db.Error.Error() != `record not found` {
 		//panic(db.Error.Error())
 		return nil, nil
