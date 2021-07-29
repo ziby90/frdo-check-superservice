@@ -121,12 +121,15 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 		countAll++
 		var orderId interface{}
 		var idApplication *uint
+		var uidEntrant string
 		if value.IDApplicationChoice.UIDEpgu != nil {
 			idApplication = FindApplicationsEpgu(*value.IDApplicationChoice.UIDEpgu)
 			orderId = value.IDApplicationChoice.UIDEpgu
+			uidEntrant = fmt.Sprintf(`%v`, *value.IDApplicationChoice.UIDEpgu)
 		}
-		if value.IDApplicationChoice.UID != nil {
+		if value.IDApplicationChoice.UID != nil && idApplication == nil {
 			idApplication = FindApplications(*value.IDApplicationChoice.UID)
+			uidEntrant = *value.IDApplicationChoice.UID
 			//orderId = value.IDApplicationChoice.UID
 		}
 
@@ -156,6 +159,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 				Original:           value.Original,
 				Addition:           CheckEmptyString(value.Addition),
 				Enlisted:           value.Enlisted,
+				UidEntrant:         &uidEntrant,
 			},
 			IdPackage: id,
 			Checked:   false,
@@ -199,6 +203,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 					Addition:           element.Addition,
 					Enlisted:           element.Enlisted,
 					IdApplication:      element.RatingCompetitiveApplication.IdApplication,
+					UidEntrant:         element.UidEntrant,
 				},
 			}
 
@@ -416,7 +421,7 @@ func BulkCreatePublicElementsApplications(rs []model.RatingCompetitiveApplicatio
 			f := rs[j]
 			valueStrings = append(valueStrings, "(?,?,?,?,?,?,?,?,?"+
 				",?,?,?,?,?,?,?,?,?,?"+
-				",?,?,?,?,?,?,?,?,?,?,?)")
+				",?,?,?,?,?,?,?,?,?,?,?,?)")
 			valueArgs = append(valueArgs, f.IdCompetitiveGroup)
 			valueArgs = append(valueArgs, f.CompetitiveGroup)
 			valueArgs = append(valueArgs, f.IdOrganization)
@@ -447,13 +452,14 @@ func BulkCreatePublicElementsApplications(rs []model.RatingCompetitiveApplicatio
 			valueArgs = append(valueArgs, f.Original)
 			valueArgs = append(valueArgs, f.Addition)
 			valueArgs = append(valueArgs, f.Enlisted)
+			valueArgs = append(valueArgs, f.UidEntrant)
 		}
 		if len(valueArgs) <= 0 {
 			continue
 		}
 		smt := `INSERT INTO rating.completitive_groups_applications(id_competitive_group, competitive_group, id_organization, organization, admission_volume, count_first_step, count_second_step, changed, id_application, orderid
 ,  without_tests, reason_without_tests, entrance_test1, result1, entrance_test2, result2, entrance_test3, result3, entrance_test4
-, result4, entrance_test5, result5, mark,rating, benefit, sum_mark, agreed, original, addition, enlisted) VALUES %s`
+, result4, entrance_test5, result5, mark,rating, benefit, sum_mark, agreed, original, addition, enlisted, uid_entrant) VALUES %s`
 		smt = fmt.Sprintf(smt, strings.Join(valueStrings, ","))
 		db := tx.Exec(smt, valueArgs...)
 		if db.Error != nil {
@@ -473,7 +479,7 @@ func BulkCreateElementsApplications(rs []model.RatingCompetitiveApplicationEleme
 		valueArgs := []interface{}{}
 		for j := i * 1000; j < len(rs) && j < (i*1000+1000); j++ {
 			f := rs[j]
-			valueStrings = append(valueStrings, "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+			valueStrings = append(valueStrings, "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 			valueArgs = append(valueArgs, f.IdPackage)
 			valueArgs = append(valueArgs, f.Checked)
 			valueArgs = append(valueArgs, f.Error)
@@ -509,13 +515,14 @@ func BulkCreateElementsApplications(rs []model.RatingCompetitiveApplicationEleme
 			valueArgs = append(valueArgs, f.Original)
 			valueArgs = append(valueArgs, f.Addition)
 			valueArgs = append(valueArgs, f.Enlisted)
+			valueArgs = append(valueArgs, f.UidEntrant)
 		}
 		if len(valueArgs) <= 0 {
 			continue
 		}
 		smt := `INSERT INTO packages.rating_competitive_applications_element(id_package,checked, error, created_at, id_rating_application, id_competitive_group, competitive_group, id_organization, organization, admission_volume, count_first_step, count_second_step, changed, id_application
 , orderid,  without_tests, reason_without_tests, entrance_test1, result1, entrance_test2, result2, entrance_test3, result3, entrance_test4, result4, entrance_test5, result5
-, mark,rating, benefit, sum_mark, agreed, original, addition, enlisted) VALUES %s`
+, mark,rating, benefit, sum_mark, agreed, original, addition, enlisted, uid_entrant) VALUES %s`
 		smt = fmt.Sprintf(smt, strings.Join(valueStrings, ","))
 
 		db := tx.Exec(smt, valueArgs...)

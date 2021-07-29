@@ -119,6 +119,7 @@ type RatingCompetitiveApplication struct {
 	Original           bool        `json:"original" xml:"original"`
 	Addition           *string     `json:"addition" xml:"addition"`
 	Enlisted           *uint       `json:"enlisted" xml:"enlisted"`
+	UidEntrant         *string     `json:"uid_entrant"`
 }
 
 func (RatingCompetitiveApplicationRow) TableName() string {
