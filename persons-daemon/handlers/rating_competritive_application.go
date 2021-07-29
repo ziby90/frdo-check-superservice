@@ -121,7 +121,7 @@ func RatingApplicationsParseXmlFile(file *os.File, p model.RatingCompetitiveAppl
 		countAll++
 		var orderId interface{}
 		var idApplication *uint
-		var uidEntrant string
+		uidEntrant := `отсутствует`
 		if value.IDApplicationChoice.UIDEpgu != nil {
 			idApplication = FindApplicationsEpgu(*value.IDApplicationChoice.UIDEpgu)
 			orderId = value.IDApplicationChoice.UIDEpgu
